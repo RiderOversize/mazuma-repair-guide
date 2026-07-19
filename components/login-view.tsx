@@ -131,11 +131,27 @@ function ScenarioModal({
             onClick={() => onExisting(MOCK_USERS.technician)}
           />
           <ScenarioButton
+            avatar={MOCK_USERS.supervisor.avatar}
+            icon={<ShieldCheck className="size-3.5" />}
+            title="ผู้ใช้เก่า: หัวหน้าช่างสมพงษ์"
+            subtitle="Supervisor • ดูภาพรวมและสถิติ"
+            onClick={() => onExisting(MOCK_USERS.supervisor)}
+            accent
+          />
+          <ScenarioButton
             avatar={MOCK_USERS.admin.avatar}
             icon={<LayoutDashboard className="size-3.5" />}
             title="ผู้ใช้เก่า: แอดมินภานุเดช"
             subtitle="Admin • เข้าสู่แดชบอร์ดทันที"
             onClick={() => onExisting(MOCK_USERS.admin)}
+            accent
+          />
+          <ScenarioButton
+            avatar={MOCK_USERS.adminRestricted.avatar}
+            icon={<ShieldCheck className="size-3.5" />}
+            title="ผู้ใช้เก่า: แอดมินสมหญิง"
+            subtitle="Admin (Restricted) • สิทธิ์จำกัดเมนู"
+            onClick={() => onExisting(MOCK_USERS.adminRestricted)}
             accent
           />
           <ScenarioButton

@@ -1,23 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Flame, Droplets, Gauge, ChevronRight, X } from "lucide-react"
+import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes } from "lucide-react"
 import {
   categories,
   searchModels,
   getCategory,
+  getModelsByCategory,
   type Category,
   type DeviceModel,
 } from "@/lib/mock-data"
 
 const iconFor = (slug: Category["slug"]) => {
   switch (slug) {
-    case "water-heater":
+    case "F1":
       return Flame
-    case "water-purifier":
+    case "F2":
+    case "F3":
+    case "F4":
+    case "F6":
       return Droplets
-    case "water-pump":
+    case "FD":
       return Gauge
+    default:
+      return Boxes
   }
 }
 
@@ -32,42 +38,44 @@ export function TechnicianHome({
   const results = query.trim() ? searchModels(query) : []
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-16 pt-20">
-      {/* Brand header */}
-      <div className="mb-5">
-        <div className="flex items-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary font-display text-lg font-bold text-primary-foreground">
-            M
-          </div>
-          <div>
-            <h1 className="font-display text-lg font-semibold leading-tight">
-              Mazuma Repair Guide
-            </h1>
-            <p className="text-xs text-muted-foreground">คู่มือซ่อมสำหรับช่างเทคนิค</p>
+    <div className="mx-auto w-full max-w-lg px-4 pb-16">
+      <div className="sticky top-0 z-20 bg-background pt-14 pb-4">
+        {/* Brand header */}
+        <div className="mb-5">
+          <div className="flex items-center gap-2">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary font-display text-lg font-bold text-primary-foreground">
+              M
+            </div>
+            <div>
+              <h1 className="font-display text-lg font-semibold leading-tight">
+                Mazuma Repair Guide
+              </h1>
+              <p className="text-xs text-muted-foreground">คู่มือซ่อมสำหรับช่างเทคนิค</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Global search */}
-      <div className="relative mb-2">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="ค้นหาด้วยชื่อรุ่น หรือรหัสสินค้า"
-          className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-10 text-sm outline-none ring-primary/30 focus:ring-2"
-        />
-        {query ? (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="ล้างการค้นหา"
-          >
-            <X className="size-4" />
-          </button>
-        ) : null}
+        {/* Global search */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ค้นหาด้วยชื่อรุ่น หรือรหัสสินค้า"
+            className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-10 text-sm outline-none ring-primary/30 focus:ring-2"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="ล้างการค้นหา"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Search results */}
@@ -131,7 +139,7 @@ export function TechnicianHome({
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-                  {cat.symptomGroups.length} อาการ
+                  {getModelsByCategory(cat.id).length} รุ่น, {cat.symptomGroups.length} อาการ
                 </span>
                 <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </div>

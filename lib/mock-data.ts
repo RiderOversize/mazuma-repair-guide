@@ -14,9 +14,10 @@ export interface SymptomGroup {
 export interface Category {
   id: string
   name: string
-  /** Short English/label helper for iconography */
-  slug: "water-heater" | "water-purifier" | "water-pump"
+  slug: string
   description: string
+  status?: "active" | "inactive"
+  createdAt?: string
   symptomGroups: SymptomGroup[]
 }
 
@@ -25,6 +26,9 @@ export interface DeviceModel {
   categoryId: string
   name: string
   code: string
+  status?: "active" | "discontinued" | "draft"
+  thumbnail?: string
+  createdAt?: string
 }
 
 export interface GuideStep {
@@ -37,8 +41,12 @@ export interface Guide {
   id: string
   categoryId: string
   symptomGroupId: string
-  /** The actual root cause this guide resolves */
   specificCause: string
+  description?: string // NEW
+  status?: "published" | "draft" | "archived" // NEW
+  tags?: string[] // NEW
+  createdAt?: string // NEW
+  updatedAt?: string // NEW
   supportedModels: string[] // array of DeviceModel ids
   toolsRequired: string[]
   steps: GuideStep[]
@@ -49,42 +57,19 @@ export interface Guide {
 // ---------------------------------------------------------------------------
 
 export const categories: Category[] = [
-  {
-    id: "cat-heater",
-    name: "เครื่องทำน้ำอุ่น",
-    slug: "water-heater",
-    description: "เครื่องทำน้ำอุ่นและน้ำร้อนไฟฟ้า",
-    symptomGroups: [
-      { id: "sg-h1", name: "เครื่องเปิดติด แต่น้ำไม่อุ่น" },
-      { id: "sg-h2", name: "เบรกเกอร์ ELCB ตัดบ่อย" },
-      { id: "sg-h3", name: "น้ำไหลเบา / น้ำไม่ไหล" },
-      { id: "sg-h4", name: "มีน้ำรั่วซึมจากตัวเครื่อง" },
-      { id: "sg-h5", name: "เครื่องไม่ทำงาน (ไฟไม่เข้า)" },
-    ],
-  },
-  {
-    id: "cat-purifier",
-    name: "เครื่องกรองน้ำ",
-    slug: "water-purifier",
-    description: "เครื่องกรองน้ำดื่มระบบ RO และ UF",
-    symptomGroups: [
-      { id: "sg-p1", name: "น้ำไม่ไหลออกจากก๊อก" },
-      { id: "sg-p2", name: "น้ำมีรสชาติ / กลิ่นผิดปกติ" },
-      { id: "sg-p3", name: "ปั๊มทำงานตลอดเวลาไม่ตัด" },
-      { id: "sg-p4", name: "มีน้ำรั่วบริเวณกระบอกไส้กรอง" },
-    ],
-  },
-  {
-    id: "cat-pump",
-    name: "ปั๊มน้ำอัตโนมัติ",
-    slug: "water-pump",
-    description: "ปั๊มน้ำแรงดันอัตโนมัติภายในบ้าน",
-    symptomGroups: [
-      { id: "sg-pu1", name: "ปั๊มตัด-ต่อบ่อยผิดปกติ" },
-      { id: "sg-pu2", name: "ปั๊มไม่ทำงาน / ไม่สตาร์ท" },
-      { id: "sg-pu3", name: "ปั๊มมีเสียงดังผิดปกติ" },
-    ],
-  },
+  { id: "F1", name: "เครื่องทำน้ำอุ่น-น้ำร้อน", slug: "F1", description: "เครื่องทำน้ำอุ่น-น้ำร้อน", status: "active", createdAt: new Date("2023-01-10").toISOString(), symptomGroups: [ { id: "sg-h1", name: "เครื่องเปิดติด แต่น้ำไม่อุ่น" }, { id: "sg-h2", name: "เบรกเกอร์ ELCB ตัดบ่อย" }, { id: "sg-h3", name: "น้ำไหลเบา / น้ำไม่ไหล" }, { id: "sg-h4", name: "มีน้ำรั่วซึมจากตัวเครื่อง" }, { id: "sg-h5", name: "เครื่องไม่ทำงาน (ไฟไม่เข้า)" }, { id: "sg-h6", name: "อุณหภูมิน้ำสวิง (เดี๋ยวร้อนเดี๋ยวเย็น)" } ] },
+  { id: "F2", name: "เครื่องกรองสแตนเลสเล็ก", slug: "F2", description: "เครื่องกรองสแตนเลสเล็ก", symptomGroups: [] },
+  { id: "F3", name: "เครื่องกรองใหญ่", slug: "F3", description: "เครื่องกรองใหญ่", symptomGroups: [] },
+  { id: "F4", name: "เครื่องกรองพลาสติก", slug: "F4", description: "เครื่องกรองพลาสติก", symptomGroups: [ { id: "sg-p1", name: "น้ำไม่ไหลออกจากก๊อก" }, { id: "sg-p2", name: "น้ำมีรสชาติ / กลิ่นผิดปกติ" }, { id: "sg-p3", name: "ปั๊มทำงานตลอดเวลาไม่ตัด" }, { id: "sg-p4", name: "มีน้ำรั่วบริเวณกระบอกไส้กรอง" } ] },
+  { id: "F6", name: "เครื่องกรองงานระบบอุตสาหกรรม", slug: "F6", description: "เครื่องกรองงานระบบอุตสาหกรรม", symptomGroups: [] },
+  { id: "FA", name: "ตู้กดน้ำ", slug: "FA", description: "ตู้กดน้ำ", symptomGroups: [] },
+  { id: "FB", name: "พัดลม", slug: "FB", description: "พัดลม", symptomGroups: [] },
+  { id: "FC", name: "เครื่องฟอก", slug: "FC", description: "เครื่องฟอก", symptomGroups: [] },
+  { id: "FD", name: "ปั๊มน้ำ", slug: "FD", description: "ปั๊มน้ำ", symptomGroups: [ { id: "sg-pu1", name: "ปั๊มตัด-ต่อบ่อยผิดปกติ" }, { id: "sg-pu2", name: "ปั๊มไม่ทำงาน / ไม่สตาร์ท" }, { id: "sg-pu3", name: "ปั๊มมีเสียงดังผิดปกติ" } ] },
+  { id: "FE", name: "SMART ZENFLOW", slug: "FE", description: "SMART ZENFLOW", symptomGroups: [] },
+  { id: "FH", name: "เครื่องผลิตน้ำแข็ง", slug: "FH", description: "เครื่องผลิตน้ำแข็ง", symptomGroups: [] },
+  { id: "FJ", name: "STERILIZER", slug: "FJ", description: "STERILIZER", symptomGroups: [] },
+  { id: "FK", name: "PUDU", slug: "FK", description: "PUDU", symptomGroups: [] },
 ]
 
 // ---------------------------------------------------------------------------
@@ -93,17 +78,28 @@ export const categories: Category[] = [
 
 export const models: DeviceModel[] = [
   // Water heaters
-  { id: "m-h1", categoryId: "cat-heater", name: "Mazuma รุ่น Hydro Pro", code: "MZ-HP4500" },
-  { id: "m-h2", categoryId: "cat-heater", name: "Mazuma รุ่น Aqua Smart", code: "MZ-AS3600" },
-  { id: "m-h3", categoryId: "cat-heater", name: "Mazuma รุ่น Thermo Plus", code: "MZ-TP5000" },
-  { id: "m-h4", categoryId: "cat-heater", name: "Mazuma รุ่น Eco Warm", code: "MZ-EW3300" },
+  { id: "m-h1", categoryId: "F1", name: "Mazuma รุ่น Hydro Pro", code: "MZ-HP4500", status: "active", thumbnail: "https://images.unsplash.com/photo-1585250005740-410a56247c4e?w=300&auto=format&fit=crop&q=60", createdAt: new Date("2023-05-12").toISOString() },
+  { id: "m-h2", categoryId: "F1", name: "Mazuma รุ่น Aqua Smart", code: "MZ-AS3600", status: "active", thumbnail: "https://images.unsplash.com/photo-1542013936693-884638332954?w=300&auto=format&fit=crop&q=60", createdAt: new Date("2023-06-20").toISOString() },
+  { id: "m-h3", categoryId: "F1", name: "Mazuma รุ่น Thermo Plus", code: "MZ-TP5000", status: "discontinued", thumbnail: "", createdAt: new Date("2022-11-05").toISOString() },
+  { id: "m-h4", categoryId: "F1", name: "Mazuma รุ่น Eco Warm", code: "MZ-EW3300", status: "active", thumbnail: "", createdAt: new Date("2024-01-15").toISOString() },
   // Water purifiers
-  { id: "m-p1", categoryId: "cat-purifier", name: "Mazuma รุ่น Pure RO", code: "MZ-RO500" },
-  { id: "m-p2", categoryId: "cat-purifier", name: "Mazuma รุ่น Crystal UF", code: "MZ-UF320" },
-  { id: "m-p3", categoryId: "cat-purifier", name: "Mazuma รุ่น Pure Max", code: "MZ-RO800" },
+  { id: "m-p1", categoryId: "F4", name: "Mazuma รุ่น Pure RO", code: "MZ-RO500", status: "active", thumbnail: "https://images.unsplash.com/photo-1627918349272-9b2f2757270d?w=300&auto=format&fit=crop&q=60", createdAt: new Date("2023-08-01").toISOString() },
+  { id: "m-p2", categoryId: "F4", name: "Mazuma รุ่น Crystal UF", code: "MZ-UF320", status: "active", thumbnail: "", createdAt: new Date("2023-09-10").toISOString() },
+  { id: "m-p3", categoryId: "F4", name: "Mazuma รุ่น Pure Max", code: "MZ-RO800", status: "draft", thumbnail: "", createdAt: new Date("2024-03-25").toISOString() },
   // Pumps
-  { id: "m-pu1", categoryId: "cat-pump", name: "Mazuma รุ่น Power Flow", code: "MZ-PF250" },
-  { id: "m-pu2", categoryId: "cat-pump", name: "Mazuma รุ่น Constant Pro", code: "MZ-CP400" },
+  { id: "m-pu1", categoryId: "FD", name: "Mazuma รุ่น Power Flow", code: "MZ-PF250", status: "active", thumbnail: "https://images.unsplash.com/photo-1584820927508-ea24dfc02b37?w=300&auto=format&fit=crop&q=60", createdAt: new Date("2023-02-14").toISOString() },
+  { id: "m-pu2", categoryId: "FD", name: "Mazuma รุ่น Constant Pro", code: "MZ-CP400", status: "active", thumbnail: "", createdAt: new Date("2023-07-22").toISOString() },
+  
+  // Dummy models to demonstrate missing guides banner
+  ...Array.from({ length: 15 }).map((_, i) => ({
+    id: `m-demo-${i + 1}`,
+    categoryId: "F1",
+    name: `Mazuma รุ่น Demo Series ${i + 1}`,
+    code: `MZ-D${i + 1}00`,
+    status: "draft" as const,
+    thumbnail: "",
+    createdAt: new Date().toISOString()
+  }))
 ]
 
 // ---------------------------------------------------------------------------
@@ -115,9 +111,13 @@ const V = "https://drive.mazuma.internal/secure-video" // mock secured video sou
 export const guides: Guide[] = [
   {
     id: "g-1",
-    categoryId: "cat-heater",
+    categoryId: "F1",
     symptomGroupId: "sg-h1",
     specificCause: "ฮีตเตอร์ขาด (Heating Element Broken)",
+    description: "อาการฮีตเตอร์ขาดมักเกิดจากการใช้งานที่ไม่มีน้ำไหลผ่าน หรือฮีตเตอร์เสื่อมสภาพตามอายุการใช้งาน",
+    status: "published",
+    tags: ["ไฟฟ้า", "ความร้อน", "ฮีตเตอร์", "เปลี่ยนอะไหล่"],
+    createdAt: new Date("2023-11-20").toISOString(),
     supportedModels: ["m-h1", "m-h2", "m-h3"],
     toolsRequired: ["มัลติมิเตอร์", "ไขควงแฉก", "ประแจเลื่อน", "ถุงมือกันไฟฟ้า"],
     steps: [
@@ -145,9 +145,13 @@ export const guides: Guide[] = [
   },
   {
     id: "g-2",
-    categoryId: "cat-heater",
+    categoryId: "F1",
     symptomGroupId: "sg-h1",
     specificCause: "เทอร์โมสตัทเสีย (Thermostat Failure)",
+    description: "เทอร์โมสตัททำหน้าที่ตัดไฟเมื่อความร้อนสูงเกินไป หากเสียหน้าสัมผัสอาจจะไม่ต่อวงจรทำให้น้ำไม่ร้อน",
+    status: "published",
+    tags: ["ไฟฟ้า", "เซ็นเซอร์", "เทอร์โมสตัท"],
+    createdAt: new Date("2023-12-05").toISOString(),
     supportedModels: ["m-h1", "m-h4"],
     toolsRequired: ["มัลติมิเตอร์", "ไขควงแฉก", "ไขควงปากแบน"],
     steps: [
@@ -170,9 +174,13 @@ export const guides: Guide[] = [
   },
   {
     id: "g-3",
-    categoryId: "cat-heater",
+    categoryId: "F1",
     symptomGroupId: "sg-h2",
     specificCause: "ความต้านทานฉนวนฮีตเตอร์ต่ำ (Low Insulation Resistance)",
+    description: "ฉนวนฮีตเตอร์เสื่อมสภาพทำให้มีไฟฟ้ารั่วไหลลงกราวด์ ระบบ ELCB จึงตัดการทำงานเพื่อความปลอดภัย",
+    status: "draft",
+    tags: ["ELCB", "ไฟตก", "อันตราย", "ไฟรั่ว"],
+    createdAt: new Date("2024-02-15").toISOString(),
     supportedModels: ["m-h1", "m-h2", "m-h3", "m-h4"],
     toolsRequired: ["เมกโอห์มมิเตอร์", "ไขควงแฉก", "ถุงมือกันไฟฟ้า"],
     steps: [
@@ -195,7 +203,7 @@ export const guides: Guide[] = [
   },
   {
     id: "g-4",
-    categoryId: "cat-heater",
+    categoryId: "F1",
     symptomGroupId: "sg-h3",
     specificCause: "ตะแกรงกรองน้ำขาเข้าอุดตัน (Clogged Inlet Filter)",
     supportedModels: ["m-h2", "m-h3", "m-h4"],
@@ -220,7 +228,7 @@ export const guides: Guide[] = [
   },
   {
     id: "g-5",
-    categoryId: "cat-purifier",
+    categoryId: "F4",
     symptomGroupId: "sg-p1",
     specificCause: "ไส้กรอง Sediment อุดตัน (Clogged Sediment Filter)",
     supportedModels: ["m-p1", "m-p2", "m-p3"],
@@ -245,7 +253,7 @@ export const guides: Guide[] = [
   },
   {
     id: "g-6",
-    categoryId: "cat-purifier",
+    categoryId: "F4",
     symptomGroupId: "sg-p3",
     specificCause: "สวิตช์แรงดันสูงเสีย (High Pressure Switch Failure)",
     supportedModels: ["m-p1", "m-p3"],
@@ -270,7 +278,7 @@ export const guides: Guide[] = [
   },
   {
     id: "g-7",
-    categoryId: "cat-pump",
+    categoryId: "FD",
     symptomGroupId: "sg-pu1",
     specificCause: "ถังแรงดัน (Pressure Tank) ลมหมด",
     supportedModels: ["m-pu1", "m-pu2"],

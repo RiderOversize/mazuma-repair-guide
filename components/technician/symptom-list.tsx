@@ -32,36 +32,38 @@ export function SymptomList({
   const [open, setOpen] = useState<string | null>(category.symptomGroups[0]?.id ?? null)
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-16 pt-16">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" />
-        กลับหน้าหลัก
-      </button>
+    <div className="mx-auto w-full max-w-lg px-4 pb-16">
+      <div className="sticky top-0 z-20 bg-background pt-14 pb-4 border-b border-border/40 mb-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-3 hidden sm:inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+          กลับหน้าหลัก
+        </button>
 
-      {/* Model detail (when arrived via search) */}
-      {model ? (
-        <div className="mb-4 rounded-2xl border border-primary/30 bg-primary/5 p-4">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
-            <Tag className="size-3.5" />
-            รุ่นที่เลือก
+        {/* Model detail (when arrived via search) */}
+        {model ? (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-primary whitespace-nowrap">
+              <Tag className="size-3.5" />
+              รุ่นที่เลือก
+            </div>
+            <p className="mt-1 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{model.name}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+              รหัส: {model.code} · {category.name}
+            </p>
           </div>
-          <p className="mt-1 font-display text-lg font-semibold">{model.name}</p>
-          <p className="text-sm text-muted-foreground">
-            รหัส: {model.code} · {category.name}
-          </p>
-        </div>
-      ) : (
-        <div className="mb-4">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-            {category.name}
-          </span>
-          <h1 className="mt-1.5 font-display text-xl font-semibold">{category.description}</h1>
-        </div>
-      )}
+        ) : (
+          <div>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary whitespace-nowrap">
+              {category.name}
+            </span>
+            <h1 className="mt-1.5 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{category.description}</h1>
+          </div>
+        )}
+      </div>
 
       <div className="mb-3 flex items-center gap-2">
         <Stethoscope className="size-4 text-muted-foreground" />
