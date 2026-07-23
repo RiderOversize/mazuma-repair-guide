@@ -103,10 +103,15 @@ export function GuideWizard({
           <ChevronLeft className="size-4" />
           กลับ
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {category?.name}
           </span>
+          {model && (
+            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+              รุ่น: {model.name}
+            </span>
+          )}
         </div>
         <h1 className="mt-1.5 font-display text-xl font-semibold leading-snug text-balance">
           {symptom?.description || "ไม่ระบุอาการ"}
