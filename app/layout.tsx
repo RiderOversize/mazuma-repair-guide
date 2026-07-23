@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Prompt, Sarabun } from 'next/font/google'
 import './globals.css'
+import { Providers } from '@/components/providers'
 
 const prompt = Prompt({
   subsets: ['latin', 'thai'],
@@ -36,8 +37,10 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${prompt.variable} ${sarabun.variable} bg-background`}>
       <body className="font-sans antialiased">
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <Providers>
+          {children}
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </Providers>
       </body>
     </html>
   )

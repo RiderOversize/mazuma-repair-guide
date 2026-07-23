@@ -18,9 +18,8 @@ import { SecureVideoPlayer } from "./secure-video-player"
 import {
   type Guide,
   type DeviceModel,
-  getCategory,
-  getSymptomGroup,
-  getModelNames,
+  type Category,
+  type Symptom,
 } from "@/lib/mock-data"
 import { type AuthUser, SUPERVISORS } from "@/lib/auth"
 import { logRepairFeedback, logSessionActivity } from "@/lib/data-service"
@@ -30,11 +29,17 @@ export function GuideWizard({
   guide,
   user,
   model,
+  categories,
+  models,
+  symptoms,
   onBack,
 }: {
   guide: Guide
   user: AuthUser
   model?: DeviceModel | null
+  categories: Category[]
+  models: DeviceModel[]
+  symptoms: Symptom[]
   onBack: () => void
 }) {
   const [current, setCurrent] = useState(0)
@@ -43,9 +48,12 @@ export function GuideWizard({
   const [showContact, setShowContact] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const category = getCategory(guide.categoryId)
-  const symptomGroup = getSymptomGroup(category, guide.symptomGroupId)
-  const modelNames = getModelNames(guide.supportedModels)
+  const category = categories.find(c => c.id === guide.categoryId)
+  const symptom = symptoms.find(s => s.id === guide.symptomId)
+  
+  // Find applicable models based on symptomType matching
+  const applicableModels = models.filter(m => m.categoryId === guide.categoryId && m.symptomTypeId === symptom?.symptomTypeId)
+  const modelNames = applicableModels.map(m => m.name)
   const totalSteps = guide.steps.length
   const step = guide.steps[current]
   const isLast = current === totalSteps - 1
@@ -101,7 +109,7 @@ export function GuideWizard({
           </span>
         </div>
         <h1 className="mt-1.5 font-display text-xl font-semibold leading-snug text-balance">
-          {symptomGroup?.name}
+          {symptom?.description || "ไม่ระบุอาการ"}
         </h1>
       </header>
 
@@ -124,7 +132,7 @@ export function GuideWizard({
           <MonitorSmartphone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">ใช้ได้กับรุ่น: </span>
-            {modelNames.join(", ")}
+            {model ? model.name : (modelNames.length > 0 ? modelNames.join(", ") : "ทุกรุ่นที่เกี่ยวข้อง")}
           </p>
         </div>
 

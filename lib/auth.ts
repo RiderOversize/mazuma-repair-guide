@@ -7,6 +7,7 @@ export interface AuthUser {
   initials: string
   avatar: string
   lineName: string
+  lineUserId?: string
   employeeCode: string
   phone?: string
   accessibleMenus?: string[] // Optional array of menu IDs the user can see (Admin only)

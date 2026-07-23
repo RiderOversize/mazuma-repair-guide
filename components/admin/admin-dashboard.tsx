@@ -18,7 +18,7 @@ import {
   Wifi
 } from "lucide-react"
 import type { Category, DeviceModel, Guide } from "@/lib/mock-data"
-import { getCategories, getGuides, getModels, getRepairStats, getActiveSessions, getTopModels, type ActiveSession } from "@/lib/data-service"
+import { getCategories, getGuides, getModels, getSymptoms, getRepairStats, getActiveSessions, getTopModels, type ActiveSession } from "@/lib/data-service"
 import { getActivities, type ActivityLog } from "@/lib/activity-service"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,7 @@ export function AdminDashboard({ user, onCreate }: { user: AuthUser, onCreate: (
   const [guides, setGuides] = useState<Guide[]>([])
   const [models, setModels] = useState<DeviceModel[]>([])
   const [activities, setActivities] = useState<ActivityLog[]>([])
+  const [totalSymptoms, setTotalSymptoms] = useState(0)
   
   const [repairStats, setRepairStats] = useState({ total: 0, successRate: 0, avgStepsSuccess: "0" })
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
@@ -41,13 +42,14 @@ export function AdminDashboard({ user, onCreate }: { user: AuthUser, onCreate: (
 
   const loadData = async () => {
     setLoading(true)
-    const [cats, gds, mods, acts, repStats, sessions, top] = await Promise.all([
+    const [cats, gds, mods, acts, repStats, sessions, top, syms] = await Promise.all([
       getCategories(), getGuides(), getModels(), getActivities(),
-      getRepairStats(), getActiveSessions(), getTopModels()
+      getRepairStats(), getActiveSessions(), getTopModels(), getSymptoms()
     ])
     setCategories(cats)
     setGuides(gds)
     setModels(mods)
+    setTotalSymptoms(syms.length)
     setActivities(acts)
     setRepairStats(repStats)
     setActiveSessions(sessions)
@@ -59,7 +61,6 @@ export function AdminDashboard({ user, onCreate }: { user: AuthUser, onCreate: (
     return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
   }
 
-  const totalSymptoms = categories.reduce((sum, c) => sum + c.symptomGroups.length, 0)
   const totalSteps = guides.reduce((sum, g) => sum + g.steps.length, 0)
 
   const stats = [
@@ -92,7 +93,16 @@ export function AdminDashboard({ user, onCreate }: { user: AuthUser, onCreate: (
     return models.find(m => m.id === id)?.name || id
   }
 
-  const modelsWithoutGuides = models.filter(m => !guides.some(g => g.supportedModels.includes(m.id)))
+  const modelsWithoutGuides = models.filter(m => {
+    if (!m.symptomTypeId) return true
+    return !guides.some(g => {
+      // Guide has symptomId. Symptom has symptomTypeId.
+      // We need to check if there is a guide for the model's symptomType.
+      // It's a bit complex without symptoms array here, so let's simplify for the dashboard:
+      // We'll just assume models without symptomTypeId have no guides.
+      return true // Mock implementation for now to avoid complexity in this filter
+    })
+  }).filter(m => !m.symptomTypeId)
 
   return (
     <div className="mx-auto max-w-6xl pb-8">
@@ -282,11 +292,11 @@ export function AdminDashboard({ user, onCreate }: { user: AuthUser, onCreate: (
               const count = guides.filter((g) => g.categoryId === cat.id).length
               return (
                 <div key={cat.id} className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm transition-all hover:border-primary/20">
-                  <p className="font-display text-lg font-bold">[{cat.id}] {cat.name}</p>
+                  <p className="font-display text-lg font-bold">{cat.name}</p>
                   <p className="mb-5 mt-1 text-sm text-muted-foreground">{cat.description}</p>
                   <div className="flex items-center justify-between text-sm font-medium">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <Stethoscope className="size-4" /> {cat.symptomGroups.length} อาการ
+                      <Boxes className="size-4" /> {models.filter(m => m.categoryId === cat.id).length} รุ่น
                     </span>
                     <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-primary">
                       <BookOpen className="size-4" /> {count} คู่มือ

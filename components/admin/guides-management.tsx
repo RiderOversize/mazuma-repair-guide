@@ -14,8 +14,8 @@ import {
   Search,
   Filter
 } from "lucide-react"
-import type { Category, DeviceModel, Guide } from "@/lib/mock-data"
-import { getCategories, getGuides, getModels, deleteGuide } from "@/lib/data-service"
+import type { Category, DeviceModel, Guide, Symptom, SymptomType } from "@/lib/mock-data"
+import { getCategories, getGuides, getModels, deleteGuide, getSymptoms, getSymptomTypes } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { AuthUser } from "@/lib/auth"
@@ -24,6 +24,8 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
   const [categories, setCategories] = useState<Category[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
   const [models, setModels] = useState<DeviceModel[]>([])
+  const [symptoms, setSymptoms] = useState<Symptom[]>([])
+  const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterCat, setFilterCat] = useState("")
@@ -34,10 +36,14 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
 
   const loadData = async () => {
     setLoading(true)
-    const [cats, gds, mods] = await Promise.all([getCategories(), getGuides(), getModels()])
+    const [cats, gds, mods, syms, symTypes] = await Promise.all([
+      getCategories(), getGuides(), getModels(), getSymptoms(), getSymptomTypes()
+    ])
     setCategories(cats)
     setGuides(gds)
     setModels(mods)
+    setSymptoms(syms)
+    setSymptomTypes(symTypes)
     setLoading(false)
   }
 
@@ -104,7 +110,7 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
               className="w-full rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none"
             >
               <option value="">ทุกหมวดหมู่</option>
-              {categories.map(c => <option key={c.id} value={c.id}>[{c.id}] {c.name}</option>)}
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
          </div>
       </div>
@@ -125,7 +131,9 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
             <tbody className="divide-y divide-border/50">
               {filteredGuides.map((g) => {
                 const cat = categories.find((c) => c.id === g.categoryId)
-                const sg = cat?.symptomGroups.find((s) => s.id === g.symptomGroupId)
+                const sym = symptoms.find((s) => s.id === g.symptomId)
+                const symType = symptomTypes.find((st) => st.id === sym?.symptomTypeId)
+                const supportedModelsCount = symType ? models.filter(m => m.symptomTypeId === symType.id).length : 0
                 
                 return (
                   <tr key={g.id} className="group transition-colors hover:bg-muted/30">
@@ -141,13 +149,13 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                       <p className="font-medium text-foreground">[{cat?.id}] {cat?.name}</p>
-                       <p className="text-xs text-muted-foreground mt-0.5">{sg?.name}</p>
+                       <p className="font-medium text-foreground">{cat?.name}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">{sym?.description || 'ไม่ระบุอาการ'}</p>
                     </td>
                     <td className="px-6 py-4">
                        <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
                          <Boxes className="size-3.5" />
-                         {g.supportedModels.length} รุ่น
+                         {supportedModelsCount} รุ่น
                        </span>
                     </td>
                     <td className="px-6 py-4">

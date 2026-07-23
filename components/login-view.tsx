@@ -1,36 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { Loader2, ChevronRight, ShieldCheck, UserPlus, Wrench, LayoutDashboard, CheckCircle2, X } from "lucide-react"
-import { MOCK_USERS, type AuthUser } from "@/lib/auth"
-import { EmployeeBindView } from "@/components/employee-bind-view"
+import { signIn } from "next-auth/react"
+import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
 
-type Stage = "login" | "connecting" | "scenario" | "bind"
-
-// Mock LINE profile of the person authenticating (before we know who they are)
-const NEW_LINE_PROFILE = {
-  lineName: "Nattawut.k",
-  avatar: "/avatars/new-user.png",
-}
-
-export function LoginView({ onLogin }: { onLogin: (user: AuthUser) => void }) {
-  const [stage, setStage] = useState<Stage>("login")
+export function LoginView() {
+  const [isConnecting, setIsConnecting] = useState(false)
 
   function startLineLogin() {
-    setStage("connecting")
-    // Simulate the OAuth round-trip to LINE
-    setTimeout(() => setStage("scenario"), 1600)
-  }
-
-  if (stage === "bind") {
-    return (
-      <EmployeeBindView
-        lineProfile={NEW_LINE_PROFILE}
-        onCancel={() => setStage("scenario")}
-        onBound={onLogin}
-      />
-    )
+    setIsConnecting(true)
+    signIn("line")
   }
 
   return (
@@ -55,11 +34,11 @@ export function LoginView({ onLogin }: { onLogin: (user: AuthUser) => void }) {
           <button
             type="button"
             onClick={startLineLogin}
-            disabled={stage === "connecting"}
+            disabled={isConnecting}
             className="flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3.5 font-medium text-white shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-80"
             style={{ backgroundColor: "#06C755" }}
           >
-            {stage === "connecting" ? (
+            {isConnecting ? (
               <>
                 <Loader2 className="size-5 animate-spin" />
                 กำลังเชื่อมต่อกับ LINE...
@@ -82,130 +61,7 @@ export function LoginView({ onLogin }: { onLogin: (user: AuthUser) => void }) {
           เนื้อหาวิดีโอและคู่มือเป็นลิขสิทธิ์ของ Mazuma
         </p>
       </div>
-
-      {/* Scenario picker modal */}
-      {stage === "scenario" ? (
-        <ScenarioModal
-          onClose={() => setStage("login")}
-          onExisting={(user) => onLogin(user)}
-          onNewUser={() => setStage("bind")}
-        />
-      ) : null}
     </div>
-  )
-}
-
-function ScenarioModal({
-  onClose,
-  onExisting,
-  onNewUser,
-}: {
-  onClose: () => void
-  onExisting: (user: AuthUser) => void
-  onNewUser: () => void
-}) {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="w-full max-w-sm rounded-t-2xl border border-border bg-card p-5 shadow-xl sm:rounded-2xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <p className="font-display text-base font-semibold">จำลองสถานการณ์การเข้าสู่ระบบ</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">เลือกบัญชี LINE เพื่อทดสอบ (เวอร์ชันสาธิต)</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="ปิด"
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-2.5">
-          <ScenarioButton
-            avatar={MOCK_USERS.technician.avatar}
-            icon={<Wrench className="size-3.5" />}
-            title="ผู้ใช้เก่า: ช่างสมชาย"
-            subtitle="Technician • เข้าสู่หน้าช่างทันที"
-            onClick={() => onExisting(MOCK_USERS.technician)}
-          />
-          <ScenarioButton
-            avatar={MOCK_USERS.supervisor.avatar}
-            icon={<ShieldCheck className="size-3.5" />}
-            title="ผู้ใช้เก่า: หัวหน้าช่างสมพงษ์"
-            subtitle="Supervisor • ดูภาพรวมและสถิติ"
-            onClick={() => onExisting(MOCK_USERS.supervisor)}
-            accent
-          />
-          <ScenarioButton
-            avatar={MOCK_USERS.admin.avatar}
-            icon={<LayoutDashboard className="size-3.5" />}
-            title="ผู้ใช้เก่า: แอดมินภานุเดช"
-            subtitle="Admin • เข้าสู่แดชบอร์ดทันที"
-            onClick={() => onExisting(MOCK_USERS.admin)}
-            accent
-          />
-          <ScenarioButton
-            avatar={MOCK_USERS.adminRestricted.avatar}
-            icon={<ShieldCheck className="size-3.5" />}
-            title="ผู้ใช้เก่า: แอดมินสมหญิง"
-            subtitle="Admin (Restricted) • สิทธิ์จำกัดเมนู"
-            onClick={() => onExisting(MOCK_USERS.adminRestricted)}
-            accent
-          />
-          <ScenarioButton
-            avatar={NEW_LINE_PROFILE.avatar}
-            icon={<UserPlus className="size-3.5" />}
-            title="พนักงานใหม่ (เพิ่งแอดบอทครั้งแรก)"
-            subtitle="New User • ต้องยืนยันรหัสพนักงาน"
-            onClick={onNewUser}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ScenarioButton({
-  avatar,
-  icon,
-  title,
-  subtitle,
-  onClick,
-  accent = false,
-}: {
-  avatar: string
-  icon: React.ReactNode
-  title: string
-  subtitle: string
-  onClick: () => void
-  accent?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-all hover:border-primary/50 hover:shadow-md"
-    >
-      <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
-        <Image src={avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="40px" />
-        <span
-          className={
-            accent
-              ? "absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-accent text-accent-foreground ring-2 ring-card"
-              : "absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"
-          }
-        >
-          {icon}
-        </span>
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{title}</span>
-        <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>
-      </span>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </button>
   )
 }
 

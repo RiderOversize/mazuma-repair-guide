@@ -6,12 +6,13 @@ import { TechnicianHome } from "./technician-home"
 import { SymptomList } from "./symptom-list"
 import { GuideWizard } from "./guide-wizard"
 import { UserMenu } from "@/components/user-menu"
+import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
-import { getCategory, type DeviceModel, type Guide } from "@/lib/mock-data"
-import { logSessionActivity } from "@/lib/data-service"
+import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom } from "@/lib/mock-data"
+import { logSessionActivity, getCategories, getModels, getGuides, getSubCategories, getSymptomTypes, getSymptoms } from "@/lib/data-service"
 import type { AuthUser } from "@/lib/auth"
 
-type View = "home" | "models" | "symptoms" | "guide"
+type View = "home" | "subcategories" | "models" | "symptoms" | "guide"
 
 export function TechnicianApp({
   user,
@@ -26,15 +27,52 @@ export function TechnicianApp({
 }) {
   const [view, setView] = useState<View>("home")
   const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [subCategoryId, setSubCategoryId] = useState<string | null>(null)
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [guide, setGuide] = useState<Guide | null>(null)
 
-  const category = categoryId ? getCategory(categoryId) : undefined
+  const [categories, setCategories] = useState<Category[]>([])
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+  const [models, setModels] = useState<DeviceModel[]>([])
+  const [guides, setGuides] = useState<Guide[]>([])
+  const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
+  const [symptoms, setSymptoms] = useState<Symptom[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [cats, mods, gds, subCats, symTypes, syms] = await Promise.all([
+          getCategories(),
+          getModels(),
+          getGuides(),
+          getSubCategories(),
+          getSymptomTypes(),
+          getSymptoms()
+        ])
+        setCategories(cats)
+        setModels(mods)
+        setGuides(gds)
+        setSubCategories(subCats)
+        setSymptomTypes(symTypes)
+        setSymptoms(syms)
+      } catch (error) {
+        console.error("Failed to load technician data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
+  const category = categoryId ? categories.find(c => c.id === categoryId) : undefined
 
   useEffect(() => {
     if (preview) return
     let action = "หน้าหลัก"
-    if (view === "models" && category) {
+    if (view === "subcategories" && category) {
+      action = `กำลังเลือกประเภทย่อยในหมวด: ${category.name}`
+    } else if (view === "models" && category) {
       action = `กำลังเลือกรุ่นในหมวด: ${category.name}`
     } else if (view === "symptoms" && category) {
       action = `กำลังค้นหาอาการ: ${model ? model.name : category.name}`
@@ -46,7 +84,16 @@ export function TechnicianApp({
   }, [view, category, model, preview, user])
 
   const handleBack = () => {
-    if (view === "models") setView("home")
+    if (view === "subcategories") setView("home")
+    else if (view === "models") {
+      // Check if this category has subcategories
+      const hasSubCats = subCategories.some(sc => sc.categoryId === categoryId)
+      if (hasSubCats) {
+        setView("subcategories")
+      } else {
+        setView("home")
+      }
+    }
     else if (view === "symptoms") setView(model ? "models" : "home")
     else if (view === "guide") setView("symptoms")
   }
@@ -72,51 +119,96 @@ export function TechnicianApp({
         </div>
       ) : null}
 
-      {view === "home" && (
-        <TechnicianHome
-          onSelectCategory={(id) => {
-            setCategoryId(id)
-            setModel(null)
-            setView("models")
-          }}
-          onSelectModel={(m) => {
-            setModel(m)
-            setCategoryId(m.categoryId)
-            setView("symptoms")
-          }}
-        />
-      )}
+      {loading ? (
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm font-medium">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {view === "home" && (
+            <TechnicianHome
+              categories={categories}
+              models={models}
+              onSelectCategory={(id) => {
+                setCategoryId(id)
+                setModel(null)
+                setSubCategoryId(null)
+                // Check if category has subcategories
+                const hasSubCats = subCategories.some(sc => sc.categoryId === id)
+                if (hasSubCats) {
+                  setView("subcategories")
+                } else {
+                  setView("models")
+                }
+              }}
+              onSelectModel={(m) => {
+                setModel(m)
+                setCategoryId(m.categoryId)
+                setSubCategoryId(m.subcategoryId || null)
+                setView("symptoms")
+              }}
+            />
+          )}
 
-      {view === "models" && category && (
-        <ModelList 
-          category={category}
-          onBack={() => setView("home")}
-          onSelectModel={(m) => {
-            setModel(m)
-            setView("symptoms")
-          }}
-        />
-      )}
+          {view === "subcategories" && category && (
+            <SubCategoryList 
+              category={category}
+              subCategories={subCategories}
+              models={models}
+              onBack={() => setView("home")}
+              onSelectSubCategory={(sc) => {
+                setSubCategoryId(sc.id)
+                setView("models")
+              }}
+            />
+          )}
 
-      {view === "symptoms" && category && (
-        <SymptomList
-          category={category}
-          model={model}
-          onBack={() => setView(model ? "models" : "home")}
-          onSelectGuide={(g) => {
-            setGuide(g)
-            setView("guide")
-          }}
-        />
-      )}
+          {view === "models" && category && (
+            <ModelList 
+              category={category}
+              subCategoryId={subCategoryId}
+              models={models}
+              onBack={() => {
+                const hasSubCats = subCategories.some(sc => sc.categoryId === category.id)
+                setView(hasSubCats ? "subcategories" : "home")
+              }}
+              onSelectModel={(m) => {
+                setModel(m)
+                setView("symptoms")
+              }}
+            />
+          )}
 
-      {view === "guide" && guide && (
-        <GuideWizard 
-          guide={guide} 
-          user={user}
-          model={model}
-          onBack={() => setView("symptoms")} 
-        />
+          {view === "symptoms" && category && (
+            <SymptomList
+              category={category}
+              model={model}
+              guides={guides}
+              symptomTypes={symptomTypes}
+              symptoms={symptoms}
+              onBack={() => setView(model ? "models" : "home")}
+              onSelectGuide={(g) => {
+                setGuide(g)
+                setView("guide")
+              }}
+            />
+          )}
+
+          {view === "guide" && guide && (
+            <GuideWizard 
+              guide={guide} 
+              user={user}
+              model={model}
+              categories={categories}
+              models={models}
+              symptoms={symptoms}
+              onBack={() => setView("symptoms")} 
+            />
+          )}
+        </>
       )}
 
       {/* Bottom Navigation for Mobile */}

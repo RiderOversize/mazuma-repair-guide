@@ -2,34 +2,27 @@
 
 import { useState } from "react"
 import { ChevronLeft, Search, ChevronRight, X, Boxes } from "lucide-react"
-import { type Category, type DeviceModel } from "@/lib/mock-data"
+import { type Category, type SubCategory, type DeviceModel } from "@/lib/mock-data"
 
-export function ModelList({
+export function SubCategoryList({
   category,
-  subCategoryId,
+  subCategories,
   models,
   onBack,
-  onSelectModel,
+  onSelectSubCategory,
 }: {
   category: Category
-  subCategoryId?: string | null
+  subCategories: SubCategory[]
   models: DeviceModel[]
   onBack: () => void
-  onSelectModel: (model: DeviceModel) => void
+  onSelectSubCategory: (subCategory: SubCategory) => void
 }) {
   const [query, setQuery] = useState("")
-  
-  const catModels = models.filter(m => {
-    if (m.categoryId !== category.id) return false;
-    if (subCategoryId) {
-      return m.subcategoryId === subCategoryId || !m.subcategoryId;
-    }
-    return true;
-  })
+  const catSubCategories = subCategories.filter(sc => sc.categoryId === category.id)
   
   const results = query.trim() 
-    ? catModels.filter(m => m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
-    : catModels
+    ? catSubCategories.filter(sc => sc.name.toLowerCase().includes(query.toLowerCase()) || sc.id.toLowerCase().includes(query.toLowerCase()))
+    : catSubCategories
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 pb-16">
@@ -47,9 +40,9 @@ export function ModelList({
           <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary whitespace-nowrap">
             {category.name}
           </span>
-          <h1 className="mt-1.5 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">เลือกรุ่นสินค้า</h1>
+          <h1 className="mt-1.5 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">เลือกประเภทสินค้าย่อย</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            กรุณาเลือกรุ่นที่ต้องการดูอาการเสีย
+            กรุณาเลือกประเภทสินค้าย่อยที่ต้องการดูรุ่น
           </p>
         </div>
 
@@ -59,7 +52,7 @@ export function ModelList({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ค้นหาด้วยชื่อรุ่น หรือรหัส..."
+            placeholder="ค้นหาด้วยชื่อ หรือรหัส..."
             className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-10 text-sm outline-none ring-primary/30 focus:ring-2"
           />
           {query ? (
@@ -76,31 +69,35 @@ export function ModelList({
 
       <div className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground mb-1">
-          พบ {results.length} รุ่น
+          พบ {results.length} ประเภท
         </p>
         
         {results.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center flex flex-col items-center justify-center">
              <Boxes className="size-8 text-muted-foreground/30 mb-2" />
-             <p className="text-sm text-muted-foreground">ไม่พบรุ่นสินค้า</p>
+             <p className="text-sm text-muted-foreground">ไม่พบประเภทสินค้าย่อย</p>
           </div>
         ) : (
-          results.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onSelectModel(m)}
-              className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-muted"
-            >
-              <div>
-                <p className="font-medium group-hover:text-primary transition-colors">{m.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  รหัส: {m.code}
-                </p>
-              </div>
-              <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-            </button>
-          ))
+          results.map((sc) => {
+            const numModels = models.filter(m => m.subcategoryId === sc.id || (m.categoryId === category.id && !m.subcategoryId)).length;
+            
+            return (
+              <button
+                key={sc.id}
+                type="button"
+                onClick={() => onSelectSubCategory(sc)}
+                className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-muted"
+              >
+                <div>
+                  <p className="font-medium group-hover:text-primary transition-colors">{sc.id} - {sc.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {numModels} รุ่น
+                  </p>
+                </div>
+                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+              </button>
+            )
+          })
         )}
       </div>
     </div>

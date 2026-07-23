@@ -2,59 +2,78 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Loader2, IdCard, AlertCircle, ArrowLeft } from "lucide-react"
-import { VALID_EMPLOYEE_CODES, type AuthUser } from "@/lib/auth"
+import { Loader2, IdCard, AlertCircle, ArrowLeft, Phone } from "lucide-react"
 import { SuccessToast } from "@/components/login-view"
+import { getUsers, updateUser } from "@/lib/data-service"
 
 export function EmployeeBindView({
   lineProfile,
+  lineUserId,
   onCancel,
   onBound,
 }: {
   lineProfile: { lineName: string; avatar: string }
+  lineUserId: string
   onCancel: () => void
-  onBound: (user: AuthUser) => void
+  onBound: () => void
 }) {
   const [code, setCode] = useState("")
+  const [phone, setPhone] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<"idle" | "verifying" | "success">("idle")
 
-  function confirm() {
+  async function confirm() {
     if (status !== "idle") return
-    const normalized = code.trim().toUpperCase()
-    if (!normalized) {
-      setError("กรุณากรอกรหัสพนักงาน")
+    const normalizedCode = code.trim().toUpperCase()
+    const normalizedPhone = phone.trim()
+    
+    if (!normalizedCode || !normalizedPhone) {
+      setError("กรุณากรอกรหัสพนักงานและเบอร์โทรศัพท์ให้ครบถ้วน")
       return
     }
     setError(null)
     setStatus("verifying")
 
-    setTimeout(() => {
-      const role = VALID_EMPLOYEE_CODES[normalized]
-      if (!role) {
+    try {
+      const users = await getUsers()
+      const user = users.find(u => u.employeeCode === normalizedCode)
+
+      if (!user) {
         setStatus("idle")
-        setError("ไม่พบรหัสพนักงานนี้ในระบบ กรุณาลองใหม่ (ตัวอย่าง: MZ-205)")
+        setError("ไม่พบรหัสพนักงานนี้ในระบบ กรุณาตรวจสอบอีกครั้ง")
         return
       }
+
+      if (user.status !== "active") {
+        setStatus("idle")
+        setError("บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อแอดมิน")
+        return
+      }
+
+      if (user.phone !== normalizedPhone) {
+        setStatus("idle")
+        setError("เบอร์โทรศัพท์ไม่ถูกต้อง")
+        return
+      }
+
+      // Bind the LINE ID to the user in the database
+      await updateUser(user.employeeCode, { lineUserId })
+      
       setStatus("success")
-      // Show success toast briefly, then bind the LINE account and route in.
+      
       setTimeout(() => {
-        onBound({
-          role,
-          name: lineProfile.lineName,
-          title: "ช่างเทคนิคภาคสนาม",
-          initials: lineProfile.lineName.slice(0, 2).toUpperCase(),
-          avatar: lineProfile.avatar,
-          lineName: lineProfile.lineName,
-          employeeCode: normalized,
-        })
-      }, 1100)
-    }, 1200)
+        onBound()
+      }, 1500)
+
+    } catch (err) {
+      setStatus("idle")
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่")
+    }
   }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      {status === "success" ? <SuccessToast message="ผูกบัญชีสำเร็จ" /> : null}
+      {status === "success" ? <SuccessToast message="ผูกบัญชีสำเร็จ! กำลังเข้าสู่ระบบ..." /> : null}
 
       <div className="w-full max-w-sm">
         <button
@@ -63,7 +82,7 @@ export function EmployeeBindView({
           className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          ย้อนกลับ
+          ยกเลิก
         </button>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -80,7 +99,7 @@ export function EmployeeBindView({
 
           <h1 className="font-display text-lg font-semibold">ยืนยันตัวตนพนักงาน</h1>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            ระบบพบว่าคุณเข้าใช้งานครั้งแรก กรุณากรอกรหัสพนักงานเพื่อผูกบัญชี LINE ของคุณ
+            เข้าใช้งานครั้งแรก? กรุณากรอกรหัสพนักงานและเบอร์โทรศัพท์ของคุณเพื่อผูกบัญชี
           </p>
 
           <label htmlFor="employee-code" className="mt-5 block text-sm font-medium">
@@ -93,22 +112,43 @@ export function EmployeeBindView({
               type="text"
               inputMode="text"
               autoComplete="off"
-              placeholder="MZ-205"
+              placeholder="MZ-001"
               value={code}
               onChange={(e) => {
                 setCode(e.target.value)
                 if (error) setError(null)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) confirm()
               }}
               disabled={status !== "idle"}
               className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-3 text-sm uppercase tracking-wide outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 disabled:opacity-60"
             />
           </div>
 
+          <label htmlFor="phone" className="mt-4 block text-sm font-medium">
+            เบอร์โทรศัพท์ (Phone Number)
+          </label>
+          <div className="relative mt-1.5">
+            <Phone className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              placeholder="081xxxxxxx"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value)
+                if (error) setError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) confirm()
+              }}
+              disabled={status !== "idle"}
+              className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 disabled:opacity-60"
+            />
+          </div>
+
           {error ? (
-            <p className="mt-2 flex items-start gap-1.5 text-xs text-destructive">
+            <p className="mt-3 flex items-start gap-1.5 text-xs text-destructive">
               <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
               {error}
             </p>
@@ -118,7 +158,7 @@ export function EmployeeBindView({
             type="button"
             onClick={confirm}
             disabled={status !== "idle"}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-medium text-primary-foreground shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-80"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-medium text-primary-foreground shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-80"
           >
             {status === "verifying" ? (
               <>
@@ -126,13 +166,9 @@ export function EmployeeBindView({
                 กำลังตรวจสอบ...
               </>
             ) : (
-              "ยืนยัน"
+              "ยืนยันและเข้าสู่ระบบ"
             )}
           </button>
-
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            รหัสสำหรับทดสอบ: MZ-205 หรือ MZ-206
-          </p>
         </div>
       </div>
     </div>

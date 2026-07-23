@@ -21,8 +21,9 @@ import {
   type Category,
   type DeviceModel,
   type Guide,
+  type Symptom,
 } from "@/lib/mock-data"
-import { getCategories, getModels, getGuideById, createGuide, updateGuide } from "@/lib/data-service"
+import { getCategories, getSymptoms, getGuideById, createGuide, updateGuide } from "@/lib/data-service"
 import { showToast, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
@@ -37,26 +38,29 @@ const newStep = (stepNum: number): DraftStep => ({
   stepNum,
   instruction: "",
   videoUrl: "",
+  pdfUrl: "",
 })
 
 export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?: string | null, onFinish?: () => void }) {
   const [categories, setCategories] = useState<Category[]>([])
-  const [models, setModels] = useState<DeviceModel[]>([])
+  const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const [categoryId, setCategoryId] = useState("")
-  const [symptomGroupId, setSymptomGroupId] = useState("")
+  const [symptomId, setSymptomId] = useState("")
   const [specificCause, setSpecificCause] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState<"published" | "draft" | "archived">("published")
   const [tagsInput, setTagsInput] = useState("")
-  
-  const [selectedModels, setSelectedModels] = useState<string[]>([])
-  const [searchModel, setSearchModel] = useState("")
-  const [modelPage, setModelPage] = useState(1)
   const [tools, setTools] = useState("")
   const [steps, setSteps] = useState<DraftStep[]>([newStep(1)])
+
+  // Inline creation modals
+  const [showAddCatModal, setShowAddCatModal] = useState(false)
+  const [newCatName, setNewCatName] = useState("")
+  const [showAddSymModal, setShowAddSymModal] = useState(false)
+  const [newSymName, setNewSymName] = useState("")
 
   useEffect(() => {
     loadData()
@@ -64,83 +68,39 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
 
   const loadData = async () => {
     setLoading(true)
-    const [cats, mods] = await Promise.all([getCategories(), getModels()])
+    const [cats, syms] = await Promise.all([getCategories(), getSymptoms()])
     setCategories(cats)
-    setModels(mods)
+    setSymptoms(syms)
     
     if (editId) {
       const g = await getGuideById(editId)
       if (g) {
         setCategoryId(g.categoryId)
-        setSymptomGroupId(g.symptomGroupId)
+        setSymptomId(g.symptomId)
         setSpecificCause(g.specificCause)
         setDescription(g.description || "")
         setStatus(g.status || "published")
         setTagsInput((g.tags || []).join(", "))
-        setSelectedModels(g.supportedModels)
         setTools(g.toolsRequired.join(", "))
         setSteps(g.steps.map(s => ({ ...s, key: `step-${stepKey++}` })))
       }
     } else {
       setCategoryId("")
-      setSymptomGroupId("")
+      setSymptomId("")
       setSpecificCause("")
       setDescription("")
       setStatus("draft")
       setTagsInput("")
-      setSelectedModels([])
       setTools("")
       setSteps([newStep(1)])
     }
     setLoading(false)
   }
 
-  const category = categories.find((c) => c.id === categoryId)
-  const symptomGroups = category?.symptomGroups ?? []
-  const availableModels = useMemo(
-    () => (categoryId ? models.filter(m => m.categoryId === categoryId) : []),
-    [categoryId, models],
-  )
-  const allSelected =
-    availableModels.length > 0 && selectedModels.length === availableModels.length
-
   const resetDependents = (id: string) => {
     setCategoryId(id)
-    setSymptomGroupId("")
-    setSelectedModels([])
-    setSearchModel("")
-    setModelPage(1)
+    setSymptomId("")
   }
-
-  const toggleModel = (id: string) => {
-    setSelectedModels((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
-    )
-  }
-
-  const toggleAll = () => {
-    setSelectedModels(allSelected ? [] : availableModels.map((m) => m.id))
-  }
-
-  // Derived state for models search and pagination
-  const filteredModels = useMemo(() => {
-    if (!searchModel.trim()) return availableModels
-    const q = searchModel.toLowerCase()
-    return availableModels.filter(m => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
-  }, [availableModels, searchModel])
-
-  const ITEMS_PER_PAGE = 15
-  const totalModelPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE) || 1
-  
-  // Ensure page is within bounds when search changes
-  useEffect(() => {
-    if (modelPage > totalModelPages) setModelPage(1)
-  }, [totalModelPages, modelPage])
-
-  const paginatedModels = useMemo(() => {
-    const start = (modelPage - 1) * ITEMS_PER_PAGE
-    return filteredModels.slice(start, start + ITEMS_PER_PAGE)
-  }, [filteredModels, modelPage])
 
   const addStep = () => setSteps((s) => [...s, newStep(s.length + 1)])
   const removeStep = (key: string) =>
@@ -151,7 +111,7 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
     setSteps((s) => s.map((st) => (st.key === key ? { ...st, ...patch } : st)))
 
   const canSave =
-    categoryId && symptomGroupId && specificCause.trim() && selectedModels.length > 0
+    categoryId && symptomId && specificCause.trim()
 
   const handleSave = async () => {
     if (!canSave) {
@@ -163,12 +123,11 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
     const guideData: Guide = {
       id: editId || `g-${Date.now()}`,
       categoryId,
-      symptomGroupId,
+      symptomId,
       specificCause,
       description,
       status,
       tags: tagsInput.split(",").map(t => t.trim()).filter(Boolean),
-      supportedModels: selectedModels,
       toolsRequired: tools.split(",").map(t => t.trim()).filter(Boolean),
       steps: steps.map(({ key, ...rest }) => rest)
     }
@@ -189,6 +148,22 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
     }
     setSaving(false)
   }
+
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return showToast("กรุณากรอกชื่อประเภทสินค้า", "warning")
+    try {
+      const newCat = await import("@/lib/data-service").then(m => m.createCategory({ name: newCatName.trim() }))
+      setCategories(prev => [...prev, newCat])
+      setCategoryId(newCat.id)
+      setShowAddCatModal(false)
+      setNewCatName("")
+      showToast("เพิ่มประเภทสินค้าสำเร็จ", "success")
+    } catch (err: any) {
+      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+    }
+  }
+
+
 
   if (loading) {
     return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
@@ -211,7 +186,11 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
       <div className="flex flex-col gap-6">
         <Section step={1} title="ข้อมูลพื้นฐาน (Basic Info)">
           <div className="grid gap-6 sm:grid-cols-2">
-            <Field label="ประเภทสินค้า" required>
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="block text-sm font-semibold">ประเภทสินค้า <span className="text-destructive">*</span></span>
+                <button type="button" onClick={() => setShowAddCatModal(true)} className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"><Plus className="size-3" /> เพิ่มประเภทใหม่</button>
+              </div>
               <select
                 value={categoryId}
                 onChange={(e) => resetDependents(e.target.value)}
@@ -220,28 +199,29 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
                 <option value="">— เลือกประเภท —</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    [{c.id}] {c.name}
+                    {c.name}
                   </option>
                 ))}
               </select>
-            </Field>
-            <Field label="กลุ่มอาการ (Symptom Group)" required>
+            </div>
+            
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="block text-sm font-semibold">อาการเสีย (Symptom) <span className="text-destructive">*</span></span>
+              </div>
               <select
-                value={symptomGroupId}
-                onChange={(e) => setSymptomGroupId(e.target.value)}
-                disabled={!categoryId}
-                className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                value={symptomId}
+                onChange={(e) => setSymptomId(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
               >
-                <option value="">
-                  {categoryId ? "— เลือกอาการ —" : "เลือกประเภทก่อน"}
-                </option>
-                {symptomGroups.map((s) => (
+                <option value="">— เลือกอาการ —</option>
+                {symptoms.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.description} ({s.symptomTypeId})
                   </option>
                 ))}
               </select>
-            </Field>
+            </div>
             
             <div className="sm:col-span-2">
               <Field label="สาเหตุเฉพาะ (Specific Cause)" required>
@@ -291,103 +271,9 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
           </div>
         </Section>
 
-        <Section step={2} title="รุ่นสินค้าที่รองรับ (Supported Models)">
-          {!categoryId ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-muted/30 py-10 text-muted-foreground">
-               <AlertCircle className="size-8 opacity-30" />
-               <p className="text-sm">เลือกประเภทสินค้าด้านบนก่อน เพื่อแสดงรายการรุ่นที่รองรับ</p>
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between bg-muted/50 p-3 rounded-xl gap-3">
-                <div className="flex items-center justify-between sm:justify-start gap-4">
-                  <p className="text-sm font-medium whitespace-nowrap">
-                    เลือกแล้ว ({selectedModels.length} จาก {availableModels.length})
-                  </p>
-                  <button
-                    type="button"
-                    onClick={toggleAll}
-                    className="text-xs font-bold text-primary hover:underline whitespace-nowrap"
-                  >
-                    {allSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
-                  </button>
-                </div>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="ค้นหารุ่นสินค้า..."
-                    value={searchModel}
-                    onChange={(e) => {
-                      setSearchModel(e.target.value)
-                      setModelPage(1)
-                    }}
-                    className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
 
-              {paginatedModels.length === 0 ? (
-                <div className="py-10 text-center text-sm text-muted-foreground border border-dashed rounded-xl">
-                  ไม่พบรุ่นสินค้าที่ค้นหา
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2.5">
-                  {paginatedModels.map((m) => {
-                    const active = selectedModels.includes(m.id)
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => toggleModel(m.id)}
-                        className={cn(
-                          "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all",
-                          active
-                            ? "border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
-                            : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
-                        )}
-                      >
-                        {active ? <CheckCircle2 className="size-4" /> : null}
-                        {m.name}
-                        <span className={cn("text-xs px-1.5 py-0.5 rounded-md", active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground")}>
-                          {m.code}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
 
-              {totalModelPages > 1 && (
-                <div className="mt-6 flex items-center justify-between border-t pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    หน้า {modelPage} จาก {totalModelPages}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setModelPage(p => Math.max(1, p - 1))}
-                      disabled={modelPage === 1}
-                      className="flex size-8 items-center justify-center rounded-lg border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent"
-                    >
-                      <ChevronLeft className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModelPage(p => Math.min(totalModelPages, p + 1))}
-                      disabled={modelPage === totalModelPages}
-                      className="flex size-8 items-center justify-center rounded-lg border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent"
-                    >
-                      <ChevronRight className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </Section>
-
-        <Section step={3} title="อุปกรณ์ที่ต้องใช้ (Tools Required)">
+        <Section step={2} title="อุปกรณ์ที่ต้องใช้ (Tools Required)">
           <input
             type="text"
             value={tools}
@@ -413,7 +299,7 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
           ) : null}
         </Section>
 
-        <Section step={4} title="ขั้นตอนการซ่อม (Step-by-step)">
+        <Section step={3} title="ขั้นตอนการซ่อม (Step-by-step)">
           <div className="flex flex-col gap-4">
             {steps.map((st) => (
               <div
@@ -461,18 +347,19 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
                         placeholder="https://drive.google.com/..."
                         className="min-w-0 flex-1 rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
                       />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateStep(st.key, {
-                            videoUrl: `https://drive.google.com/mock/${st.key}`,
-                          })
-                        }
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold transition-all hover:bg-muted hover:border-primary/50"
-                      >
-                        <UploadCloud className="size-4" />
-                        อัปโหลด
-                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">เอกสารอ้างอิง (PDF URL)</label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="url"
+                        value={st.pdfUrl || ""}
+                        onChange={(e) => updateStep(st.key, { pdfUrl: e.target.value })}
+                        placeholder="https://drive.google.com/..."
+                        className="min-w-0 flex-1 rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
+                      />
                     </div>
                   </div>
                 </div>
@@ -509,6 +396,35 @@ export function GuideForm({ user, editId, onFinish }: { user?: AuthUser, editId?
           </button>
         </div>
       </div>
+
+      {/* Add Category Modal */}
+      {showAddCatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-sm rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-display font-bold text-foreground">เพิ่มประเภทสินค้าใหม่</h2>
+              <button onClick={() => setShowAddCatModal(false)} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"><X className="size-5" /></button>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">ชื่อประเภทสินค้า</label>
+              <input 
+                autoFocus
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                placeholder="เช่น เครื่องฟอกอากาศ"
+                value={newCatName}
+                onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-2">
+              <button onClick={() => setShowAddCatModal(false)} className="rounded-xl bg-muted px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted/80 transition-all">ยกเลิก</button>
+              <button onClick={handleAddCategory} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-md hover:bg-primary/90 transition-all">บันทึก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }

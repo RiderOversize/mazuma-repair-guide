@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Plus, Trash2, Edit, Save, X, Loader2, Image as ImageIcon, CheckCircle2, AlertCircle, Boxes, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react"
-import type { DeviceModel, Category } from "@/lib/mock-data"
-import { getModels, createModel, updateModel, deleteModel, getCategories } from "@/lib/data-service"
+import type { DeviceModel, Category, SubCategory, SymptomType } from "@/lib/mock-data"
+import { getModels, createModel, updateModel, deleteModel, getCategories, getSubCategories, getSymptomTypes } from "@/lib/data-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
@@ -11,11 +11,13 @@ import type { AuthUser } from "@/lib/auth"
 export function ModelsManagement({ user }: { user?: AuthUser }) {
   const [models, setModels] = useState<DeviceModel[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+  const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filter and Pagination state
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterCategory, setFilterCategory] = useState("")
+  const [filterSubCategory, setFilterSubCategory] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 50
 
@@ -26,6 +28,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   const [formData, setFormData] = useState({
     id: "",
     categoryId: "",
+    subcategoryId: "",
+    symptomTypeId: "",
     name: "",
     code: "",
     status: "active" as "active" | "discontinued" | "draft",
@@ -40,23 +44,25 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
   const loadData = async () => {
     setLoading(true)
-    const [mods, cats] = await Promise.all([getModels(), getCategories()])
+    const [mods, cats, subCats, symTypes] = await Promise.all([getModels(), getCategories(), getSubCategories(), getSymptomTypes()])
     setModels(mods)
     setCategories(cats)
+    setSubCategories(subCats)
+    setSymptomTypes(symTypes)
     setLoading(false)
   }
 
   const filteredModels = useMemo(() => {
     let res = models
-    if (filterCategory) {
-      res = res.filter(m => m.categoryId === filterCategory)
+    if (filterSubCategory) {
+      res = res.filter(m => m.subcategoryId === filterSubCategory)
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       res = res.filter(m => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
     }
     return res
-  }, [models, filterCategory, searchQuery])
+  }, [models, filterSubCategory, searchQuery])
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE) || 1
 
@@ -73,6 +79,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
     setFormData({ 
       id: `m-${Date.now()}`, 
       categoryId: categories[0]?.id || "", 
+      subcategoryId: "",
+      symptomTypeId: "",
       name: "", 
       code: "",
       status: "active",
@@ -83,7 +91,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   }
 
   const openEdit = (m: DeviceModel) => {
-    setFormData({ ...m, status: m.status || "active", thumbnail: m.thumbnail || "" })
+    setFormData({ ...m, subcategoryId: m.subcategoryId || "", symptomTypeId: m.symptomTypeId || "", status: m.status || "active", thumbnail: m.thumbnail || "" })
     setEditingId(m.id)
     setIsFormOpen(true)
   }
@@ -191,15 +199,27 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               </div>
               
               <div>
-                <label className="mb-2 block text-sm font-semibold">หมวดหมู่ <span className="text-destructive">*</span></label>
+                <label className="mb-2 block text-sm font-semibold">หมวดหมู่ย่อย (MAT Category) <span className="text-destructive">*</span></label>
                 <select
                   required
-                  value={formData.categoryId}
-                  onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                  value={formData.subcategoryId}
+                  onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
                   className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
                 >
-                  <option value="">-- เลือกหมวดหมู่ --</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>[{c.id}] {c.name}</option>)}
+                  <option value="">-- เลือกหมวดหมู่ย่อย --</option>
+                  {subCategories.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">ประเภทอาการ</label>
+                <select
+                  value={formData.symptomTypeId}
+                  onChange={e => setFormData({ ...formData, symptomTypeId: e.target.value })}
+                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {symptomTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
                 </select>
               </div>
               
@@ -264,16 +284,16 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
         <div className="relative flex-1 sm:max-w-xs">
           <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <select
-            value={filterCategory}
+            value={filterSubCategory}
             onChange={e => {
-              setFilterCategory(e.target.value)
+              setFilterSubCategory(e.target.value)
               setCurrentPage(1)
             }}
             className="h-10 w-full appearance-none rounded-xl border border-input bg-card pl-9 pr-8 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
           >
-            <option value="">ทุกหมวดหมู่</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+            <option value="">ทุกหมวดหมู่ย่อย</option>
+            {subCategories.map(sc => (
+              <option key={sc.id} value={sc.id}>{sc.name}</option>
             ))}
           </select>
         </div>
@@ -294,7 +314,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
             </thead>
             <tbody className="divide-y divide-border/50">
               {paginatedModels.map((m: DeviceModel) => {
-                const cat = categories.find(c => c.id === m.categoryId)
+                const subCat = subCategories.find(c => c.id === m.subcategoryId)
                 return (
                   <tr key={m.id} className="group transition-colors hover:bg-muted/30">
                     <td className="px-6 py-4">
@@ -302,7 +322,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                          {m.thumbnail ? <img src={m.thumbnail} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="size-5 text-muted-foreground/30" />}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-muted-foreground">{cat ? `[${cat.id}] ${cat.name}` : m.categoryId}</td>
+                    <td className="px-6 py-4 font-medium text-muted-foreground">{subCat ? `[${subCat.id}] ${subCat.name}` : m.subcategoryId || m.categoryId}</td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-base">{m.name}</p>
                       {m.createdAt && <p className="text-xs text-muted-foreground mt-0.5">เพิ่มเมื่อ: {new Date(m.createdAt).toLocaleDateString()}</p>}

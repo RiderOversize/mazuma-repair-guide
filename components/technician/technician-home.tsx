@@ -3,10 +3,6 @@
 import { useState } from "react"
 import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes } from "lucide-react"
 import {
-  categories,
-  searchModels,
-  getCategory,
-  getModelsByCategory,
   type Category,
   type DeviceModel,
 } from "@/lib/mock-data"
@@ -28,14 +24,21 @@ const iconFor = (slug: Category["slug"]) => {
 }
 
 export function TechnicianHome({
+  categories,
+  models,
   onSelectCategory,
   onSelectModel,
 }: {
+  categories: Category[]
+  models: DeviceModel[]
   onSelectCategory: (categoryId: string) => void
   onSelectModel: (model: DeviceModel) => void
 }) {
   const [query, setQuery] = useState("")
-  const results = query.trim() ? searchModels(query) : []
+  
+  const results = query.trim() 
+    ? models.filter(m => m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
+    : []
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 pb-16">
@@ -91,7 +94,7 @@ export function TechnicianHome({
                 พบ {results.length} รุ่น
               </p>
               {results.map((m) => {
-                const cat = getCategory(m.categoryId)
+                const cat = categories.find(c => c.id === m.categoryId)
                 return (
                   <button
                     key={m.id}
@@ -132,14 +135,14 @@ export function TechnicianHome({
                 <Icon className="size-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-display font-semibold">{cat.name}</p>
+                <p className="font-display font-semibold">{cat.id} - {cat.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {cat.description}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-                  {getModelsByCategory(cat.id).length} รุ่น, {cat.symptomGroups.length} อาการ
+                  {models.filter(m => m.categoryId === cat.id).length} รุ่น
                 </span>
                 <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </div>
