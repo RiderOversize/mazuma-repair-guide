@@ -10,12 +10,14 @@ export function SubCategoryList({
   models,
   onBack,
   onSelectSubCategory,
+  onSelectModel,
 }: {
   category: Category
   subCategories: SubCategory[]
   models: DeviceModel[]
   onBack: () => void
   onSelectSubCategory: (subCategory: SubCategory) => void
+  onSelectModel?: (model: DeviceModel) => void
 }) {
   const [query, setQuery] = useState("")
   const catSubCategories = subCategories.filter(sc => sc.categoryId === category.id)
@@ -23,6 +25,13 @@ export function SubCategoryList({
   const results = query.trim() 
     ? catSubCategories.filter(sc => sc.name.toLowerCase().includes(query.toLowerCase()) || sc.id.toLowerCase().includes(query.toLowerCase()))
     : catSubCategories
+
+  const modelResults = query.trim()
+    ? models.filter(m => 
+        (catSubCategories.some(sc => sc.id === m.subcategoryId) || m.categoryId === category.id) &&
+        (m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
+      )
+    : []
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 pb-16">
@@ -72,32 +81,69 @@ export function SubCategoryList({
           พบ {results.length} ประเภท
         </p>
         
-        {results.length === 0 ? (
+        {results.length === 0 && modelResults.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center flex flex-col items-center justify-center">
              <Boxes className="size-8 text-muted-foreground/30 mb-2" />
-             <p className="text-sm text-muted-foreground">ไม่พบประเภทสินค้าย่อย</p>
+             <p className="text-sm text-muted-foreground">ไม่พบประเภทสินค้าย่อยหรือสินค้ารุ่นนี้</p>
           </div>
         ) : (
-          results.map((sc) => {
-            const numModels = models.filter(m => m.subcategoryId === sc.id || (m.categoryId === category.id && !m.subcategoryId)).length;
+          <>
+            {results.map((sc) => {
+              const numModels = models.filter(m => m.subcategoryId === sc.id || (m.categoryId === category.id && !m.subcategoryId)).length;
+              
+              return (
+                <button
+                  key={sc.id}
+                  type="button"
+                  onClick={() => onSelectSubCategory(sc)}
+                  className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-muted"
+                >
+                  <div>
+                    <p className="font-medium group-hover:text-primary transition-colors">{sc.id} - {sc.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {numModels} รุ่น
+                    </p>
+                  </div>
+                  <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                </button>
+              )
+            })}
             
-            return (
-              <button
-                key={sc.id}
-                type="button"
-                onClick={() => onSelectSubCategory(sc)}
-                className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-muted"
-              >
-                <div>
-                  <p className="font-medium group-hover:text-primary transition-colors">{sc.id} - {sc.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {numModels} รุ่น
-                  </p>
+            {modelResults.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  พบสินค้ารุ่นที่ตรงกัน ({modelResults.length} รุ่น)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {modelResults.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => onSelectModel?.(m)}
+                      className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 shrink-0 overflow-hidden rounded-lg border border-border bg-background flex items-center justify-center">
+                          {m.thumbnail ? (
+                            <img src={m.thumbnail} alt="" className="size-full object-cover" />
+                          ) : (
+                            <Boxes className="size-5 text-muted-foreground/40" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium group-hover:text-primary transition-colors line-clamp-1">{m.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                            {m.code}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 shrink-0" />
+                    </button>
+                  ))}
                 </div>
-                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-              </button>
-            )
-          })
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

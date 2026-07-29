@@ -40,10 +40,22 @@ export function SymptomList({
   const symptomTypeId = model?.symptomTypeId
   const symptomGroup = symptomTypes.find(t => t.id === symptomTypeId)
   
-  // Filter symptoms to only those matching this model's symptomType
-  const applicableSymptoms = symptomTypeId 
-    ? symptoms.filter(s => s.symptomTypeId === symptomTypeId)
-    : []
+  // Filter symptoms to only those matching this model's symptomType, 
+  // or fallback to symptoms that have active guides in this category.
+  const applicableSymptoms = model
+    ? (symptomTypeId 
+        ? symptoms.filter(s => {
+            if (s.symptomTypeId !== symptomTypeId) return false;
+            // Filter out model-specific symptoms if the current model is not included
+            if (s.specificModelIds && s.specificModelIds.length > 0) {
+              if (!s.specificModelIds.includes(model.id)) {
+                return false;
+              }
+            }
+            return true;
+          })
+        : []) // If a model is selected but has no symptomTypeId mapped, show nothing
+    : symptoms.filter(s => guides.some(g => g.categoryId === category.id && g.symptomId === s.id && g.status === 'published'))
 
   const [open, setOpen] = useState<string | null>(applicableSymptoms[0]?.id ?? null)
 
@@ -125,7 +137,7 @@ export function SymptomList({
                   className="flex w-full items-center justify-between gap-3 p-4 text-left"
                 >
                   <span className="font-display font-semibold leading-snug text-balance">
-                    {sym.description}
+                    {sym.title || sym.description}
                   </span>
                   <div className="flex shrink-0 items-center gap-2">
                     <span
@@ -165,7 +177,7 @@ export function SymptomList({
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <Wrench className="size-3.5 shrink-0 text-primary" />
-                                <p className="truncate font-medium">{g.specificCause}</p>
+                                <p className="truncate font-medium">{g.title}</p>
                               </div>
                               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                                 {g.steps.length} ขั้นตอน

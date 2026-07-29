@@ -527,6 +527,12 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                           : "border-border hover:border-border/80 hover:bg-muted/50"
                       )}
                     >
+                      <input 
+                        type="checkbox" 
+                        className="hidden" 
+                        checked={hasAccess}
+                        onChange={() => toggleMenu(menu.id)}
+                      />
                       <div className={cn(
                         "flex size-5 shrink-0 items-center justify-center rounded",
                         hasAccess ? "bg-primary text-primary-foreground" : "border border-input bg-background group-hover:border-primary/50"

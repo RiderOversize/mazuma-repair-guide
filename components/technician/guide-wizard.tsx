@@ -12,7 +12,9 @@ import {
   MonitorSmartphone,
   Check,
   X,
-  Loader2
+  Loader2,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react"
 import { SecureVideoPlayer } from "./secure-video-player"
 import {
@@ -20,6 +22,7 @@ import {
   type DeviceModel,
   type Category,
   type Symptom,
+  type SymptomType,
 } from "@/lib/mock-data"
 import { type AuthUser, SUPERVISORS } from "@/lib/auth"
 import { logRepairFeedback, logSessionActivity } from "@/lib/data-service"
@@ -32,6 +35,7 @@ export function GuideWizard({
   categories,
   models,
   symptoms,
+  symptomTypes,
   onBack,
 }: {
   guide: Guide
@@ -40,6 +44,7 @@ export function GuideWizard({
   categories: Category[]
   models: DeviceModel[]
   symptoms: Symptom[]
+  symptomTypes?: SymptomType[]
   onBack: () => void
 }) {
   const [current, setCurrent] = useState(0)
@@ -50,21 +55,22 @@ export function GuideWizard({
 
   const category = categories.find(c => c.id === guide.categoryId)
   const symptom = symptoms.find(s => s.id === guide.symptomId)
+  const symptomType = symptomTypes?.find(st => st.id === guide.symptomTypeId)
   
   // Find applicable models based on symptomType matching
   const applicableModels = models.filter(m => m.categoryId === guide.categoryId && m.symptomTypeId === symptom?.symptomTypeId)
   const modelNames = applicableModels.map(m => m.name)
-  const totalSteps = guide.steps.length
-  const step = guide.steps[current]
+  const totalSteps = guide.steps?.length || 0
+  const step = totalSteps > 0 ? guide.steps[current] : null
   const isLast = current === totalSteps - 1
 
   useEffect(() => {
     logSessionActivity(
       user.employeeCode,
       user.name,
-      `กำลังดูคู่มือ: ${guide.specificCause}${model ? ` (${model.name})` : ''}`
+      `กำลังดูคู่มือ: ${guide.title}${model ? ` (${model.name})` : ''}`
     )
-  }, [user, guide.specificCause, model])
+  }, [user, guide.title, model])
 
   const goNext = () => {
     if (isLast) {
@@ -75,20 +81,89 @@ export function GuideWizard({
   }
   const goPrev = () => setCurrent((c) => Math.max(0, c - 1))
 
-  const handleFeedback = async (isSuccess: boolean) => {
+  const handleFeedback = async (isHelpful: boolean, reason?: string) => {
     setIsSubmitting(true)
-    await logRepairFeedback({
-      guideId: guide.id,
-      modelId: model?.id || null,
-      userId: user.employeeCode,
-      userName: user.name,
-      isSuccess,
-      stepsViewed: current + 1,
-      totalSteps
-    })
+    try {
+      await logRepairFeedback({
+        guideId: guide.id,
+        modelId: model?.id || null,
+        userId: user.employeeCode,
+        userName: user.name,
+        isSuccess: isHelpful,
+        stepsViewed: current + 1,
+        totalSteps
+      })
+      
+      await logSessionActivity(
+        user.employeeCode,
+        user.name,
+        `ให้คะแนนคู่มือ: ${isHelpful ? 'มีประโยชน์' : 'ไม่มีประโยชน์'}`
+      )
+    } catch (e) {
+      console.error(e)
+    }
     setIsSubmitting(false)
     setShowFeedback(false)
-    onBack()
+    if (!isHelpful) setShowContact(true)
+  }
+
+  if (finished) {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-green-100 text-green-600 shadow-sm ring-8 ring-green-50/50">
+          <CheckCircle2 className="size-10" />
+        </div>
+        <h2 className="mb-2 font-display text-2xl font-bold">ดำเนินการซ่อมเสร็จสิ้น!</h2>
+        <p className="mb-8 max-w-md text-muted-foreground">
+          คุณได้ทำตามขั้นตอนทั้งหมดในคู่มือแล้ว หากเครื่องยังทำงานไม่ปกติ กรุณาติดต่อศูนย์บริการ
+        </p>
+
+        {showFeedback ? (
+          <div className="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+            <h3 className="mb-4 font-semibold">คู่มือนี้ช่วยแก้ปัญหาได้หรือไม่?</h3>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleFeedback(true)}
+                disabled={isSubmitting}
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ThumbsUp className="size-4" />}
+                ช่วยได้ ปัญหาถูกแก้ไขแล้ว
+              </button>
+              <button
+                onClick={() => handleFeedback(false)}
+                disabled={isSubmitting}
+                className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background px-4 py-3 text-sm font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ThumbsDown className="size-4" />}
+                ยังช่วยไม่ได้ ปัญหายังอยู่
+              </button>
+            </div>
+          </div>
+        ) : showContact ? (
+          <div className="w-full max-w-sm rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm animate-in zoom-in-95 duration-300">
+            <h3 className="mb-2 font-display text-lg font-bold text-primary">ติดต่อผู้เชี่ยวชาญ</h3>
+            <p className="mb-4 text-sm text-muted-foreground">เรากำลังดำเนินการประสานงานกับช่างเทคนิคอาวุโส</p>
+            <div className="flex flex-col gap-2">
+              <a href="tel:02-111-2222" className="flex items-center justify-center gap-2 rounded-xl bg-background px-4 py-2.5 text-sm font-semibold shadow-sm border">
+                <Phone className="size-4 text-primary" />
+                โทรหาหัวหน้าช่าง (พี่สมหมาย)
+              </a>
+              <button onClick={onBack} className="mt-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                กลับไปหน้ารายการอาการ
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onBack}
+            className="rounded-xl border border-input bg-background px-6 py-2.5 text-sm font-semibold hover:bg-muted shadow-sm transition-all hover:shadow-md"
+          >
+            กลับหน้าแรก
+          </button>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -114,7 +189,7 @@ export function GuideWizard({
           )}
         </div>
         <h1 className="mt-1.5 font-display text-xl font-semibold leading-snug text-balance">
-          {symptom?.description || "ไม่ระบุอาการ"}
+          {symptomType?.name || "ไม่ระบุอาการ"}
         </h1>
       </header>
 
@@ -127,7 +202,11 @@ export function GuideWizard({
               สาเหตุที่วินิจฉัย
             </p>
             <p className="font-display font-semibold text-foreground">
-              {guide.specificCause}
+              {symptom?.title || symptom?.description || "ไม่ระบุสาเหตุ"}
+            </p>
+            <p className="mt-1 text-sm text-foreground/80">
+              <span className="font-medium text-muted-foreground">คู่มือ: </span>
+              {guide.title}
             </p>
           </div>
         </div>
@@ -141,8 +220,15 @@ export function GuideWizard({
           </p>
         </div>
 
-        {/* Tools card */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        {totalSteps === 0 || !step ? (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+            <AlertTriangle className="mx-auto mb-3 size-8 text-muted-foreground/50" />
+            <p>ยังไม่มีขั้นตอนในคู่มือนี้</p>
+          </div>
+        ) : (
+          <>
+            {/* Tools card */}
+            <div className="rounded-xl border border-border bg-card p-4">
           <div className="mb-2 flex items-center gap-2">
             <Wrench className="size-4 text-primary" />
             <h2 className="font-display text-sm font-semibold">อุปกรณ์ที่ต้องใช้</h2>
@@ -163,7 +249,7 @@ export function GuideWizard({
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted-foreground">
             <span>
-              ขั้นตอนที่ {step.stepNum} จาก {totalSteps}
+              หัวข้อตรวจสอบที่ {step.stepNum} จาก {totalSteps}
             </span>
             <span>{Math.round(((current + 1) / totalSteps) * 100)}%</span>
           </div>
@@ -181,7 +267,12 @@ export function GuideWizard({
         </div>
 
         {/* Single active step */}
-        <SecureVideoPlayer stepNum={step.stepNum} label={guide.specificCause} />
+        <SecureVideoPlayer 
+          stepNum={step.stepNum} 
+          label={guide.title} 
+          mediaUrl={step.mediaUrl}
+          pdfUrl={step.pdfUrl}
+        />
 
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
@@ -219,9 +310,11 @@ export function GuideWizard({
             )}
           </button>
         </div>
-        <p className="text-center text-xs text-muted-foreground">
-          ทำตามทีละขั้นตอนเพื่อความปลอดภัย ไม่สามารถข้ามขั้นตอนได้
-        </p>
+            <p className="text-center text-xs text-muted-foreground">
+              ทำตามทีละขั้นตอนเพื่อความปลอดภัย ไม่สามารถข้ามขั้นตอนได้
+            </p>
+          </>
+        )}
       </div>
 
       {/* Sticky contact & feedback bar */}

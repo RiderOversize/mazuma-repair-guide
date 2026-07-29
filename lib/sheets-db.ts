@@ -36,7 +36,7 @@ export async function getUsers(): Promise<AuthUser[]> {
       status: obj.status as any,
       createdAt: obj.createdAt,
       initials: obj.name ? obj.name.substring(0, 2) : "",
-      avatar: obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png",
+      avatar: obj.avatarUrl || (obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png"),
       lineName: "-",
       lineUserId: obj.lineUserId,
       assignedSupervisors: obj.assignedSupervisors ? obj.assignedSupervisors.split(',').filter(Boolean) : [],
@@ -63,6 +63,7 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
     status: newUser.status,
     createdAt: newUser.createdAt,
     lineUserId: newUser.lineUserId || "",
+    avatarUrl: newUser.avatar || "",
     assignedSupervisors: (newUser.assignedSupervisors || []).join(','),
     accessibleMenus: (newUser.accessibleMenus || []).join(',')
   };
@@ -90,6 +91,7 @@ export async function updateUser(employeeCode: string, data: Partial<AuthUser>):
     status: merged.status,
     createdAt: merged.createdAt,
     lineUserId: merged.lineUserId || "",
+    avatarUrl: merged.avatar || "",
     assignedSupervisors: (merged.assignedSupervisors || []).join(','),
     accessibleMenus: (merged.accessibleMenus || []).join(',')
   };
@@ -115,25 +117,26 @@ export async function getModels(): Promise<DeviceModel[]> {
   
   return uniqueRows.map(r => {
     const obj = mapRowToObject(headers, r);
-    const subCatCode = obj.subCategoryId || obj.categoryId || r[1] || "";
-    const categoryId = subCatCode.substring(0, 2) || "F1"; 
+    const subCatCode = obj.subcategoryId || obj.subCategoryId || obj.categoryId || "";
+    const categoryId = obj.categoryId || (subCatCode.substring(0, 2) || "F1"); 
     
     return {
-      id: obj.id || r[0],
+      id: obj.id,
       subcategoryId: subCatCode || undefined,
-      symptomTypeId: obj.SymptomTypesID || obj.symptomTypeId || r[2] || undefined,
+      symptomTypeId: obj.symptomTypeId || obj.SymptomTypesID || undefined,
       categoryId: categoryId,
-      name: obj.name || r[3],
-      code: obj.code || r[4],
-      status: obj.status || r[5] || "active",
-      thumbnail: obj.thumbnail || r[6] || "",
-      createdAt: obj.createdAt || r[7] || new Date().toISOString()
+      name: obj.name,
+      code: obj.code,
+      status: obj.status || "active",
+      thumbnail: obj.thumbnail || "",
+      createdAt: obj.createdAt || new Date().toISOString(),
+      updatedAt: obj.updatedAt || new Date().toISOString()
     };
   });
 }
 
 export async function createModel(model: DeviceModel): Promise<DeviceModel> {
-  const newModel = { ...model, id: model.id || `m-${Date.now()}`, status: model.status || "active", createdAt: model.createdAt || new Date().toISOString() };
+  const newModel = { ...model, id: model.id || `m-${Date.now()}`, status: model.status || "active", createdAt: model.createdAt || new Date().toISOString(), updatedAt: model.updatedAt || new Date().toISOString() };
   
   const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
   const headers = allRows[0] || [];
@@ -146,7 +149,8 @@ export async function createModel(model: DeviceModel): Promise<DeviceModel> {
     code: newModel.code,
     status: newModel.status,
     thumbnail: newModel.thumbnail || "",
-    createdAt: newModel.createdAt
+    createdAt: newModel.createdAt,
+    updatedAt: newModel.updatedAt
   };
   
   const rowToAppend = mapObjectToRow(headers, objToSave);
@@ -154,25 +158,54 @@ export async function createModel(model: DeviceModel): Promise<DeviceModel> {
   return newModel as DeviceModel;
 }
 
+export async function bulkCreateModels(models: DeviceModel[]): Promise<DeviceModel[]> {
+  if (models.length === 0) return [];
+  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const rowsToAppend = models.map(model => {
+    const newModel = { ...model, id: model.id || `m-${Date.now()}-${Math.random()}`, status: model.status || "active", createdAt: model.createdAt || new Date().toISOString(), updatedAt: model.updatedAt || new Date().toISOString() };
+    const objToSave = {
+      id: newModel.id,
+      subCategoryId: newModel.subcategoryId || "",
+      SymptomTypesID: newModel.symptomTypeId || "",
+      name: newModel.name,
+      code: newModel.code,
+      status: newModel.status,
+      thumbnail: newModel.thumbnail || "",
+      createdAt: newModel.createdAt,
+      updatedAt: newModel.updatedAt
+    };
+    return mapObjectToRow(headers, objToSave);
+  });
+  
+  // Need to import appendRows from google-sheets
+  const { appendRows } = require('./google-sheets');
+  await appendRows(`${SHEETS.MODELS}!A2:Z`, rowsToAppend);
+  return models;
+}
+
 export async function updateModel(id: string, data: Partial<DeviceModel>): Promise<DeviceModel> {
   const models = await getModels();
   const existing = models.find(m => m.id === id);
   if (!existing) throw new Error("Model not found");
   
-  const merged = { ...existing, ...data };
+  const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
   
   const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
   const headers = allRows[0] || [];
   
   const objToSave = {
     id: merged.id,
-    subCategoryId: merged.subcategoryId || "",
-    SymptomTypesID: merged.symptomTypeId || "",
+    categoryId: merged.categoryId || "",
+    subcategoryId: merged.subcategoryId || "",
+    symptomTypeId: merged.symptomTypeId || "",
     name: merged.name,
     code: merged.code,
     status: merged.status,
     thumbnail: merged.thumbnail || "",
-    createdAt: merged.createdAt
+    createdAt: merged.createdAt,
+    updatedAt: merged.updatedAt
   };
 
   const rowToUpdate = mapObjectToRow(headers, objToSave);
@@ -224,6 +257,30 @@ export async function createCategory(category: Partial<Category>): Promise<Categ
   await appendRow(`${SHEETS.CATEGORIES}!A2:Z`, rowToAppend);
   
   return newCat;
+}
+
+export async function bulkCreateCategories(categories: Partial<Category>[]): Promise<Category[]> {
+  if (categories.length === 0) return [];
+  const allRows = await readSheet(`${SHEETS.CATEGORIES}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const createdCats: Category[] = [];
+  const rowsToAppend = categories.map(category => {
+    const newCat: Category = {
+      id: category.id || `cat-${Date.now()}-${Math.random()}`,
+      name: category.name || "",
+      slug: category.slug || `slug-${Date.now()}-${Math.random()}`,
+      description: category.description || "",
+      status: "active",
+      createdAt: new Date().toISOString()
+    };
+    createdCats.push(newCat);
+    return mapObjectToRow(headers, newCat as Record<string, any>);
+  });
+  
+  const { appendRows } = require('./google-sheets');
+  await appendRows(`${SHEETS.CATEGORIES}!A2:Z`, rowsToAppend);
+  return createdCats;
 }
 
 export async function updateCategory(id: string, data: Partial<Category>): Promise<Category> {
@@ -289,13 +346,50 @@ export async function getSymptomTypes(): Promise<SymptomType[]> {
   const idColIndex = getIndexCaseInsensitive(headers, 'id');
   const hasIdCol = idColIndex !== -1;
   
-  return rows.map((r, index) => {
+  const mapped = rows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
     return {
       id: obj.id || (hasIdCol ? r[idColIndex] : `type-${index}`),
+      categoryId: obj.categoryId || "",
       name: obj.name || (hasIdCol ? (idColIndex === 0 ? r[1] : r[0]) : r[1] || r[0])
     };
   }).filter(t => t.name);
+  
+  // Deduplicate by ID
+  const unique = new Map();
+  mapped.forEach(t => {
+    if (!unique.has(t.id)) unique.set(t.id, t);
+  });
+  return Array.from(unique.values());
+}
+
+export async function createSymptomType(data: Partial<SymptomType>): Promise<SymptomType> {
+  const newSym: SymptomType = {
+    id: data.id || `type-${Date.now()}`,
+    categoryId: data.categoryId || "",
+    name: data.name || ""
+  };
+  const allRows = await readSheet(`${SHEETS.SYMPTOM_TYPES}!A1:Z`);
+  const headers = allRows[0] || [];
+  const rowToAppend = mapObjectToRow(headers, newSym as Record<string, any>);
+  await appendRow(`${SHEETS.SYMPTOM_TYPES}!A2:Z`, rowToAppend);
+  return newSym;
+}
+
+export async function updateSymptomType(id: string, data: Partial<SymptomType>): Promise<SymptomType> {
+  const types = await getSymptomTypes();
+  const existing = types.find(t => t.id === id);
+  if (!existing) throw new Error("SymptomType not found");
+  const merged = { ...existing, ...data };
+  const allRows = await readSheet(`${SHEETS.SYMPTOM_TYPES}!A1:Z`);
+  const headers = allRows[0] || [];
+  const rowToUpdate = mapObjectToRow(headers, merged as Record<string, any>);
+  await updateRowById(SHEETS.SYMPTOM_TYPES, id, rowToUpdate);
+  return merged;
+}
+
+export async function deleteSymptomType(id: string): Promise<void> {
+  await deleteRowById(SHEETS.SYMPTOM_TYPES, id);
 }
 
 export async function getSymptoms(): Promise<Symptom[]> {
@@ -304,9 +398,9 @@ export async function getSymptoms(): Promise<Symptom[]> {
   const rows = allRows.slice(1);
   
   const idColIndex = getIndexCaseInsensitive(headers, 'id');
-  const hasIdCol = idColIndex !== -1 || headers.some(h => h && (h.toLowerCase().includes('id') || h.includes('รหัสอาการ')));
+  const hasIdCol = idColIndex !== -1 || headers.some((h: string) => h && (h.toLowerCase().includes('id') || h.includes('รหัสอาการ')));
 
-  return rows.map((r, index) => {
+  const mapped = rows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
     // Find column positions of keys case-insensitively
     const idIdx = getIndexCaseInsensitive(headers, 'id');
@@ -316,9 +410,65 @@ export async function getSymptoms(): Promise<Symptom[]> {
     return {
       id: obj.id || (idIdx !== -1 ? r[idIdx] : `sym-${index}`),
       symptomTypeId: obj.symptomTypeId || obj.SymptomTypesID || (typeIdx !== -1 ? r[typeIdx] : (hasIdCol ? r[1] : r[0])),
-      description: obj.description || obj.name || (descIdx !== -1 ? r[descIdx] : (hasIdCol ? r[2] : r[1]))
+      title: obj.title || (obj.name || "ระบุชื่ออาการ"),
+      description: obj.description || obj.name || (descIdx !== -1 ? r[descIdx] : (hasIdCol ? r[2] : r[1])),
+      severity: obj.severity || "Medium",
+      tags: obj.tags ? obj.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+      specificModelIds: obj.specificModelIds ? obj.specificModelIds.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined
     };
-  }).filter(s => s.description);
+  }).filter(s => s.description || s.title);
+  
+  // Deduplicate by ID
+  const unique = new Map();
+  mapped.forEach(s => {
+    if (!unique.has(s.id)) unique.set(s.id, s);
+  });
+  return Array.from(unique.values());
+}
+
+export async function createSymptom(data: Partial<Symptom>): Promise<Symptom> {
+  const newSym: Symptom = {
+    id: data.id || `sym-${Date.now()}`,
+    symptomTypeId: data.symptomTypeId || "",
+    title: data.title || "",
+    description: data.description || "",
+    severity: data.severity || "Medium",
+    tags: data.tags || []
+  };
+  const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const objToSave = {
+    ...newSym,
+    tags: newSym.tags.join(',')
+  };
+  
+  const rowToAppend = mapObjectToRow(headers, objToSave);
+  await appendRow(`${SHEETS.SYMPTOMS}!A2:Z`, rowToAppend);
+  return newSym;
+}
+
+export async function updateSymptom(id: string, data: Partial<Symptom>): Promise<Symptom> {
+  const symptoms = await getSymptoms();
+  const existing = symptoms.find(s => s.id === id);
+  if (!existing) throw new Error("Symptom not found");
+  const merged = { ...existing, ...data };
+  
+  const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const objToSave = {
+    ...merged,
+    tags: merged.tags.join(',')
+  };
+  
+  const rowToUpdate = mapObjectToRow(headers, objToSave as Record<string, any>);
+  await updateRowById(SHEETS.SYMPTOMS, id, rowToUpdate);
+  return merged;
+}
+
+export async function deleteSymptom(id: string): Promise<void> {
+  await deleteRowById(SHEETS.SYMPTOMS, id);
 }
 
 // ---------------------------------------------------------------------------
@@ -329,43 +479,30 @@ export async function getGuides(): Promise<Guide[]> {
   const guideHeaders = guideAllRows[0] || [];
   const guideRows = guideAllRows.slice(1);
   
-  const stepAllRows = await readSheet(`${SHEETS.GUIDE_STEPS}!A1:Z`);
-  const stepHeaders = stepAllRows[0] || [];
-  const stepRows = stepAllRows.slice(1);
-  
   const guideIdIdx = getIndexCaseInsensitive(guideHeaders, 'id');
-  const stepIdIdx = getIndexCaseInsensitive(stepHeaders, 'id');
   const uniqueGuideRows = Array.from(new Map(guideRows.map(r => [r[guideIdIdx !== -1 ? guideIdIdx : 0], r])).values());
-  const uniqueStepRows = Array.from(new Map(stepRows.map(r => [r[stepIdIdx !== -1 ? stepIdIdx : 0], r])).values());
-  
-  const stepsByGuideId: Record<string, GuideStep[]> = {};
-  uniqueStepRows.forEach(r => {
-    const obj = mapRowToObject(stepHeaders, r);
-    const guideId = obj.guideId;
-    if (!stepsByGuideId[guideId]) stepsByGuideId[guideId] = [];
-    stepsByGuideId[guideId].push({
-      stepNum: parseInt(obj.stepNum || "1"),
-      instruction: obj.instruction,
-      videoUrl: obj.videoUrl || "",
-      pdfUrl: obj.pdfUrl || ""
-    });
-  });
 
   return uniqueGuideRows.map(r => {
     const obj = mapRowToObject(guideHeaders, r);
     const guideId = obj.id;
     return {
       id: guideId,
+      title: obj.title || obj.specificCause || "",
       categoryId: obj.categoryId,
-      symptomId: obj.symptomId,
-      specificCause: obj.specificCause,
-      description: obj.description,
+      subcategoryId: obj.subcategoryId || "",
+      modelIds: obj.modelIds ? obj.modelIds.split(',').filter(Boolean) : [],
+      symptomTypeId: obj.symptomTypeId || "",
+      symptomId: obj.symptomId || "",
+      description: obj.description || "",
+      difficulty: obj.difficulty as any,
+      timeEstimated: obj.timeEstimated || "",
       status: obj.status as any,
       tags: obj.tags ? obj.tags.split(',').filter(Boolean) : [],
       toolsRequired: obj.toolsRequired ? obj.toolsRequired.split(',').filter(Boolean) : [],
+      partsRequired: obj.partsRequired ? obj.partsRequired.split(',').filter(Boolean) : [],
       createdAt: obj.createdAt,
       updatedAt: obj.updatedAt,
-      steps: stepsByGuideId[guideId] || []
+      steps: safeParse(obj.steps, [])
     };
   });
 }
@@ -388,36 +525,38 @@ export async function createGuide(guide: Guide): Promise<Guide> {
   
   const objToSave = {
     id: newGuide.id,
+    title: newGuide.title,
     categoryId: newGuide.categoryId,
-    symptomId: newGuide.symptomId,
-    specificCause: newGuide.specificCause,
+    subcategoryId: newGuide.subcategoryId || "",
+    modelIds: (newGuide.modelIds || []).join(','),
+    symptomTypeId: newGuide.symptomTypeId || "",
+    symptomId: newGuide.symptomId || "",
     description: newGuide.description || "",
+    difficulty: newGuide.difficulty || "",
+    timeEstimated: newGuide.timeEstimated || "",
     status: newGuide.status,
     tags: (newGuide.tags || []).join(','),
     toolsRequired: (newGuide.toolsRequired || []).join(','),
+    partsRequired: (newGuide.partsRequired || []).join(','),
     createdAt: newGuide.createdAt,
-    updatedAt: newGuide.updatedAt
+    updatedAt: newGuide.updatedAt,
+    steps: JSON.stringify(newGuide.steps || [])
   };
   
   const rowToAppend = mapObjectToRow(guideHeaders, objToSave);
   await appendRow(`${SHEETS.GUIDES}!A2:Z`, rowToAppend);
   
-  if (newGuide.steps && newGuide.steps.length > 0) {
-    const stepAllRows = await readSheet(`${SHEETS.GUIDE_STEPS}!A1:Z`);
-    const stepHeaders = stepAllRows[0] || [];
-    
-    for (const step of newGuide.steps) {
-      const stepObj = {
-        id: `step-${newGuide.id}-${step.stepNum}`,
-        guideId: newGuide.id,
-        stepNum: step.stepNum,
-        instruction: step.instruction,
-        videoUrl: step.videoUrl || "",
-        pdfUrl: step.pdfUrl || ""
-      };
-      await appendRow(`${SHEETS.GUIDE_STEPS}!A2:Z`, mapObjectToRow(stepHeaders, stepObj));
+  // Auto-update symptomTypeId on linked models if they are different
+  if (newGuide.symptomTypeId && newGuide.modelIds && newGuide.modelIds.length > 0) {
+    const models = await getModels();
+    for (const modelId of newGuide.modelIds) {
+      const model = models.find(m => m.id === modelId);
+      if (model && model.symptomTypeId !== newGuide.symptomTypeId) {
+        await updateModel(model.id, { symptomTypeId: newGuide.symptomTypeId });
+      }
     }
   }
+  // Removed saving to GuideSteps_V2
   
   return newGuide;
 }
@@ -434,19 +573,37 @@ export async function updateGuide(id: string, data: Partial<Guide>): Promise<Gui
   
   const objToSave = {
     id: merged.id,
+    title: merged.title,
     categoryId: merged.categoryId,
-    symptomId: merged.symptomId,
-    specificCause: merged.specificCause,
+    subcategoryId: merged.subcategoryId || "",
+    modelIds: (merged.modelIds || []).join(','),
+    symptomTypeId: merged.symptomTypeId || "",
+    symptomId: merged.symptomId || "",
     description: merged.description || "",
+    difficulty: merged.difficulty || "",
+    timeEstimated: merged.timeEstimated || "",
     status: merged.status,
     tags: (merged.tags || []).join(','),
     toolsRequired: (merged.toolsRequired || []).join(','),
+    partsRequired: (merged.partsRequired || []).join(','),
     createdAt: merged.createdAt,
-    updatedAt: merged.updatedAt
+    updatedAt: merged.updatedAt,
+    steps: JSON.stringify(merged.steps || [])
   };
   
   const rowToUpdate = mapObjectToRow(guideHeaders, objToSave);
   await updateRowById(SHEETS.GUIDES, id, rowToUpdate);
+  
+  // Auto-update symptomTypeId on linked models if they are different
+  if (merged.symptomTypeId && merged.modelIds && merged.modelIds.length > 0) {
+    const models = await getModels();
+    for (const modelId of merged.modelIds) {
+      const model = models.find(m => m.id === modelId);
+      if (model && model.symptomTypeId !== merged.symptomTypeId) {
+        await updateModel(model.id, { symptomTypeId: merged.symptomTypeId });
+      }
+    }
+  }
   
   // Handle steps: For MVP, we skip deep step syncing or just trust user edits it in Sheets.
   

@@ -53,7 +53,7 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
     
     try {
       await deleteGuide(guide.id)
-      await logActivity(user, "delete", "guide", guide.specificCause, guide.id)
+      await logActivity(user, "delete", "guide", guide.title, guide.id)
       await loadData()
       showToast("ลบคู่มือสำเร็จ", "success")
     } catch (err: any) {
@@ -61,8 +61,21 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
     }
   }
 
-  const filteredGuides = guides.filter(g => {
-    const matchSearch = g.specificCause.toLowerCase().includes(search.toLowerCase()) || 
+  const handleStatusChange = async (guide: Guide, newStatus: string) => {
+    try {
+      setGuides(guides.map(g => g.id === guide.id ? { ...g, status: newStatus as any } : g))
+      await import("@/lib/data-service").then(m => m.updateGuide(guide.id, { status: newStatus as any }))
+      showToast("อัปเดตสถานะสำเร็จ", "success")
+      logActivity(user, "update", "guide", guide.id, guide.title, `อัปเดตสถานะเป็น ${newStatus}`)
+    } catch (err: any) {
+      showToast("เกิดข้อผิดพลาด", "error")
+      loadData()
+    }
+  }
+
+  const filteredGuides = guides.filter((g) => {
+    if (g.status === 'archived') return false;
+    const matchSearch = (g.title || '').toLowerCase().includes(search.toLowerCase()) || 
                         (g.tags || []).some(t => t.toLowerCase().includes(search.toLowerCase()))
     const matchCat = filterCat ? g.categoryId === filterCat : true
     return matchSearch && matchCat
@@ -117,7 +130,7 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
 
       <div className="overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-border/50 bg-muted/40">
               <tr>
                 <th className="px-6 py-4 font-semibold text-muted-foreground">หัวข้อ / อาการเสีย</th>
@@ -133,14 +146,16 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
                 const cat = categories.find((c) => c.id === g.categoryId)
                 const sym = symptoms.find((s) => s.id === g.symptomId)
                 const symType = symptomTypes.find((st) => st.id === sym?.symptomTypeId)
-                const supportedModelsCount = symType ? models.filter(m => m.symptomTypeId === symType.id).length : 0
+                const linkedModels = g.modelIds && g.modelIds.length > 0
+                  ? models.filter(m => g.modelIds!.includes(m.id))
+                  : (symType ? models.filter(m => m.symptomTypeId === symType.id) : [])
+                const tooltipText = linkedModels.map(m => `[${m.code}] ${m.name}`).join('\n') || 'ไม่มีข้อมูลรุ่นที่ระบุชัดเจน'
                 
                 return (
                   <tr key={g.id} className="group transition-colors hover:bg-muted/30">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-base">{g.specificCause}</p>
+                    <td className="px-6 py-4 max-w-[350px]">
+                      <p className="font-bold text-base whitespace-normal">{g.title}</p>
                       <div className="flex items-center gap-2 mt-1">
-                         <span className="text-xs text-muted-foreground">รหัส: {g.id}</span>
                          {g.tags && g.tags.length > 0 && (
                             <div className="flex gap-1">
                               {g.tags.map(t => <span key={t} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">{t}</span>)}
@@ -148,14 +163,17 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
                          )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                       <p className="font-medium text-foreground">{cat?.name}</p>
-                       <p className="text-xs text-muted-foreground mt-0.5">{sym?.description || 'ไม่ระบุอาการ'}</p>
+                    <td className="px-6 py-4 max-w-[250px]">
+                       <p className="font-medium text-foreground whitespace-normal">{cat?.name}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal">{sym?.description || 'ไม่ระบุอาการ'}</p>
                     </td>
                     <td className="px-6 py-4">
-                       <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
+                       <span 
+                         className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground cursor-help"
+                         title={tooltipText}
+                       >
                          <Boxes className="size-3.5" />
-                         {supportedModelsCount} รุ่น
+                         {linkedModels.length} รุ่น
                        </span>
                     </td>
                     <td className="px-6 py-4">
@@ -165,12 +183,22 @@ export function GuidesManagement({ user, onCreate, onEdit }: { user: AuthUser, o
                        </span>
                     </td>
                     <td className="px-6 py-4">
-                      {g.status === "published" && <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600"><CheckCircle2 className="size-3.5" /> เผยแพร่</span>}
-                      {g.status === "draft" && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600"><AlertCircle className="size-3.5" /> ฉบับร่าง</span>}
-                      {g.status === "archived" && <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">เก็บถาวร</span>}
+                      <select 
+                        value={g.status}
+                        onChange={(e) => handleStatusChange(g, e.target.value)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full outline-none cursor-pointer text-center ${
+                          g.status === 'published' ? 'bg-green-500/10 text-green-600' : 
+                          g.status === 'draft' ? 'bg-amber-500/10 text-amber-600' : 
+                          'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        <option value="published">เผยแพร่</option>
+                        <option value="draft">ฉบับร่าง</option>
+                        <option value="archived">เก็บถาวร</option>
+                      </select>
                     </td>
-                    <td className="px-6 py-4 text-right align-middle">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-6 py-4 text-right align-middle whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
                         <button onClick={() => onEdit(g.id)} className="inline-flex p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" title="แก้ไข">
                           <Edit className="size-4.5" />
                         </button>

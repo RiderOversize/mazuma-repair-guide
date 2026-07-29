@@ -9,8 +9,8 @@ export const SHEETS = {
   SYMPTOM_TYPES: "SymptomTypes",
   SYMPTOMS: "Symptoms",
   MODELS: "Models",
-  GUIDES: "Guides",
-  GUIDE_STEPS: "GuideSteps",
+  GUIDES: "Guides_V2",
+  GUIDE_STEPS: "GuideSteps_V2",
   FEEDBACKS: "Feedbacks",
 };
 
@@ -58,11 +58,12 @@ export async function initSheets() {
   const requiredSheets = [
     { title: SHEETS.USERS, headers: ["employeeCode", "name", "phone", "role", "status", "createdAt", "lineUserId", "assignedHeads"] },
     { title: SHEETS.CATEGORIES, headers: ["id", "name", "slug", "description", "status", "createdAt"] },
-    { title: SHEETS.SYMPTOM_GROUPS, headers: ["id", "categoryId", "name"] },
+    { title: SHEETS.SYMPTOM_TYPES, headers: ["id", "categoryId", "name"] },
+    { title: SHEETS.SYMPTOMS, headers: ["id", "symptomTypeId", "title", "description", "severity", "tags"] },
     { title: SHEETS.SUBCATEGORIES, headers: ["id", "categoryId", "name"] },
-    { title: SHEETS.MODELS, headers: ["รหัสสินค้า", "ชื่อสินค้า", "MAT Category Code", "MAT Category", "รหัสประเภทอาการ", "ประเภทอาการอาการ", "status", "thumbnail", "createdAt"] },
-    { title: SHEETS.GUIDES, headers: ["id", "categoryId", "symptomGroupId", "specificCause", "description", "status", "tags", "supportedModels", "toolsRequired", "createdAt", "updatedAt"] },
-    { title: SHEETS.GUIDE_STEPS, headers: ["id", "guideId", "stepNum", "instruction", "videoUrl", "pdfUrl"] },
+    { title: SHEETS.MODELS, headers: ["id", "categoryId", "subcategoryId", "symptomTypeId", "name", "code", "status", "thumbnail", "createdAt", "updatedAt"] },
+    { title: SHEETS.GUIDES, headers: ["id", "title", "categoryId", "subcategoryId", "modelIds", "symptomTypeId", "symptomId", "description", "difficulty", "timeEstimated", "status", "tags", "toolsRequired", "partsRequired", "createdAt", "updatedAt", "steps"] },
+    { title: SHEETS.GUIDE_STEPS, headers: ["id", "guideId", "stepNum", "instruction", "videoUrl", "pdfUrl", "title", "mediaUrl", "warning"] },
     { title: SHEETS.FEEDBACKS, headers: ["id", "guideId", "modelId", "userId", "userName", "isSuccess", "stepsViewed", "totalSteps", "timestamp"] },
   ];
 
@@ -226,10 +227,25 @@ export async function readSheet(range: string) {
 
   const sheets = await getSheetsClient();
   const spreadsheetId = await getSpreadsheetId();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range,
-  });
+  
+  let response;
+  try {
+    response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+  } catch (error: any) {
+    if (error.message && error.message.includes("Unable to parse range")) {
+      console.log(`Sheet missing for range ${range}. Initializing sheets...`);
+      await initSheets();
+      response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range,
+      });
+    } else {
+      throw error;
+    }
+  }
   
   const data = response.data.values || [];
   
@@ -239,21 +255,75 @@ export async function readSheet(range: string) {
   return data;
 }
 
+export async function appendRows(range: string, values: any[][]) {
+  const sheetName = range.split('!')[0];
+  if (sheetName) clearCache(sheetName);
+  const sheets = await getSheetsClient();
+  const spreadsheetId = await getSpreadsheetId();
+  
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: values
+      }
+    });
+  } catch (error: any) {
+    if (error.message && error.message.includes("Unable to parse range")) {
+      console.log(`Sheet missing for range ${range}. Initializing sheets...`);
+      await initSheets();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range,
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: values
+        }
+      });
+    } else {
+      throw error;
+    }
+  }
+}
+
 export async function appendRow(range: string, values: any[]) {
   // Range is usually in format "SheetName!A2:Z", extract SheetName for targeted invalidation
   const sheetName = range.split('!')[0];
   if (sheetName) clearCache(sheetName);
   const sheets = await getSheetsClient();
   const spreadsheetId = await getSpreadsheetId();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range,
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: [values]
+  
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [values]
+      }
+    });
+  } catch (error: any) {
+    if (error.message && error.message.includes("Unable to parse range")) {
+      console.log(`Sheet missing for range ${range}. Initializing sheets...`);
+      await initSheets();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range,
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [values]
+        }
+      });
+    } else {
+      throw error;
     }
-  });
+  }
 }
 
 // In Google Sheets, updating a specific row requires knowing its row number.

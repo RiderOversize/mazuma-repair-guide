@@ -119,14 +119,14 @@ async function seed() {
   
   guides.forEach(g => {
     guideRows.push([
-      g.id, g.categoryId, g.symptomId, g.specificCause, g.description || "", g.status || "published",
+      g.id, g.categoryId, g.symptomId, g.title, g.description || "", g.status || "published",
       (g.tags || []).join(","), (g.toolsRequired || []).join(","),
       g.createdAt || new Date().toISOString(), g.updatedAt || new Date().toISOString()
     ]);
     
     g.steps.forEach(st => {
       stepRows.push([
-        `step-${g.id}-${st.stepNum}`, g.id, st.stepNum, st.instruction, st.videoUrl, st.pdfUrl || ""
+        `step-${g.id}-${st.stepNum}`, g.id, st.stepNum, st.instruction, st.mediaUrl, st.pdfUrl || ""
       ]);
     });
   });

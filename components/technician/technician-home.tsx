@@ -135,7 +135,7 @@ export function TechnicianHome({
                 <Icon className="size-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-display font-semibold">{cat.id} - {cat.name}</p>
+                <p className="font-display font-semibold">{cat.slug} - {cat.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {cat.description}
                 </p>

@@ -24,8 +24,15 @@ import {
   getActiveSessions as _getActiveSessions,
   getTopModels as _getTopModels,
   getSubCategories as _getSubCategories,
+  createSubCategory as _createSubCategory,
   getSymptomTypes as _getSymptomTypes,
-  getSymptoms as _getSymptoms
+  createSymptomType as _createSymptomType,
+  updateSymptomType as _updateSymptomType,
+  deleteSymptomType as _deleteSymptomType,
+  getSymptoms as _getSymptoms,
+  createSymptom as _createSymptom,
+  updateSymptom as _updateSymptom,
+  deleteSymptom as _deleteSymptom
 } from "./sheets-db";
 
 export { type ActiveSession, type RepairFeedback } from "./sheets-db";
@@ -46,8 +53,15 @@ export const updateCategory = _updateCategory;
 export const deleteCategory = _deleteCategory;
 
 export const getSubCategories = _getSubCategories;
+export const createSubCategory = _createSubCategory;
 export const getSymptomTypes = _getSymptomTypes;
+export const createSymptomType = _createSymptomType;
+export const updateSymptomType = _updateSymptomType;
+export const deleteSymptomType = _deleteSymptomType;
 export const getSymptoms = _getSymptoms;
+export const createSymptom = _createSymptom;
+export const updateSymptom = _updateSymptom;
+export const deleteSymptom = _deleteSymptom;
 
 export const getGuides = _getGuides;
 export const getGuideById = _getGuideById;

@@ -1,7 +1,7 @@
 import { AuthUser } from "./auth"
 
-export type ActivityAction = "create" | "update" | "delete" | "login" | "logout"
-export type ActivityResource = "guide" | "model" | "user" | "category" | "system"
+export type ActivityAction = "create" | "update" | "delete" | "login" | "logout" | "view"
+export type ActivityResource = "guide" | "model" | "user" | "category" | "system" | "symptom_type" | "symptom"
 
 export interface ActivityLog {
   id: string

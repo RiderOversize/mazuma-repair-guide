@@ -163,6 +163,11 @@ export function TechnicianApp({
                 setSubCategoryId(sc.id)
                 setView("models")
               }}
+              onSelectModel={(m) => {
+                setModel(m)
+                setSubCategoryId(m.subcategoryId || null)
+                setView("symptoms")
+              }}
             />
           )}
 
@@ -205,6 +210,7 @@ export function TechnicianApp({
               categories={categories}
               models={models}
               symptoms={symptoms}
+              symptomTypes={symptomTypes}
               onBack={() => setView("symptoms")} 
             />
           )}

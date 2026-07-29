@@ -151,7 +151,9 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
       </div>
 
       {isFormOpen && (
-        <form onSubmit={handleSubmit} className="mb-8 rounded-3xl border border-border/50 bg-card p-6 lg:p-8 shadow-md backdrop-blur-sm transition-all animate-in slide-in-from-top-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={() => setIsFormOpen(false)}></div>
+          <form onSubmit={handleSubmit} className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border/50 bg-card p-6 lg:p-8 shadow-xl animate-in zoom-in-95 duration-200">
           <div className="mb-6 flex items-center justify-between border-b border-border/50 pb-5">
             <div>
               <h3 className="font-display text-xl font-bold">{editingId ? "แก้ไขข้อมูลรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}</h3>
@@ -199,31 +201,33 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               </div>
               
               <div>
+                <label className="mb-2 block text-sm font-semibold">หมวดหมู่หลัก (Category) <span className="text-destructive">*</span></label>
+                <select
+                  required
+                  value={formData.categoryId}
+                  onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
+                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
+                >
+                  <option value="">-- เลือกหมวดหมู่หลัก --</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>[{c.id}] {c.name}</option>)}
+                </select>
+              </div>
+
+              <div>
                 <label className="mb-2 block text-sm font-semibold">หมวดหมู่ย่อย (MAT Category) <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.subcategoryId}
                   onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
+                  disabled={!formData.categoryId}
+                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
                 >
                   <option value="">-- เลือกหมวดหมู่ย่อย --</option>
-                  {subCategories.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                  {subCategories.filter(sc => sc.categoryId === formData.categoryId).map(sc => <option key={sc.id} value={sc.id}>[{sc.id}] {sc.name}</option>)}
                 </select>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">ประเภทอาการ</label>
-                <select
-                  value={formData.symptomTypeId}
-                  onChange={e => setFormData({ ...formData, symptomTypeId: e.target.value })}
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
-                >
-                  <option value="">-- ไม่ระบุ --</option>
-                  {symptomTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
-                </select>
-              </div>
-              
-              <div>
+              <div className="sm:col-span-2">
                 <label className="mb-2 block text-sm font-semibold">รหัสรุ่น (Product Code) <span className="text-destructive">*</span></label>
                 <input
                   required
@@ -263,7 +267,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               บันทึกข้อมูล
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {/* Filter and Search Bar */}
@@ -293,7 +298,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           >
             <option value="">ทุกหมวดหมู่ย่อย</option>
             {subCategories.map(sc => (
-              <option key={sc.id} value={sc.id}>{sc.name}</option>
+              <option key={sc.id} value={sc.id}>[{sc.id}] {sc.name}</option>
             ))}
           </select>
         </div>
@@ -301,13 +306,13 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
       <div className="overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-border/50 bg-muted/40">
               <tr>
                 <th className="px-6 py-4 font-semibold text-muted-foreground">รูปภาพ</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">หมวดหมู่</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">ชื่อรุ่น</th>
                 <th className="px-6 py-4 font-semibold text-muted-foreground">รหัสสินค้า</th>
+                <th className="px-6 py-4 font-semibold text-muted-foreground">ชื่อรุ่น</th>
+                <th className="px-6 py-4 font-semibold text-muted-foreground">หมวดหมู่</th>
                 <th className="px-6 py-4 font-semibold text-muted-foreground">สถานะ</th>
                 <th className="px-6 py-4 font-semibold text-muted-foreground text-right">จัดการ</th>
               </tr>
@@ -322,20 +327,20 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                          {m.thumbnail ? <img src={m.thumbnail} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="size-5 text-muted-foreground/30" />}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-muted-foreground">{subCat ? `[${subCat.id}] ${subCat.name}` : m.subcategoryId || m.categoryId}</td>
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-base">{m.name}</p>
-                      {m.createdAt && <p className="text-xs text-muted-foreground mt-0.5">เพิ่มเมื่อ: {new Date(m.createdAt).toLocaleDateString()}</p>}
+                    <td className="px-6 py-4 whitespace-nowrap"><span className="font-mono text-sm bg-muted px-2 py-1 rounded-md">{m.code}</span></td>
+                    <td className="px-6 py-4 max-w-[300px]">
+                      <p className="font-bold text-base whitespace-normal">{m.name}</p>
+                      {m.createdAt && <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">เพิ่มเมื่อ: {new Date(m.createdAt).toLocaleDateString()}</p>}
                     </td>
-                    <td className="px-6 py-4"><span className="font-mono text-sm bg-muted px-2 py-1 rounded-md">{m.code}</span></td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 font-medium text-muted-foreground">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {m.status === "active" && <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600"><CheckCircle2 className="size-3.5" /> จำหน่ายอยู่</span>}
                       {m.status === "draft" && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600"><AlertCircle className="size-3.5" /> ฉบับร่าง</span>}
                       {m.status === "discontinued" && <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive"><X className="size-3.5" /> ยกเลิกผลิต</span>}
                       {!m.status && <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">Active</span>}
                     </td>
-                    <td className="px-6 py-4 text-right align-middle">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-6 py-4 text-right align-middle whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
                         <button onClick={() => openEdit(m)} className="inline-flex p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" title="แก้ไข">
                           <Edit className="size-4.5" />
                         </button>
