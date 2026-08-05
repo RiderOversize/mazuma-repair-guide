@@ -173,7 +173,7 @@ export function TechnicianApp({
               models={models}
               onBack={() => setView("home")}
               onSelectSubCategory={(sc) => {
-                setSubCategoryId(sc.id)
+                setSubCategoryId(sc.index || sc.id)
                 setView("models")
               }}
               onSelectModel={(m) => {

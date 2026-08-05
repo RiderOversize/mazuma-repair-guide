@@ -28,7 +28,7 @@ export function SubCategoryList({
 
   const modelResults = query.trim()
     ? models.filter(m => 
-        (catSubCategories.some(sc => sc.id === m.subcategoryId) || m.categoryId === category.id) &&
+        (catSubCategories.some(sc => sc.id === m.subcategoryId || sc.index === m.subcategoryId) || m.categoryId === category.id) &&
         (m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
       )
     : []
@@ -92,7 +92,7 @@ export function SubCategoryList({
             {results.length > 0 && (
               <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
                 {results.map((sc, i) => {
-                  const numModels = models.filter(m => m.subcategoryId === sc.id || (m.categoryId === category.id && !m.subcategoryId)).length;
+                  const numModels = models.filter(m => m.subcategoryId === sc.id || m.subcategoryId === sc.index || (m.categoryId === category.id && !m.subcategoryId)).length;
                   const isLast = i === results.length - 1;
                   
                   return (

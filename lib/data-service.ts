@@ -123,7 +123,6 @@ export async function preloadAdminData() {
   const ranges = [
     `${SHEETS.CATEGORIES}!A1:Z`,
     `${SHEETS.MASTERDATA}!A1:Z`,
-    `${SHEETS.MODELS}!A1:Z`,
     `${SHEETS.FEEDBACKS}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
   ];

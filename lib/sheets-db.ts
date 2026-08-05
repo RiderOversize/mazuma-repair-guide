@@ -109,25 +109,26 @@ export async function deleteUser(employeeCode: string): Promise<void> {
 // Models
 // ---------------------------------------------------------------------------
 export async function getModels(): Promise<DeviceModel[]> {
-  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
   const headers = allRows[0] || [];
   const rows = allRows.slice(1);
-  const idIdx = getIndexCaseInsensitive(headers, 'id');
+  const idIdx = getIndexCaseInsensitive(headers, 'id') !== -1 ? getIndexCaseInsensitive(headers, 'id') : getIndexCaseInsensitive(headers, 'รหัสสินค้า');
   const uniqueRows = Array.from(new Map(rows.map(r => [r[idIdx !== -1 ? idIdx : 0], r])).values());
   
-  return uniqueRows.map(r => {
+  return uniqueRows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
-    const subCatCode = obj.subcategoryId || obj.subCategoryId || obj.categoryId || "";
+    const code = obj['รหัสสินค้า'] || obj.code || "";
+    const subCatCode = obj['MAT Category Code'] || obj.subcategoryId || obj.subCategoryId || obj.categoryId || "";
     const categoryId = obj.categoryId || (subCatCode.substring(0, 2) || "F1"); 
     
     return {
-      id: obj.id,
+      id: obj['รหัสสินค้า'] || obj.ID || obj.id || `m-${index}`,
       subcategoryId: subCatCode || undefined,
-      symptomTypeId: obj.symptomTypeId || obj.SymptomTypesID || undefined,
+      symptomTypeId: obj['รหัสประเภทอาการ'] || obj.symptomTypeId || obj.SymptomTypesID || undefined,
       categoryId: categoryId,
-      name: obj.name,
-      code: obj.code,
-      status: obj.status || "active",
+      name: obj['ชื่อสินค้า'] || obj.name || "ระบุชื่อรุ่น",
+      code: code,
+      status: "active",
       thumbnail: obj.thumbnail || "",
       createdAt: obj.createdAt || new Date().toISOString(),
       updatedAt: obj.updatedAt || new Date().toISOString()
@@ -189,29 +190,31 @@ export async function bulkCreateModels(models: DeviceModel[]): Promise<DeviceMod
 
 export async function updateModel(id: string, data: Partial<DeviceModel>): Promise<DeviceModel> {
   const models = await getModels();
-  const existing = models.find(m => m.id === id);
+  const existing = models.find(m => m.id === id || m.code === id);
   if (!existing) throw new Error("Model not found");
   
   const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
   
-  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
   const headers = allRows[0] || [];
   
+  const types = await getSymptomTypes();
+  const st = types.find(t => t.id === merged.symptomTypeId);
+  
+  const subCats = await getSubCategories();
+  const sc = subCats.find(s => s.index === merged.subcategoryId || s.id === merged.subcategoryId);
+
   const objToSave = {
-    id: merged.id,
-    categoryId: merged.categoryId || "",
-    subcategoryId: merged.subcategoryId || "",
-    symptomTypeId: merged.symptomTypeId || "",
-    name: merged.name,
-    code: merged.code,
-    status: merged.status,
-    thumbnail: merged.thumbnail || "",
-    createdAt: merged.createdAt,
-    updatedAt: merged.updatedAt
+    'รหัสสินค้า': merged.code || merged.id,
+    'ชื่อสินค้า': merged.name,
+    'MAT Category Code': merged.subcategoryId || "",
+    'MAT Category': sc ? sc.name : "",
+    'รหัสประเภทอาการ': merged.symptomTypeId || "",
+    'ประเภทอาการอาการ': st ? st.name : ""
   };
 
   const rowToUpdate = mapObjectToRow(headers, objToSave);
-  await updateRowById(SHEETS.MODELS, id, rowToUpdate);
+  await updateRowById(SHEETS.MASTERDATA, id, rowToUpdate);
   return merged;
 }
 
