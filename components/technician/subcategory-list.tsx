@@ -103,7 +103,7 @@ export function SubCategoryList({
                       className={`group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-muted/50 ${!isLast ? 'border-b border-border/40' : ''}`}
                     >
                       <div>
-                        <p className="font-medium text-[15px]">{sc.id} - {sc.name}</p>
+                        <p className="font-medium text-[15px]">{sc.index || sc.id} - {sc.name}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] text-muted-foreground">
