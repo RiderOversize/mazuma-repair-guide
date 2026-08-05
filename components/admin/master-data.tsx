@@ -506,7 +506,10 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                         <Stethoscope className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">{st.name}</p>
+                        <p className="font-semibold text-[15px] truncate text-foreground">
+                          <span className="text-blue-500 font-bold mr-1">{st.id} -</span>
+                          {st.name}
+                        </p>
                         <p className="text-[13px] text-muted-foreground truncate font-mono">คำอธิบาย: {st.description || '-'}</p>
                       </div>
                     </div>
@@ -555,7 +558,10 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                         <AlertTriangle className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">{sym.title}</p>
+                        <p className="font-semibold text-[15px] truncate text-foreground">
+                          <span className="text-amber-500 font-bold mr-1">{sym.id} -</span>
+                          {sym.title}
+                        </p>
                         <p className="text-[13px] text-muted-foreground truncate">{sym.description || 'ไม่มีคำอธิบาย'}</p>
                       </div>
                     </div>
@@ -606,7 +612,10 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                         <FileText className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">{guide.title}</p>
+                        <p className="font-semibold text-[15px] truncate text-foreground">
+                          <span className="text-emerald-500 font-bold mr-1">{guide.id} -</span>
+                          {guide.title}
+                        </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {guide.mediaUrl ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-semibold">
