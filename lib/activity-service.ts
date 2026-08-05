@@ -1,7 +1,10 @@
+"use server"
+
 import { AuthUser } from "./auth"
+import { readSheet, appendRow, SHEETS, mapRowToObject, mapObjectToRow } from "./google-sheets"
 
 export type ActivityAction = "create" | "update" | "delete" | "login" | "logout" | "view"
-export type ActivityResource = "guide" | "model" | "user" | "category" | "system" | "symptom_type" | "symptom"
+export type ActivityResource = "guide" | "model" | "user" | "category" | "subcategory" | "system" | "symptom_type" | "symptom" | "masterdata_mapping"
 
 export interface ActivityLog {
   id: string
@@ -15,44 +18,34 @@ export interface ActivityLog {
   details?: string
 }
 
-const mockActivities: ActivityLog[] = [
-  {
-    id: "act-1",
-    action: "login",
-    resource: "system",
-    userCode: "MZ-001",
-    userName: "แอดมินภานุเดช",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-  },
-  {
-    id: "act-2",
-    action: "update",
-    resource: "guide",
-    resourceId: "g-1",
-    resourceName: "ฮีตเตอร์ขาด (Heating Element Broken)",
-    userCode: "MZ-001",
-    userName: "แอดมินภานุเดช",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-  },
-  {
-    id: "act-3",
-    action: "create",
-    resource: "model",
-    resourceId: "m-new",
-    resourceName: "Mazuma รุ่น Smart Flow",
-    userCode: "MZ-002",
-    userName: "แอดมินสมหญิง",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 mins ago
-  }
-]
-
-let memActivities = [...mockActivities]
-
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
-
 export async function getActivities(): Promise<ActivityLog[]> {
-  await delay(200)
-  return [...memActivities].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  try {
+    const allRows = await readSheet(`${SHEETS.ACTIVITY_LOGS}!A1:Z`)
+    if (allRows.length <= 1) return []
+    
+    const headers = allRows[0] || []
+    const rows = allRows.slice(1)
+    
+    const logs = rows.map(r => {
+      const obj = mapRowToObject(headers, r)
+      return {
+        id: obj.id,
+        action: obj.action as ActivityAction,
+        resource: obj.resource as ActivityResource,
+        resourceId: obj.resourceId,
+        resourceName: obj.resourceName,
+        userCode: obj.userCode,
+        userName: obj.userName,
+        timestamp: obj.timestamp,
+        details: obj.details
+      }
+    })
+    
+    return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  } catch (error) {
+    console.error("Failed to get activities:", error)
+    return []
+  }
 }
 
 export async function logActivity(
@@ -74,5 +67,27 @@ export async function logActivity(
     timestamp: new Date().toISOString(),
     details
   }
-  memActivities.push(newLog)
+  
+  try {
+    let headers: string[]
+    try {
+      const allRows = await readSheet(`${SHEETS.ACTIVITY_LOGS}!A1:Z`)
+      headers = allRows[0] || ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"]
+    } catch {
+      // If sheet doesn't exist yet, use default headers
+      headers = ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"]
+    }
+    
+    const obj = {
+      ...newLog,
+      resourceId: newLog.resourceId || "",
+      resourceName: newLog.resourceName || "",
+      details: newLog.details || "",
+    }
+    
+    const row = mapObjectToRow(headers, obj)
+    await appendRow(SHEETS.ACTIVITY_LOGS, row)
+  } catch (error) {
+    console.error("Failed to log activity:", error)
+  }
 }

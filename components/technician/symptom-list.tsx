@@ -16,7 +16,7 @@ import {
   type Guide,
   type SymptomType,
   type Symptom,
-} from "@/lib/mock-data"
+} from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export function SymptomList({
@@ -55,144 +55,115 @@ export function SymptomList({
             return true;
           })
         : []) // If a model is selected but has no symptomTypeId mapped, show nothing
-    : symptoms.filter(s => guides.some(g => g.categoryId === category.id && g.symptomId === s.id && g.status === 'published'))
-
-  const [open, setOpen] = useState<string | null>(applicableSymptoms[0]?.id ?? null)
+    : symptoms.filter(s => guides.some(g => g.symptomId === s.id && g.status === 'published'))
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-16">
-      <div className="sticky top-0 z-20 bg-background pt-14 pb-4 border-b border-border/40 mb-4">
+    <div className="mx-auto w-full max-w-[480px] px-4 pb-24 pt-safe">
+      <div className="sticky top-0 z-20 bg-background/70 backdrop-blur-2xl pt-14 pb-4 -mx-4 px-4 border-b border-border/40 mb-5">
         <button
           type="button"
           onClick={onBack}
-          className="mb-3 hidden sm:inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
         >
-          <ChevronLeft className="size-4" />
-          กลับหน้าหลัก
+          <ChevronLeft className="size-5" />
+          <span>หน้าก่อนหน้า</span>
         </button>
 
         {/* Model detail (when arrived via search) */}
         {model ? (
-          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-primary whitespace-nowrap">
-              <Tag className="size-3.5" />
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary mb-2">
+              <Tag className="size-3" />
               รุ่นที่เลือก
             </div>
-            <p className="mt-1 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{model.name}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+            <h1 className="font-display text-2xl font-bold leading-tight tracking-tight text-foreground line-clamp-1">{model.name}</h1>
+            <p className="text-[13px] font-medium text-muted-foreground mt-1">
               รหัส: {model.code} · {category.name}
             </p>
           </div>
         ) : (
           <div>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-primary whitespace-nowrap">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary mb-2">
               {category.name}
             </span>
-            <h1 className="mt-1.5 font-display text-lg sm:text-xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{category.description}</h1>
+            <h1 className="font-display text-2xl font-bold leading-tight tracking-tight text-foreground line-clamp-1">{category.description}</h1>
           </div>
         )}
       </div>
 
       {/* Symptom Group Display */}
       {model && symptomGroup && (
-        <div className="mb-5">
-          <div className="mb-2 flex items-center gap-2">
-            <Activity className="size-4 text-muted-foreground" />
-            <h2 className="font-display text-sm font-semibold text-muted-foreground">
-              กลุ่มอาการที่เสีย
-            </h2>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <p className="font-display font-medium text-foreground">{symptomGroup.name}</p>
-            <p className="text-xs text-muted-foreground mt-1">รหัสกลุ่ม: {symptomGroup.id}</p>
+        <div className="mb-6">
+          <h2 className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase pl-1 mb-2">
+            กลุ่มอาการที่เสีย
+          </h2>
+          <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Activity className="size-5" />
+            </div>
+            <div>
+              <p className="font-display font-semibold text-[15px] text-foreground leading-tight">{symptomGroup.name}</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5 font-mono">รหัส: {symptomGroup.id}</p>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="mb-3 flex items-center gap-2">
-        <Stethoscope className="size-4 text-muted-foreground" />
-        <h2 className="font-display text-sm font-semibold text-muted-foreground">
+      <div className="mb-3">
+        <h2 className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase pl-1">
           อาการเสียที่พบ
         </h2>
       </div>
 
       {/* Symptom list accordion */}
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
         {applicableSymptoms.length === 0 ? (
-           <div className="text-center p-8 bg-muted/40 rounded-xl border border-dashed border-border text-sm text-muted-foreground">
+           <div className="text-center p-10 bg-muted/30 rounded-2xl border border-dashed border-border/50 text-[15px] text-muted-foreground">
              {model ? "ไม่มีข้อมูลอาการสำหรับรุ่นนี้" : "โปรดเลือกรุ่นสินค้าก่อน"}
            </div>
         ) : (
-          applicableSymptoms.map((sym) => {
-            const symGuides = guides.filter(g => g.categoryId === category.id && g.symptomId === sym.id && g.status === 'published')
-            const isOpen = open === sym.id
-            return (
-              <div
-                key={sym.id}
-                className="overflow-hidden rounded-2xl border border-border bg-card"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpen(isOpen ? null : sym.id)}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left"
-                >
-                  <span className="font-display font-semibold leading-snug text-balance">
-                    {sym.title || sym.description}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
-                        symGuides.length
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {symGuides.length} วิธี
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "size-5 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </div>
-                </button>
-
-                {isOpen ? (
-                  <div className="border-t border-border bg-muted/40 p-3">
-                    {symGuides.length === 0 ? (
-                      <p className="px-1 py-2 text-center text-sm text-muted-foreground">
-                        ยังไม่มีคู่มือสำหรับอาการนี้
-                      </p>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {symGuides.map((g) => (
-                          <button
-                            key={g.id}
-                            type="button"
-                            onClick={() => onSelectGuide(g)}
-                            className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
-                          >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <Wrench className="size-3.5 shrink-0 text-primary" />
-                                <p className="truncate font-medium">{g.title}</p>
-                              </div>
-                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                {g.steps.length} ขั้นตอน
-                              </p>
-                            </div>
-                            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                          </button>
-                        ))}
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
+            {applicableSymptoms.map((sym, i) => {
+              const symGuides = guides.filter(g => g.symptomId === sym.id && g.status === 'published')
+              const isLast = i === applicableSymptoms.length - 1;
+              const hasGuide = symGuides.length > 0;
+              
+              return (
+                <div key={sym.id} className={`${!isLast ? 'border-b border-border/40' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (hasGuide) {
+                        onSelectGuide(symGuides[0]);
+                      }
+                    }}
+                    disabled={!hasGuide}
+                    className={`flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${hasGuide ? 'hover:bg-muted/30 active:bg-muted/50' : 'opacity-70 cursor-not-allowed'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex size-8 shrink-0 items-center justify-center rounded-full ${hasGuide ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        <Stethoscope className="size-4" />
                       </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            )
-          })
+                      <span className={`font-medium text-[15px] leading-snug ${hasGuide ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {sym.title || sym.description}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {!hasGuide && (
+                        <span className="text-[11px] font-medium text-muted-foreground px-2">ไม่มีข้อมูล</span>
+                      )}
+                      <ArrowRight
+                        className={cn(
+                          "size-5 transition-transform",
+                          hasGuide ? "text-primary/70" : "text-muted-foreground/30",
+                        )}
+                      />
+                    </div>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

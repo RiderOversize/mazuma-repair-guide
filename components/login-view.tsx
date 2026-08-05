@@ -13,35 +13,44 @@ export function LoginView() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10 overflow-hidden bg-zinc-950">
+      {/* Decorative Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[60%] rounded-full bg-primary/20 blur-[120px] mix-blend-screen opacity-70 animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute top-[40%] -right-[20%] w-[60%] h-[50%] rounded-full bg-blue-500/20 blur-[120px] mix-blend-screen opacity-50" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm">
         {/* Brand */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary font-display text-3xl font-bold text-primary-foreground shadow-lg">
+        <div className="mb-10 flex flex-col items-center text-center">
+          <div className="mb-5 flex size-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-primary to-primary/50 font-display text-4xl font-bold text-white shadow-2xl ring-1 ring-white/20">
             M
           </div>
-          <h1 className="font-display text-2xl font-semibold">Mazuma Repair Guide</h1>
-          <p className="mt-1 text-sm text-muted-foreground">ระบบคู่มือซ่อมสำหรับทีมช่างและผู้ดูแล</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white drop-shadow-sm">Mazuma</h1>
+          <p className="mt-2 text-[14px] font-medium text-zinc-400">ระบบจัดการและคู่มือซ่อมสำหรับทีมงาน</p>
         </div>
 
-        {/* Login card */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <p className="mb-1 font-display text-sm font-semibold">เข้าสู่ระบบ</p>
-          <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
-            เข้าสู่ระบบด้วยบัญชี LINE ของคุณเพื่อเริ่มใช้งานคู่มือซ่อม
-          </p>
+        {/* Login card - Glassmorphism */}
+        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="mb-6 text-center">
+            <h2 className="font-display text-lg font-semibold text-white">เข้าสู่ระบบ</h2>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-400">
+              เข้าสู่ระบบด้วยบัญชี LINE ของคุณเพื่อเริ่มใช้งานระบบคู่มือซ่อม
+            </p>
+          </div>
 
           <button
             type="button"
             onClick={startLineLogin}
             disabled={isConnecting}
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3.5 font-medium text-white shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-80"
+            className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-4 font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
             style={{ backgroundColor: "#06C755" }}
           >
+            <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
             {isConnecting ? (
               <>
                 <Loader2 className="size-5 animate-spin" />
-                กำลังเชื่อมต่อกับ LINE...
+                กำลังเชื่อมต่อ...
               </>
             ) : (
               <>
@@ -51,14 +60,14 @@ export function LoginView() {
             )}
           </button>
 
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-            <ShieldCheck className="size-3.5" />
-            ยืนยันตัวตนพนักงานผ่านบัญชี LINE ที่ผูกไว้
-          </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-[12px] font-medium text-zinc-400">
+            <ShieldCheck className="size-4 text-emerald-400" />
+            ยืนยันตัวตนพนักงานผ่านระบบความปลอดภัยสูง
+          </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          เนื้อหาวิดีโอและคู่มือเป็นลิขสิทธิ์ของ Mazuma
+        <p className="mt-8 text-center text-[11px] font-medium text-zinc-500">
+          © {new Date().getFullYear()} Mazuma. สงวนลิขสิทธิ์เนื้อหาและวิดีโอทั้งหมด.
         </p>
       </div>
     </div>

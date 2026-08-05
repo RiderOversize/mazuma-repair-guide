@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Plus, Trash2, Edit, Save, X, Loader2, Image as ImageIcon, CheckCircle2, AlertCircle, Boxes, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react"
-import type { DeviceModel, Category, SubCategory, SymptomType } from "@/lib/mock-data"
+import type { DeviceModel, Category, SubCategory, SymptomType } from "@/lib/types"
 import { getModels, createModel, updateModel, deleteModel, getCategories, getSubCategories, getSymptomTypes } from "@/lib/data-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
@@ -135,145 +135,25 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">รุ่นสินค้า (Device Models)</h1>
-          <p className="text-sm text-muted-foreground mt-1">จัดการข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะการจัดจำหน่าย</p>
-        </div>
+    <div className="mx-auto w-full px-4 pb-8">
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-bold tracking-tight">จัดการรุ่นสินค้า</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ</p>
+      </div>
+
+      <div className="flex justify-end mb-4">
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm"
         >
-          <Plus className="size-4.5" />
+          <Plus className="size-4" />
           เพิ่มรุ่นใหม่
         </button>
       </div>
 
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="absolute inset-0" onClick={() => setIsFormOpen(false)}></div>
-          <form onSubmit={handleSubmit} className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border/50 bg-card p-6 lg:p-8 shadow-xl animate-in zoom-in-95 duration-200">
-          <div className="mb-6 flex items-center justify-between border-b border-border/50 pb-5">
-            <div>
-              <h3 className="font-display text-xl font-bold">{editingId ? "แก้ไขข้อมูลรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}</h3>
-              <p className="text-sm text-muted-foreground mt-1">กรอกรายละเอียดของสินค้ารุ่นนี้ให้ครบถ้วน</p>
-            </div>
-            <button type="button" onClick={() => setIsFormOpen(false)} className="rounded-full p-2 hover:bg-muted transition-colors">
-              <X className="size-5" />
-            </button>
-          </div>
-          
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="lg:col-span-1">
-              <label className="mb-2 block text-sm font-semibold">รูปภาพสินค้า (Thumbnail URL)</label>
-              <div className="flex flex-col gap-3">
-                <input
-                  type="url"
-                  value={formData.thumbnail}
-                  onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
-                />
-                <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 overflow-hidden">
-                  {formData.thumbnail ? (
-                     <img src={formData.thumbnail} alt="Preview" className="h-full w-full object-contain p-2" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
-                      <ImageIcon className="size-8" />
-                      <span className="text-xs">ไม่มีรูปภาพ</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-2 grid gap-6 sm:grid-cols-2 content-start">
-              <div className="sm:col-span-2">
-                <label className="mb-2 block text-sm font-semibold">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
-                <input
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="เช่น Mazuma รุ่น Hydro Pro"
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
-                />
-              </div>
-              
-              <div>
-                <label className="mb-2 block text-sm font-semibold">หมวดหมู่หลัก (Category) <span className="text-destructive">*</span></label>
-                <select
-                  required
-                  value={formData.categoryId}
-                  onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
-                >
-                  <option value="">-- เลือกหมวดหมู่หลัก --</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>[{c.id}] {c.name}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold">หมวดหมู่ย่อย (MAT Category) <span className="text-destructive">*</span></label>
-                <select
-                  required
-                  value={formData.subcategoryId}
-                  onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
-                  disabled={!formData.categoryId}
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
-                >
-                  <option value="">-- เลือกหมวดหมู่ย่อย --</option>
-                  {subCategories.filter(sc => sc.categoryId === formData.categoryId).map(sc => <option key={sc.id} value={sc.id}>[{sc.id}] {sc.name}</option>)}
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="mb-2 block text-sm font-semibold">รหัสรุ่น (Product Code) <span className="text-destructive">*</span></label>
-                <input
-                  required
-                  value={formData.code}
-                  onChange={e => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="เช่น MZ-HP4500"
-                  className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="mb-2 block text-sm font-semibold">สถานะ</label>
-                <div className="flex flex-wrap gap-3">
-                   <label className={cn("flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 transition-all", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:bg-muted")}>
-                     <input type="radio" name="status" value="active" checked={formData.status === "active"} onChange={() => setFormData({ ...formData, status: "active"})} className="text-primary focus:ring-primary" />
-                     <span className="text-sm font-medium">เปิดจำหน่าย (Active)</span>
-                   </label>
-                   <label className={cn("flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 transition-all", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border hover:bg-muted")}>
-                     <input type="radio" name="status" value="draft" checked={formData.status === "draft"} onChange={() => setFormData({ ...formData, status: "draft"})} className="text-amber-500 focus:ring-amber-500" />
-                     <span className="text-sm font-medium">ฉบับร่าง (Draft)</span>
-                   </label>
-                   <label className={cn("flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 transition-all", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border hover:bg-muted")}>
-                     <input type="radio" name="status" value="discontinued" checked={formData.status === "discontinued"} onChange={() => setFormData({ ...formData, status: "discontinued"})} className="text-destructive focus:ring-destructive" />
-                     <span className="text-sm font-medium">ยกเลิกผลิต (Discontinued)</span>
-                   </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-border/50">
-            <button type="button" onClick={() => setIsFormOpen(false)} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
-              ยกเลิก
-            </button>
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-md disabled:opacity-50 hover:bg-primary/90 hover:shadow-lg transition-all">
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-              บันทึกข้อมูล
-            </button>
-          </div>
-          </form>
-        </div>
-      )}
-
       {/* Filter and Search Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 sm:max-w-xs">
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -283,10 +163,10 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               setSearchQuery(e.target.value)
               setCurrentPage(1)
             }}
-            className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
+            className="h-11 w-full rounded-2xl border border-input bg-card pl-9 pr-4 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
           />
         </div>
-        <div className="relative flex-1 sm:max-w-xs">
+        <div className="relative w-full">
           <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <select
             value={filterSubCategory}
@@ -294,106 +174,184 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               setFilterSubCategory(e.target.value)
               setCurrentPage(1)
             }}
-            className="h-10 w-full appearance-none rounded-xl border border-input bg-card pl-9 pr-8 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
+            className="h-11 w-full appearance-none rounded-2xl border border-input bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
           >
             <option value="">ทุกหมวดหมู่ย่อย</option>
             {subCategories.map(sc => (
-              <option key={sc.id} value={sc.id}>[{sc.id}] {sc.name}</option>
+              <option key={sc.id} value={sc.id}>{sc.name}</option>
             ))}
           </select>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border/50 bg-muted/40">
-              <tr>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">รูปภาพ</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">รหัสสินค้า</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">ชื่อรุ่น</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">หมวดหมู่</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">สถานะ</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground text-right">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {paginatedModels.map((m: DeviceModel) => {
-                const subCat = subCategories.find(c => c.id === m.subcategoryId)
-                return (
-                  <tr key={m.id} className="group transition-colors hover:bg-muted/30">
-                    <td className="px-6 py-4">
-                      <div className="flex size-12 items-center justify-center rounded-xl border border-border bg-background overflow-hidden">
-                         {m.thumbnail ? <img src={m.thumbnail} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="size-5 text-muted-foreground/30" />}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap"><span className="font-mono text-sm bg-muted px-2 py-1 rounded-md">{m.code}</span></td>
-                    <td className="px-6 py-4 max-w-[300px]">
-                      <p className="font-bold text-base whitespace-normal">{m.name}</p>
-                      {m.createdAt && <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">เพิ่มเมื่อ: {new Date(m.createdAt).toLocaleDateString()}</p>}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-muted-foreground">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {m.status === "active" && <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600"><CheckCircle2 className="size-3.5" /> จำหน่ายอยู่</span>}
-                      {m.status === "draft" && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600"><AlertCircle className="size-3.5" /> ฉบับร่าง</span>}
-                      {m.status === "discontinued" && <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive"><X className="size-3.5" /> ยกเลิกผลิต</span>}
-                      {!m.status && <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">Active</span>}
-                    </td>
-                    <td className="px-6 py-4 text-right align-middle whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2 transition-opacity">
-                        <button onClick={() => openEdit(m)} className="inline-flex p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" title="แก้ไข">
-                          <Edit className="size-4.5" />
-                        </button>
-                        <button onClick={() => handleDelete(m.id)} className="inline-flex p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl transition-colors" title="ลบ">
-                          <Trash2 className="size-4.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-              {paginatedModels.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                     <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                        <Boxes className="size-10 opacity-20" />
-                        <p>ไม่มีข้อมูลรุ่นสินค้าที่ตรงกับการค้นหา</p>
-                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-border/50 bg-muted/20 px-6 py-4">
-            <p className="text-sm text-muted-foreground">
-              แสดง {((currentPage - 1) * ITEMS_PER_PAGE) + 1} ถึง {Math.min(currentPage * ITEMS_PER_PAGE, filteredModels.length)} จาก {filteredModels.length} รายการ
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="flex size-9 items-center justify-center rounded-xl border border-border bg-card hover:bg-muted disabled:opacity-50 disabled:hover:bg-card shadow-sm transition-colors"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              <div className="flex items-center justify-center px-2 text-sm font-medium">
-                หน้า {currentPage} / {totalPages}
+      {/* Mobile Card List */}
+      <div className="flex flex-col gap-3">
+        {paginatedModels.map((m: DeviceModel) => {
+          const subCat = subCategories.find(c => c.id === m.subcategoryId)
+          return (
+            <div key={m.id} className="flex gap-3 overflow-hidden rounded-2xl border border-border/40 bg-card p-3 shadow-sm">
+              <div className="flex size-20 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background overflow-hidden">
+                {m.thumbnail ? <img src={m.thumbnail} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="size-6 text-muted-foreground/30" />}
               </div>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="flex size-9 items-center justify-center rounded-xl border border-border bg-card hover:bg-muted disabled:opacity-50 disabled:hover:bg-card shadow-sm transition-colors"
-              >
-                <ChevronRight className="size-4" />
-              </button>
+              <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[15px] leading-tight text-foreground line-clamp-1">{m.name}</p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {m.status === "active" && <span className="size-2 rounded-full bg-green-500" title="Active"></span>}
+                      {m.status === "draft" && <span className="size-2 rounded-full bg-amber-500" title="Draft"></span>}
+                      {m.status === "discontinued" && <span className="size-2 rounded-full bg-destructive" title="Discontinued"></span>}
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-muted-foreground font-mono mt-0.5">{m.code}</p>
+                  <p className="text-[12px] text-muted-foreground truncate">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</p>
+                </div>
+                <div className="flex justify-end gap-1 mt-1">
+                  <button onClick={() => openEdit(m)} className="p-1.5 text-muted-foreground hover:bg-black/5 rounded-lg transition-colors"><Edit className="size-4" /></button>
+                  <button onClick={() => handleDelete(m.id)} className="p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"><Trash2 className="size-4" /></button>
+                </div>
+              </div>
             </div>
+          )
+        })}
+        
+        {paginatedModels.length === 0 && (
+          <div className="py-12 text-center flex flex-col items-center">
+            <Boxes className="size-10 text-muted-foreground/30 mb-3" />
+            <p className="text-[15px] text-muted-foreground">ไม่มีข้อมูลรุ่นสินค้าที่ตรงกับการค้นหา</p>
           </div>
         )}
       </div>
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+          >
+            <ChevronLeft className="size-4" /> ก่อนหน้า
+          </button>
+          <div className="text-[13px] font-medium text-muted-foreground">
+            {currentPage} / {totalPages}
+          </div>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+          >
+            ถัดไป <ChevronRight className="size-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Form Modal (Full Screen Mobile) */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300">
+          <div className="flex items-center justify-between px-4 py-3 pt-safe border-b border-border/40 bg-background/70 backdrop-blur-2xl">
+            <button type="button" onClick={() => setIsFormOpen(false)} className="text-[15px] font-medium text-muted-foreground">ยกเลิก</button>
+            <h3 className="font-display text-[17px] font-bold">{editingId ? "แก้ไขรุ่น" : "เพิ่มรุ่นใหม่"}</h3>
+            <button type="button" onClick={handleSubmit} disabled={saving} className="text-[15px] font-semibold text-primary disabled:opacity-50">
+              {saving ? <Loader2 className="size-4 animate-spin" /> : "บันทึก"}
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto px-4 py-6 pb-24">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
+                <div className="flex flex-col gap-3">
+                  <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
+                    {formData.thumbnail ? (
+                       <img src={formData.thumbnail} alt="Preview" className="h-full w-full object-contain p-2" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
+                        <ImageIcon className="size-8" />
+                        <span className="text-[11px]">ไม่มีรูปภาพ</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.thumbnail}
+                    onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
+                <input
+                  required
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="เช่น Mazuma รุ่น Hydro Pro"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">รหัสรุ่น <span className="text-destructive">*</span></label>
+                <input
+                  required
+                  value={formData.code}
+                  onChange={e => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="เช่น MZ-HP4500"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm uppercase"
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
+                <select
+                  required
+                  value={formData.categoryId}
+                  onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                >
+                  <option value="">เลือกหมวดหมู่หลัก</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
+                <select
+                  required
+                  value={formData.subcategoryId}
+                  onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
+                  disabled={!formData.categoryId}
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
+                >
+                  <option value="">เลือกหมวดหมู่ย่อย</option>
+                  {subCategories.filter(sc => sc.categoryId === formData.categoryId).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-foreground">สถานะ</label>
+                <div className="flex flex-col gap-2">
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card")}>
+                     <input type="radio" name="status" value="active" checked={formData.status === "active"} onChange={() => setFormData({ ...formData, status: "active"})} className="size-4 text-primary focus:ring-primary" />
+                     <span className="text-[14px] font-medium">เปิดจำหน่าย</span>
+                   </label>
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card")}>
+                     <input type="radio" name="status" value="draft" checked={formData.status === "draft"} onChange={() => setFormData({ ...formData, status: "draft"})} className="size-4 text-amber-500 focus:ring-amber-500" />
+                     <span className="text-[14px] font-medium">ฉบับร่าง</span>
+                   </label>
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card")}>
+                     <input type="radio" name="status" value="discontinued" checked={formData.status === "discontinued"} onChange={() => setFormData({ ...formData, status: "discontinued"})} className="size-4 text-destructive focus:ring-destructive" />
+                     <span className="text-[14px] font-medium">ยกเลิกผลิต</span>
+                   </label>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { readSheet, appendRow, updateRowById, deleteRowById, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
 import { type AuthUser } from "./auth";
-import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./mock-data";
+import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./types";
 
 // Optional: check if sheet ID is configured
 const useSheets = !!process.env.GOOGLE_SHEETS_ID;
@@ -230,12 +230,12 @@ export async function getCategories(): Promise<Category[]> {
   return uniqueCatRows.map(r => {
     const obj = mapRowToObject(headers, r);
     return {
-      id: obj.id,
-      name: obj.name,
-      slug: obj.slug,
-      description: obj.description,
-      status: obj.status as any,
-      createdAt: obj.createdAt
+      id: obj.ID || obj.id || obj.Index || `cat-${Date.now()}`,
+      name: obj.Description || obj.name || "",
+      slug: obj.Index || obj.slug || "",
+      description: obj.description || "",
+      status: (obj.status as any) || "active",
+      createdAt: obj.createdAt || new Date().toISOString()
     };
   });
 }
@@ -317,6 +317,7 @@ export async function getSubCategories(): Promise<SubCategory[]> {
     return {
       id: obj.id,
       categoryId: obj.categoryId,
+      index: obj.index || obj.Index || "",
       name: obj.name
     };
   });
@@ -334,6 +335,17 @@ export async function deleteSubCategory(id: string): Promise<void> {
   await deleteRowById(SHEETS.SUBCATEGORIES, id);
 }
 
+export async function updateSubCategory(id: string, data: Partial<SubCategory>): Promise<SubCategory> {
+  const all = await getSubCategories();
+  const existing = all.find(x => x.id === id);
+  if (!existing) throw new Error('Not found');
+  const merged = { ...existing, ...data };
+  const allRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`);
+  const headers = allRows[0] || [];
+  await updateRowById(SHEETS.SUBCATEGORIES, id, mapObjectToRow(headers, merged));
+  return merged as any;
+}
+
 // ---------------------------------------------------------------------------
 // Symptom Types & Symptoms
 // ---------------------------------------------------------------------------
@@ -349,11 +361,11 @@ export async function getSymptomTypes(): Promise<SymptomType[]> {
   const mapped = rows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
     return {
-      id: obj.id || (hasIdCol ? r[idColIndex] : `type-${index}`),
+      id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `type-${index}`,
       categoryId: obj.categoryId || "",
-      name: obj.name || (hasIdCol ? (idColIndex === 0 ? r[1] : r[0]) : r[1] || r[0])
+      name: obj['ชื่อกลุ่มอาการเสีย'] || obj.name || "ไม่มีชื่อกลุ่มอาการ"
     };
-  }).filter(t => t.name);
+  }).filter(t => t.id && t.name);
   
   // Deduplicate by ID
   const unique = new Map();
@@ -403,19 +415,15 @@ export async function getSymptoms(): Promise<Symptom[]> {
   const mapped = rows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
     // Find column positions of keys case-insensitively
-    const idIdx = getIndexCaseInsensitive(headers, 'id');
-    const typeIdx = getIndexCaseInsensitive(headers, 'symptomtypeid') !== -1 ? getIndexCaseInsensitive(headers, 'symptomtypeid') : getIndexCaseInsensitive(headers, 'symptomtypesid');
-    const descIdx = getIndexCaseInsensitive(headers, 'description') !== -1 ? getIndexCaseInsensitive(headers, 'description') : getIndexCaseInsensitive(headers, 'description');
-    
     return {
-      id: obj.id || (idIdx !== -1 ? r[idIdx] : `sym-${index}`),
-      symptomTypeId: obj.symptomTypeId || obj.SymptomTypesID || (typeIdx !== -1 ? r[typeIdx] : (hasIdCol ? r[1] : r[0])),
-      title: obj.title || (obj.name || "ระบุชื่ออาการ"),
-      description: obj.description || obj.name || (descIdx !== -1 ? r[descIdx] : (hasIdCol ? r[2] : r[1])),
-      severity: obj.severity || "Medium",
+      id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `sym-${index}`,
+      symptomTypeId: obj['รหัสประเภทอาการ'] || obj.symptomTypeId || obj.SymptomTypesID || "",
+      title: obj['อาการเสีย'] || obj.title || obj.name || "ระบุชื่ออาการ",
+      description: obj['อาการเสีย'] || obj.description || obj.name || "",
+      severity: (obj.severity as any) || "Medium",
       tags: obj.tags ? obj.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       specificModelIds: obj.specificModelIds ? obj.specificModelIds.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined
-    };
+    } as Symptom;
   }).filter(s => s.description || s.title);
   
   // Deduplicate by ID
@@ -482,28 +490,30 @@ export async function getGuides(): Promise<Guide[]> {
   const guideIdIdx = getIndexCaseInsensitive(guideHeaders, 'id');
   const uniqueGuideRows = Array.from(new Map(guideRows.map(r => [r[guideIdIdx !== -1 ? guideIdIdx : 0], r])).values());
 
-  return uniqueGuideRows.map(r => {
+  return uniqueGuideRows.map((r, index) => {
     const obj = mapRowToObject(guideHeaders, r);
     const guideId = obj.id;
     return {
-      id: guideId,
-      title: obj.title || obj.specificCause || "",
-      categoryId: obj.categoryId,
+      id: guideId || obj['รหัสหัวขัอการตรวจสอบ'] || `guide-${index}`,
+      title: obj['หัวข้อการตรวจสอบ'] || obj.title || obj.specificCause || "",
+      categoryId: obj.categoryId || "",
       subcategoryId: obj.subcategoryId || "",
       modelIds: obj.modelIds ? obj.modelIds.split(',').filter(Boolean) : [],
       symptomTypeId: obj.symptomTypeId || "",
-      symptomId: obj.symptomId || "",
+      symptomId: obj['รหัสอาการเสีย'] || obj.symptomId || "",
       description: obj.description || "",
       difficulty: obj.difficulty as any,
       timeEstimated: obj.timeEstimated || "",
-      status: obj.status as any,
+      status: "published",
       tags: obj.tags ? obj.tags.split(',').filter(Boolean) : [],
       toolsRequired: obj.toolsRequired ? obj.toolsRequired.split(',').filter(Boolean) : [],
       partsRequired: obj.partsRequired ? obj.partsRequired.split(',').filter(Boolean) : [],
-      createdAt: obj.createdAt,
-      updatedAt: obj.updatedAt,
-      steps: safeParse(obj.steps, [])
-    };
+      createdAt: obj.createdAt || new Date().toISOString(),
+      updatedAt: obj.updatedAt || new Date().toISOString(),
+      steps: safeParse(obj.steps, []),
+      mediaUrl: obj['ลิงค์ VDO'] || obj.mediaUrl || "",
+      pdfUrl: obj['ลิงค์ PDF'] || obj.pdfUrl || ""
+    } as Guide;
   });
 }
 
@@ -627,6 +637,7 @@ export interface RepairFeedback {
   stepsViewed: number
   totalSteps: number
   timestamp: string
+  note?: string
 }
 
 export interface ActiveSession {
@@ -652,7 +663,8 @@ export async function logRepairFeedback(feedback: Omit<RepairFeedback, "id" | "t
     isSuccess: feedback.isSuccess ? "TRUE" : "FALSE",
     stepsViewed: feedback.stepsViewed,
     totalSteps: feedback.totalSteps,
-    timestamp
+    timestamp,
+    note: feedback.note || ""
   };
   
   await appendRow(`${SHEETS.FEEDBACKS}!A2:Z`, mapObjectToRow(headers, objToSave));
@@ -710,4 +722,46 @@ export async function getTopModels() {
     .slice(0, 5);
     
   return sorted;
+}
+
+import { MasterDataMapping } from './types';
+
+export async function getMasterDataMappings(): Promise<MasterDataMapping[]> {
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const headers = allRows[0] || [];
+  const rows = allRows.slice(1);
+  return rows.map((r, i) => {
+    const obj = mapRowToObject(headers, r);
+    return {
+      id: obj.ID || obj.id || `map-${i}`,
+      modelCode: obj['รหัสสินค้า'] || obj.modelCode || "",
+      modelName: obj['ชื่อสินค้า'] || obj.modelName || "",
+      matCategoryCode: obj['MAT Category Code'] || obj.matCategoryCode || "",
+      matCategoryName: obj['MAT Category'] || obj.matCategoryName || "",
+      symptomTypeCode: obj['รหัสประเภทอาการ'] || obj.symptomTypeCode || "",
+      symptomTypeName: obj['ประเภทอาการอาการ'] || obj.symptomTypeName || "",
+      createdAt: obj.createdAt || new Date().toISOString()
+    } as MasterDataMapping;
+  });
+}
+export async function createMasterDataMapping(data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const headers = allRows[0] || [];
+  const id = data.id || `map-${Date.now()}`;
+  const obj = { ...data, id };
+  await appendRow(`${SHEETS.MASTERDATA}!A2:Z`, mapObjectToRow(headers, obj));
+  return obj as any;
+}
+export async function updateMasterDataMapping(id: string, data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
+  const all = await getMasterDataMappings();
+  const existing = all.find(x => x.id === id);
+  if (!existing) throw new Error('Not found');
+  const merged = { ...existing, ...data };
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const headers = allRows[0] || [];
+  await updateRowById(SHEETS.MASTERDATA, id, mapObjectToRow(headers, merged));
+  return merged as any;
+}
+export async function deleteMasterDataMapping(id: string): Promise<void> {
+  await deleteRowById(SHEETS.MASTERDATA, id);
 }

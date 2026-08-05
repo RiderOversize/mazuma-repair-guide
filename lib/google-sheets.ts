@@ -4,14 +4,16 @@ const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 export const SHEETS = {
   USERS: "Users",
-  CATEGORIES: "Categories",
-  SUBCATEGORIES: "SubCategories",
-  SYMPTOM_TYPES: "SymptomTypes",
-  SYMPTOMS: "Symptoms",
+  CATEGORIES: "ProductGroup",
+  SUBCATEGORIES: "ProductCategory",
+  SYMPTOM_TYPES: "SymptomGroup",
+  SYMPTOMS: "Issue",
   MODELS: "Models",
-  GUIDES: "Guides_V2",
+  GUIDES: "Guide",
   GUIDE_STEPS: "GuideSteps_V2",
   FEEDBACKS: "Feedbacks",
+  MASTERDATA: "MasterData",
+  ACTIVITY_LOGS: "ActivityLogs",
 };
 
 export async function getAuthClient() {
@@ -65,6 +67,7 @@ export async function initSheets() {
     { title: SHEETS.GUIDES, headers: ["id", "title", "categoryId", "subcategoryId", "modelIds", "symptomTypeId", "symptomId", "description", "difficulty", "timeEstimated", "status", "tags", "toolsRequired", "partsRequired", "createdAt", "updatedAt", "steps"] },
     { title: SHEETS.GUIDE_STEPS, headers: ["id", "guideId", "stepNum", "instruction", "videoUrl", "pdfUrl", "title", "mediaUrl", "warning"] },
     { title: SHEETS.FEEDBACKS, headers: ["id", "guideId", "modelId", "userId", "userName", "isSuccess", "stepsViewed", "totalSteps", "timestamp"] },
+    { title: SHEETS.ACTIVITY_LOGS, headers: ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"] },
   ];
 
   const requests: any[] = [];
@@ -139,6 +142,7 @@ type CacheEntry = {
   timestamp: number;
 };
 const sheetCache = new Map<string, CacheEntry>();
+const inflightRequests = new Map<string, Promise<any[]>>();
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 export function clearCache(sheetName?: string) {
@@ -225,34 +229,95 @@ export async function readSheet(range: string) {
     return cached.data;
   }
 
-  const sheets = await getSheetsClient();
-  const spreadsheetId = await getSpreadsheetId();
-  
-  let response;
-  try {
-    response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
-  } catch (error: any) {
-    if (error.message && error.message.includes("Unable to parse range")) {
-      console.log(`Sheet missing for range ${range}. Initializing sheets...`);
-      await initSheets();
+  // Request deduplication: if the same range is already being fetched, wait for it
+  if (inflightRequests.has(range)) {
+    return inflightRequests.get(range)!;
+  }
+
+  const promise = (async () => {
+    const sheets = await getSheetsClient();
+    const spreadsheetId = await getSpreadsheetId();
+    
+    let response;
+    try {
       response = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range,
       });
+    } catch (error: any) {
+      if (error.message && error.message.includes("Unable to parse range")) {
+        console.log(`Sheet missing for range ${range}. Initializing sheets...`);
+        await initSheets();
+        response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+      } else {
+        throw error;
+      }
+    }
+    
+    const data = response.data.values || [];
+    
+    // Save to cache
+    sheetCache.set(range, { data, timestamp: Date.now() });
+    
+    return data;
+  })();
+
+  inflightRequests.set(range, promise);
+  try {
+    const result = await promise;
+    return result;
+  } finally {
+    inflightRequests.delete(range);
+  }
+}
+
+// Batch read multiple sheets in a single API call (much faster than individual reads)
+export async function readMultipleSheets(ranges: string[]): Promise<Record<string, any[][]>> {
+  const result: Record<string, any[][]> = {};
+  const uncachedRanges: string[] = [];
+
+  // Check cache first for each range
+  for (const range of ranges) {
+    const cached = sheetCache.get(range);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      result[range] = cached.data;
     } else {
-      throw error;
+      uncachedRanges.push(range);
     }
   }
-  
-  const data = response.data.values || [];
-  
-  // Save to cache
-  sheetCache.set(range, { data, timestamp: Date.now() });
-  
-  return data;
+
+  // If all cached, return immediately
+  if (uncachedRanges.length === 0) return result;
+
+  // Batch fetch uncached ranges in a single API call
+  const sheets = await getSheetsClient();
+  const spreadsheetId = await getSpreadsheetId();
+
+  try {
+    const response = await sheets.spreadsheets.values.batchGet({
+      spreadsheetId,
+      ranges: uncachedRanges,
+    });
+
+    const valueRanges = response.data.valueRanges || [];
+    for (let i = 0; i < uncachedRanges.length; i++) {
+      const range = uncachedRanges[i];
+      const data = valueRanges[i]?.values || [];
+      result[range] = data;
+      sheetCache.set(range, { data, timestamp: Date.now() });
+    }
+  } catch (error: any) {
+    // Fallback: fetch individually if batchGet fails
+    console.warn("batchGet failed, falling back to individual reads:", error.message);
+    for (const range of uncachedRanges) {
+      result[range] = await readSheet(range);
+    }
+  }
+
+  return result;
 }
 
 export async function appendRows(range: string, values: any[][]) {
@@ -335,7 +400,14 @@ export async function updateRowById(sheetName: string, id: string, updatedValues
   // Read all rows to find the index
   const data = await readSheet(`${sheetName}!A:Z`);
   const headers = data[0] || [];
-  let idIndex = getIndexCaseInsensitive(headers, 'id');
+  let idIndex = -1;
+  if (sheetName === SHEETS.GUIDES) {
+    idIndex = getIndexCaseInsensitive(headers, 'รหัสหัวขัอการตรวจสอบ');
+  } else if (sheetName === SHEETS.SYMPTOMS || sheetName === SHEETS.SYMPTOM_TYPES) {
+    idIndex = getIndexCaseInsensitive(headers, 'รหัสอาการเสีย');
+  }
+  
+  if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'id');
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'employeeCode');
   if (idIndex === -1) idIndex = 0; // Fallback to first column
 
@@ -372,9 +444,16 @@ export async function deleteRowById(sheetName: string, id: string) {
 
   const data = await readSheet(`${sheetName}!A:Z`);
   const headers = data[0] || [];
-  let idIndex = getIndexCaseInsensitive(headers, 'id');
+  let idIndex = -1;
+  if (sheetName === SHEETS.GUIDES) {
+    idIndex = getIndexCaseInsensitive(headers, 'รหัสหัวขัอการตรวจสอบ');
+  } else if (sheetName === SHEETS.SYMPTOMS || sheetName === SHEETS.SYMPTOM_TYPES) {
+    idIndex = getIndexCaseInsensitive(headers, 'รหัสอาการเสีย');
+  }
+  
+  if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'id');
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'employeeCode');
-  if (idIndex === -1) idIndex = 0; // Fallback
+  if (idIndex === -1) idIndex = 0;
 
   const rowIndex = data.findIndex(row => row[idIndex] === id);
   

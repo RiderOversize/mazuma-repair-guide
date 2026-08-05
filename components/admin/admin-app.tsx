@@ -12,9 +12,21 @@ import {
   X,
   LogOut,
   Users,
+  ChevronLeft,
 } from "lucide-react"
+
+export type AdminView = 
+  | "dashboard"
+  | "guides"
+  | "master-data"
+  | "create"
+  | "models"
+  | "media"
+  | "users"
+  | "settings"
+  | "preview"
+
 import { AdminDashboard } from "./admin-dashboard"
-import { GuideForm } from "./guide-form"
 import { UserManagement } from "./user-management"
 import { ModelsManagement } from "./models-management"
 import { GuidesManagement } from "./guides-management"
@@ -25,33 +37,19 @@ import { UserMenu } from "@/components/user-menu"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
 
-type AdminView = "dashboard" | "create" | "guides" | "models" | "master-data" | "media" | "users" | "settings" | "preview"
+const topNavItems = [
+  { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
+  { id: "guides", label: "คู่มือ", icon: BookOpen },
+  { id: "master-data", label: "จัดการข้อมูล", icon: Boxes },
+  { id: "more", label: "เพิ่มเติม", icon: Menu },
+]
 
-const navGroups = [
-  {
-    title: "ระบบจัดการหลัก",
-    items: [
-      { id: "dashboard", label: "ภาพรวมระบบ", icon: LayoutDashboard },
-      { id: "guides", label: "คู่มือการซ่อม", icon: BookOpen },
-      { id: "create", label: "สร้างคู่มือ", icon: FilePlus2 },
-    ]
-  },
-  {
-    title: "จัดการข้อมูล (Master Data)",
-    items: [
-      { id: "models", label: "รุ่นสินค้า", icon: Smartphone },
-      { id: "master-data", label: "หมวดหมู่และอาการ", icon: Boxes },
-      { id: "media", label: "คลังสื่อ (Media)", icon: LayoutDashboard },
-    ]
-  },
-  {
-    title: "ระบบและตั้งค่า",
-    items: [
-      { id: "users", label: "ผู้ใช้งานและสิทธิ์", icon: Users },
-      { id: "settings", label: "ตั้งค่าระบบ", icon: Menu },
-      { id: "preview", label: "ดูหน้าแอปช่าง", icon: Smartphone },
-    ]
-  }
+const moreItems = [
+  { id: "models", label: "จัดการรุ่นสินค้า", icon: Smartphone, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { id: "media", label: "คลังสื่อ (Media)", icon: LayoutDashboard, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { id: "users", label: "ผู้ใช้งานและสิทธิ์", icon: Users, color: "text-orange-500", bg: "bg-orange-500/10" },
+  { id: "settings", label: "ตั้งค่าระบบ", icon: Menu, color: "text-gray-500", bg: "bg-gray-500/10" },
+  { id: "preview", label: "ดูหน้าแอปช่าง", icon: Smartphone, color: "text-pink-500", bg: "bg-pink-500/10" },
 ]
 
 export function AdminApp({
@@ -61,13 +59,11 @@ export function AdminApp({
   user: AuthUser
   onLogout: () => void
 }) {
-  const [view, setView] = useState<AdminView>("dashboard")
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [view, setView] = useState<AdminView | "more">("dashboard")
   const [editGuideId, setEditGuideId] = useState<string | null>(null)
 
-  const go = (v: AdminView) => {
+  const go = (v: AdminView | "more") => {
     setView(v)
-    setSidebarOpen(false)
     if (v !== "create") setEditGuideId(null)
   }
 
@@ -81,7 +77,7 @@ export function AdminApp({
     setView("create")
   }
 
-  // Full-screen technician preview, rendered outside the admin chrome
+  // Full-screen technician preview
   if (view === "preview") {
     return (
       <TechnicianApp
@@ -92,138 +88,119 @@ export function AdminApp({
     )
   }
 
-  return (
-    <div className="min-h-screen bg-background lg:flex">
-      {/* Mobile top bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-3 pt-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg p-1.5 hover:bg-muted"
-          aria-label="เปิดเมนู"
-        >
-          <Menu className="size-5" />
-        </button>
-        <span className="font-display font-semibold">Mazuma Admin</span>
-        <UserMenu user={user} onLogout={onLogout} />
-      </div>
-
-      {/* Sidebar overlay (mobile) */}
-      {sidebarOpen ? (
-        <button
-          type="button"
-          aria-label="ปิดเมนู"
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-        />
-      ) : null}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary font-display text-lg font-bold text-sidebar-primary-foreground">
-              M
-            </div>
-            <div>
-              <p className="font-display text-sm font-semibold leading-tight">Mazuma Admin</p>
-              <p className="text-xs text-sidebar-foreground/60">ระบบจัดการคู่มือ</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1 hover:bg-sidebar-accent lg:hidden"
-            aria-label="ปิดเมนู"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <nav className="flex flex-1 flex-col gap-6 px-3 mt-4 overflow-y-auto">
-          {navGroups.map((group) => {
-            const visibleItems = group.items.filter((item) => !user.accessibleMenus || user.accessibleMenus.includes(item.id as string))
-            if (visibleItems.length === 0) return null
-            return (
-              <div key={group.title}>
-                <h4 className="mb-2 px-4 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">{group.title}</h4>
-                <div className="flex flex-col gap-1">
-                  {visibleItems.map((item) => {
-                    const Icon = item.icon
-                    const active = view === item.id
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => go(item.id as AdminView)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        )}
-                      >
-                        <Icon className="size-4" />
-                        {item.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </nav>
-
-        <div className="border-t border-sidebar-border p-3">
-          <div className="flex items-center gap-2.5 px-2 py-1.5">
-                <span className="relative size-8 shrink-0 overflow-hidden rounded-full">
-                  <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="32px" />
-                </span>
+  const renderContent = () => {
+    if (view === "more") {
+      return (
+        <div className="px-4 pb-24 pt-14">
+          <h2 className="mb-4 text-2xl font-display font-bold text-foreground">เมนูเพิ่มเติม</h2>
+          
+          <div className="mb-6 flex items-center gap-4 rounded-2xl bg-card border border-border/40 p-4 shadow-sm">
+            <span className="relative size-12 shrink-0 overflow-hidden rounded-full">
+              <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="48px" />
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user.name}</p>
-              <p className="truncate text-xs text-sidebar-foreground/60">{user.title}</p>
+              <p className="truncate text-[15px] font-bold text-foreground">{user.name}</p>
+              <p className="truncate text-[13px] text-muted-foreground">{user.title}</p>
             </div>
+            <button
+              onClick={onLogout}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <LogOut className="size-4" />
-            ออกจากระบบ
-          </button>
-        </div>
-      </aside>
 
-      {/* Main content */}
-      <main className="flex-1 px-4 py-6 pt-6 lg:px-8 lg:pt-8">
-        {/* Desktop top-right account control */}
-        <div className="mb-4 hidden justify-end lg:flex">
-          <UserMenu user={user} onLogout={onLogout} />
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
+            {moreItems.map((item, i) => {
+              const isLast = i === moreItems.length - 1;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => go(item.id as AdminView)}
+                  className={`group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-muted/50 ${!isLast ? 'border-b border-border/40' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", item.bg, item.color)}>
+                      <Icon className="size-5" />
+                    </div>
+                    <span className="font-medium text-[15px] text-foreground">{item.label}</span>
+                  </div>
+                  <ChevronLeft className="size-5 rotate-180 text-muted-foreground/40" />
+                </button>
+              )
+            })}
+          </div>
         </div>
+      )
+    }
+
+    return (
+      <div className="pb-24 pt-4">
         {view === "dashboard" && <AdminDashboard user={user} onCreate={handleCreateGuide} />}
-        {view === "create" && <GuideForm user={user} editId={editGuideId} onFinish={() => setView("guides")} />}
-        {view === "guides" && <GuidesManagement user={user} onCreate={handleCreateGuide} onEdit={handleEditGuide} />}
+        {view === "guides" && <GuidesManagement user={user} />}
         {view === "models" && <ModelsManagement user={user} />}
         {view === "master-data" && <MasterDataManagement user={user} />}
         {view === "media" && <MediaLibrary user={user} />}
         {view === "users" && <UserManagement user={user} />}
         {view === "settings" && <PlaceholderView title="ตั้งค่าระบบ" desc="ตั้งค่าทั่วไปของระบบและฐานข้อมูล" />}
-      </main>
+      </div>
+    )
+  }
+
+  // Which bottom tab is active
+  const activeTab = view === "more" || topNavItems.some(t => t.id === view) ? view : "more";
+
+  return (
+    <div className="min-h-screen bg-background flex justify-center overflow-hidden">
+      <div className="w-full max-w-[480px] bg-background h-[100dvh] relative shadow-2xl sm:border-x border-border/40 flex flex-col">
+        {/* Mobile top bar (only if not in 'more' view to save space) */}
+        {view !== "more" && (
+          <div className="flex-none z-40 flex items-center justify-between border-b border-border/40 bg-background/95 px-4 py-3 pt-safe backdrop-blur-2xl">
+            <div className="flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground shadow-sm">
+                M
+              </div>
+              <span className="font-display font-semibold text-foreground">Mazuma Admin</span>
+            </div>
+            <UserMenu user={user} onLogout={onLogout} />
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          {renderContent()}
+        </main>
+
+        {/* Bottom Tab Bar */}
+        <div className="absolute bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
+          <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
+            {topNavItems.map((item) => {
+              const Icon = item.icon
+              const isActive = activeTab === item.id
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => go(item.id as AdminView | "more")}
+                  className={`flex flex-col items-center justify-center gap-1 w-[20%] h-full transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Icon className={`size-6 ${isActive ? "fill-primary/20" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
 function PlaceholderView({ title, desc }: { title: string, desc: string }) {
   return (
-    <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 text-center">
+    <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/50 bg-muted/30 px-4 text-center mx-4 mt-6">
       <h2 className="mb-2 font-display text-xl font-semibold">{title}</h2>
-      <p className="text-sm text-muted-foreground">{desc}</p>
+      <p className="text-[13px] text-muted-foreground">{desc}</p>
     </div>
   )
 }

@@ -8,9 +8,13 @@ import { AdminApp } from "@/components/admin/admin-app"
 import { EmployeeBindView } from "@/components/employee-bind-view"
 import { Loader2 } from "lucide-react"
 import { updateUser } from "@/lib/data-service"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export default function Page() {
+function PageContent() {
   const { data: session, status, update } = useSession()
+  const searchParams = useSearchParams()
+  const isPreview = searchParams.get("preview") === "true"
 
   if (status === "loading") {
     return (
@@ -54,12 +58,25 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-background">
-      {dbUser.role === "technician" ? (
-        <TechnicianApp user={dbUser} onLogout={() => signOut()} />
+      {dbUser.role === "technician" || (dbUser.role !== "technician" && isPreview) ? (
+        <TechnicianApp 
+          user={dbUser} 
+          onLogout={!isPreview ? () => signOut() : undefined} 
+          preview={isPreview} 
+          onExitPreview={() => window.location.href = '/'} 
+        />
       ) : (
         <AdminApp user={dbUser} onLogout={() => signOut()} />
       )}
       <GlobalWatermark />
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="size-8 animate-spin text-primary" /></div>}>
+      <PageContent />
+    </Suspense>
   )
 }

@@ -5,7 +5,7 @@ import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes } from "lucide-r
 import {
   type Category,
   type DeviceModel,
-} from "@/lib/mock-data"
+} from "@/lib/types"
 
 const iconFor = (slug: Category["slug"]) => {
   switch (slug) {
@@ -35,47 +35,47 @@ export function TechnicianHome({
   onSelectModel: (model: DeviceModel) => void
 }) {
   const [query, setQuery] = useState("")
-  
-  const results = query.trim() 
+
+  const results = query.trim()
     ? models.filter(m => m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
     : []
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-16">
-      <div className="sticky top-0 z-20 bg-background pt-14 pb-4">
+    <div className="mx-auto w-full max-w-[480px] px-4 pb-20 pt-safe">
+      <div className="sticky top-0 z-20 bg-background/70 backdrop-blur-2xl pt-14 pb-4 -mx-4 px-4 border-b border-border/40 mb-5">
         {/* Brand header */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary font-display text-lg font-bold text-primary-foreground">
+        <div className="mb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20 font-display text-xl font-bold text-primary-foreground">
               M
             </div>
             <div>
-              <h1 className="font-display text-lg font-semibold leading-tight">
-                Mazuma Repair Guide
+              <h1 className="font-display text-xl font-semibold leading-tight tracking-tight">
+                Mazuma Repair
               </h1>
-              <p className="text-xs text-muted-foreground">คู่มือซ่อมสำหรับช่างเทคนิค</p>
+              <p className="text-xs font-medium text-muted-foreground/80">คู่มือซ่อมสำหรับช่างเทคนิค</p>
             </div>
           </div>
         </div>
 
         {/* Global search */}
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ค้นหาด้วยชื่อรุ่น หรือรหัสสินค้า"
-            className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-10 text-sm outline-none ring-primary/30 focus:ring-2"
+            placeholder="ค้นหารุ่น หรือรหัสสินค้า"
+            className="w-full rounded-2xl border-0 bg-muted/60 py-3 pl-11 pr-10 text-[15px] outline-none ring-primary/30 transition-all focus:bg-background focus:ring-2 focus:shadow-sm"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-full bg-muted-foreground/20 text-foreground hover:bg-muted-foreground/30"
               aria-label="ล้างการค้นหา"
             >
-              <X className="size-4" />
+              <X className="size-3.5" />
             </button>
           ) : null}
         </div>
@@ -94,7 +94,7 @@ export function TechnicianHome({
                 พบ {results.length} รุ่น
               </p>
               {results.map((m) => {
-                const cat = categories.find(c => c.id === m.categoryId)
+                const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)
                 return (
                   <button
                     key={m.id}
@@ -121,7 +121,7 @@ export function TechnicianHome({
       <h2 className="mb-3 font-display text-sm font-semibold text-muted-foreground">
         เลือกประเภทสินค้า
       </h2>
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {categories.map((cat) => {
           const Icon = iconFor(cat.slug)
           return (
@@ -129,22 +129,18 @@ export function TechnicianHome({
               key={cat.id}
               type="button"
               onClick={() => onSelectCategory(cat.id)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:border-primary/50 hover:shadow-md"
+              className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4 text-center transition-all hover:border-primary/50 hover:shadow-md"
             >
               <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="size-6" />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display font-semibold">{cat.slug} - {cat.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {cat.description}
-                </p>
+              <div className="w-full flex-1 flex items-center justify-center">
+                <p className="font-display text-sm font-semibold line-clamp-2 leading-tight">{cat.slug} - {cat.name}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-                  {models.filter(m => m.categoryId === cat.id).length} รุ่น
+              <div className="mt-auto">
+                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                  {models.filter(m => m.categoryId === cat.id || m.categoryId === cat.slug).length} รุ่น
                 </span>
-                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </div>
             </button>
           )

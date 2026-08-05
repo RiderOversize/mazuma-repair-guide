@@ -23,13 +23,14 @@ import {
   type Category,
   type Symptom,
   type SymptomType,
-} from "@/lib/mock-data"
+} from "@/lib/types"
 import { type AuthUser, SUPERVISORS } from "@/lib/auth"
 import { logRepairFeedback, logSessionActivity } from "@/lib/data-service"
 import { cn } from "@/lib/utils"
 
 export function GuideWizard({
   guide,
+  guides,
   user,
   model,
   categories,
@@ -39,6 +40,7 @@ export function GuideWizard({
   onBack,
 }: {
   guide: Guide
+  guides?: Guide[]
   user: AuthUser
   model?: DeviceModel | null
   categories: Category[]
@@ -47,51 +49,52 @@ export function GuideWizard({
   symptomTypes?: SymptomType[]
   onBack: () => void
 }) {
-  const [current, setCurrent] = useState(0)
   const [finished, setFinished] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedbackNote, setFeedbackNote] = useState("")
 
-  const category = categories.find(c => c.id === guide.categoryId)
-  const symptom = symptoms.find(s => s.id === guide.symptomId)
-  const symptomType = symptomTypes?.find(st => st.id === guide.symptomTypeId)
+  const symGuides = guides?.filter(g => g.symptomId === guide.symptomId && g.status === 'published') || [guide]
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const idx = symGuides.findIndex(g => g.id === guide.id)
+    return idx >= 0 ? idx : 0
+  })
+  const [maxReachedIndex, setMaxReachedIndex] = useState(currentIndex)
   
-  // Find applicable models based on symptomType matching
-  const applicableModels = models.filter(m => m.categoryId === guide.categoryId && m.symptomTypeId === symptom?.symptomTypeId)
-  const modelNames = applicableModels.map(m => m.name)
-  const totalSteps = guide.steps?.length || 0
-  const step = totalSteps > 0 ? guide.steps[current] : null
-  const isLast = current === totalSteps - 1
+  const currentGuide = symGuides[currentIndex]
+  const hasMultipleGuides = symGuides.length > 1
+  const isFirstGuide = currentIndex === 0
+  const isLastGuide = currentIndex === symGuides.length - 1
+
+  const category = categories.find(c => c.id === currentGuide.categoryId)
+  const symptom = symptoms.find(s => s.id === currentGuide.symptomId)
+  const symptomType = symptomTypes?.find(st => st.id === currentGuide.symptomTypeId)
 
   useEffect(() => {
     logSessionActivity(
       user.employeeCode,
       user.name,
-      `กำลังดูคู่มือ: ${guide.title}${model ? ` (${model.name})` : ''}`
+      `กำลังดูคู่มือ: ${currentGuide.title}${model ? ` (${model.name})` : ''}`
     )
-  }, [user, guide.title, model])
+  }, [user, currentGuide.title, model])
 
-  const goNext = () => {
-    if (isLast) {
-      setShowFeedback(true)
-    } else {
-      setCurrent((c) => c + 1)
-    }
+  const handleFinish = () => {
+    setShowFeedback(true)
   }
-  const goPrev = () => setCurrent((c) => Math.max(0, c - 1))
 
   const handleFeedback = async (isHelpful: boolean, reason?: string) => {
     setIsSubmitting(true)
     try {
       await logRepairFeedback({
-        guideId: guide.id,
+        guideId: currentGuide.id,
         modelId: model?.id || null,
         userId: user.employeeCode,
         userName: user.name,
         isSuccess: isHelpful,
-        stepsViewed: current + 1,
-        totalSteps
+        stepsViewed: maxReachedIndex + 1,
+        totalSteps: symGuides.length,
+        note: feedbackNote
       })
       
       await logSessionActivity(
@@ -169,28 +172,25 @@ export function GuideWizard({
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 pb-3 pt-14 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 px-4 pb-4 pt-14 backdrop-blur-2xl">
         <button
           type="button"
           onClick={onBack}
-          className="mb-2 hidden sm:inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
         >
-          <ChevronLeft className="size-4" />
-          กลับ
+          <ChevronLeft className="size-5" />
+          <span>อาการเสีย</span>
         </button>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary uppercase tracking-wide">
             {category?.name}
           </span>
           {model && (
-            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
-              รุ่น: {model.name}
+            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground uppercase tracking-wide">
+              {model.name}
             </span>
           )}
         </div>
-        <h1 className="mt-1.5 font-display text-xl font-semibold leading-snug text-balance">
-          {symptomType?.name || "ไม่ระบุอาการ"}
-        </h1>
       </header>
 
       <div className="flex flex-col gap-4 px-4 pt-4">
@@ -206,134 +206,119 @@ export function GuideWizard({
             </p>
             <p className="mt-1 text-sm text-foreground/80">
               <span className="font-medium text-muted-foreground">คู่มือ: </span>
-              {guide.title}
+              {currentGuide.title}
             </p>
           </div>
         </div>
 
-        {/* Supported models badge */}
-        <div className="flex items-start gap-2 rounded-xl bg-muted p-3">
-          <MonitorSmartphone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">ใช้ได้กับรุ่น: </span>
-            {model ? model.name : (modelNames.length > 0 ? modelNames.join(", ") : "ทุกรุ่นที่เกี่ยวข้อง")}
-          </p>
-        </div>
+        <div className="flex flex-col gap-4">
+          {hasMultipleGuides && (
+            <div className="mb-2">
+              <div className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                <span>
+                  คู่มือตรวจสอบขั้นตอนที่ {currentIndex + 1} จาก {symGuides.length}
+                </span>
+                <span>{Math.round(((currentIndex + 1) / symGuides.length) * 100)}%</span>
+              </div>
+              <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div 
+                  className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                  style={{ width: `${((currentIndex + 1) / symGuides.length) * 100}%` }}
+                />
+              </div>
+              <div className="flex gap-2">
+                {symGuides.map((_, i) => {
+                  const isReached = i <= maxReachedIndex;
+                  const isActive = i === currentIndex;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        if (isReached) setCurrentIndex(i);
+                      }}
+                      disabled={!isReached}
+                      className={cn(
+                        "flex size-8 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-all",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                          : isReached
+                          ? "bg-primary/20 text-primary hover:bg-primary/30"
+                          : "bg-muted text-muted-foreground/40 cursor-not-allowed"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-        {totalSteps === 0 || !step ? (
-          <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-            <AlertTriangle className="mx-auto mb-3 size-8 text-muted-foreground/50" />
-            <p>ยังไม่มีขั้นตอนในคู่มือนี้</p>
-          </div>
-        ) : (
-          <>
-            {/* Tools card */}
-            <div className="rounded-xl border border-border bg-card p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Wrench className="size-4 text-primary" />
-            <h2 className="font-display text-sm font-semibold">อุปกรณ์ที่ต้องใช้</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {guide.toolsRequired.map((tool) => (
-              <span
-                key={tool}
-                className="rounded-lg bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
-              >
-                {tool}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div>
-          <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted-foreground">
-            <span>
-              หัวข้อตรวจสอบที่ {step.stepNum} จาก {totalSteps}
-            </span>
-            <span>{Math.round(((current + 1) / totalSteps) * 100)}%</span>
-          </div>
-          <div className="flex gap-1.5">
-            {guide.steps.map((s, i) => (
-              <div
-                key={s.stepNum}
+          <SecureVideoPlayer 
+            stepNum={currentIndex + 1} 
+            label={currentGuide.title} 
+            mediaUrl={currentGuide.mediaUrl}
+            pdfUrl={currentGuide.pdfUrl}
+          />
+          
+          {hasMultipleGuides && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentIndex(c => Math.max(0, c - 1))}
+                disabled={isFirstGuide}
                 className={cn(
-                  "h-1.5 flex-1 rounded-full transition-colors",
-                  i <= current ? "bg-primary" : "bg-border",
+                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-0 px-4 py-3.5 text-[15px] font-semibold transition-colors bg-muted/60",
+                  isFirstGuide
+                    ? "cursor-not-allowed opacity-50"
+                    : "text-foreground active:bg-muted",
                 )}
-              />
-            ))}
-          </div>
+              >
+                <ArrowLeft className="size-5" />
+                ก่อนหน้า
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const newIndex = Math.min(symGuides.length - 1, currentIndex + 1);
+                  setCurrentIndex(newIndex);
+                  setMaxReachedIndex(prev => Math.max(prev, newIndex));
+                }}
+                disabled={isLastGuide}
+                className={cn(
+                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-colors bg-primary/10",
+                  isLastGuide
+                    ? "cursor-not-allowed opacity-50"
+                    : "text-primary active:bg-primary/20",
+                )}
+              >
+                ถัดไป
+                <ArrowRight className="size-5" />
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* Single active step */}
-        <SecureVideoPlayer 
-          stepNum={step.stepNum} 
-          label={guide.title} 
-          mediaUrl={step.mediaUrl}
-          pdfUrl={step.pdfUrl}
-        />
-
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {step.stepNum}
-          </div>
-          <p className="leading-relaxed text-foreground">{step.instruction}</p>
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={current === 0}
-            className={cn(
-              "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-4 py-3 text-sm font-semibold transition-colors",
-              current === 0
-                ? "cursor-not-allowed text-muted-foreground/50"
-                : "text-foreground hover:bg-muted",
-            )}
-          >
-            <ArrowLeft className="size-4" />
-            ก่อนหน้า
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            className="inline-flex flex-[1.4] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {isLast ? "เสร็จสิ้น" : "ถัดไป"}
-            {isLast ? (
-              <CheckCircle2 className="size-4" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-          </button>
-        </div>
-            <p className="text-center text-xs text-muted-foreground">
-              ทำตามทีละขั้นตอนเพื่อความปลอดภัย ไม่สามารถข้ามขั้นตอนได้
-            </p>
-          </>
-        )}
       </div>
 
       {/* Sticky contact & feedback bar */}
-      <div className="fixed inset-x-0 bottom-[65px] sm:bottom-0 z-40 border-t border-border bg-card/95 p-3 backdrop-blur shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-        <div className="mx-auto max-w-lg flex flex-row gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/80 p-4 pb-safe backdrop-blur-2xl">
+        <div className="mx-auto max-w-[480px] flex flex-row gap-3">
           <button
             onClick={() => setShowFeedback(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 px-2 sm:px-4 py-3 font-display text-[11px] sm:text-sm font-semibold text-white shadow-md transition-transform active:scale-[0.98]"
+            className="flex flex-[2] items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-display text-[14px] font-bold text-white shadow-sm transition-transform active:scale-[0.98] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
           >
-            <CheckCircle2 className="size-4 sm:size-5 shrink-0" />
-            <span className="truncate">รายงานผล (จบงาน)</span>
+            <CheckCircle2 className="size-5 shrink-0" />
+            <span className="truncate">จบงาน</span>
           </button>
+          
           <button
             type="button"
             onClick={() => setShowContact(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-secondary hover:bg-secondary/80 px-2 sm:px-4 py-3 font-display text-[11px] sm:text-sm font-semibold text-secondary-foreground transition-colors"
+            className="flex flex-[1] items-center justify-center gap-2 rounded-2xl bg-muted/80 hover:bg-muted px-4 py-3.5 font-display text-[14px] font-bold text-foreground transition-transform active:scale-[0.98]"
           >
-            <Phone className="size-4 sm:size-5 shrink-0" />
-            <span className="truncate">ติดต่อหัวหน้าช่าง</span>
+            <Phone className="size-5 shrink-0" />
+            <span className="truncate">ติดต่อช่าง</span>
           </button>
         </div>
       </div>
@@ -403,11 +388,19 @@ export function GuideWizard({
               </h2>
               <p className="text-muted-foreground mt-2 text-sm">
                 การรายงานผลจะช่วยให้เราปรับปรุงคู่มือให้ดีขึ้น
-                <br />(ดูไปแล้ว {current + 1} จาก {totalSteps} ขั้นตอน)
               </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="w-full">
+              <textarea
+                value={feedbackNote}
+                onChange={(e) => setFeedbackNote(e.target.value)}
+                placeholder="ระบุหมายเหตุเพิ่มเติม (ไม่บังคับ)..."
+                className="w-full min-h-[80px] p-3 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
               <button
                 disabled={isSubmitting}
                 onClick={() => handleFeedback(false)}

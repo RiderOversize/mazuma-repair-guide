@@ -36,11 +36,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${prompt.variable} ${sarabun.variable} bg-background`}>
-      <body className="font-sans antialiased">
-        <Providers>
-          {children}
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </Providers>
+      <body className="font-sans antialiased bg-muted/20 text-foreground selection:bg-primary/20">
+        <div className="mx-auto flex min-h-screen max-w-[480px] flex-col bg-background shadow-2xl relative sm:border-x border-border/40 overflow-x-hidden">
+          <Providers>
+            {children}
+            {process.env.NODE_ENV === 'production' && <Analytics />}
+          </Providers>
+        </div>
       </body>
     </html>
   )

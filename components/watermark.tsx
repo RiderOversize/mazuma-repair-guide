@@ -1,4 +1,4 @@
-import { WATERMARK_OWNER } from "@/lib/mock-data"
+import { WATERMARK_OWNER } from "@/lib/types"
 
 /**
  * Global fixed watermark shown across every view of the prototype.

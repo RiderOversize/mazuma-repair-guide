@@ -1,5 +1,5 @@
 import { getModels, getSymptoms, createGuide } from '../lib/sheets-db';
-import { Guide } from '../lib/mock-data';
+import { Guide } from '../lib/types';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 

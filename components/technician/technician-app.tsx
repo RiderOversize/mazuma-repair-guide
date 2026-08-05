@@ -8,8 +8,8 @@ import { GuideWizard } from "./guide-wizard"
 import { UserMenu } from "@/components/user-menu"
 import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
-import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom } from "@/lib/mock-data"
-import { logSessionActivity, getCategories, getModels, getGuides, getSubCategories, getSymptomTypes, getSymptoms } from "@/lib/data-service"
+import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom } from "@/lib/types"
+import { logSessionActivity, preloadTechnicianData } from "@/lib/data-service"
 import type { AuthUser } from "@/lib/auth"
 
 type View = "home" | "subcategories" | "models" | "symptoms" | "guide"
@@ -42,20 +42,32 @@ export function TechnicianApp({
   useEffect(() => {
     async function loadData() {
       try {
-        const [cats, mods, gds, subCats, symTypes, syms] = await Promise.all([
-          getCategories(),
-          getModels(),
-          getGuides(),
-          getSubCategories(),
-          getSymptomTypes(),
-          getSymptoms()
-        ])
-        setCategories(cats)
-        setModels(mods)
-        setGuides(gds)
-        setSubCategories(subCats)
-        setSymptomTypes(symTypes)
-        setSymptoms(syms)
+        const data = await preloadTechnicianData()
+        
+        // Build unique models from MasterData mappings
+        const uniqueModelsMap = new Map<string, DeviceModel>()
+        data.mappings.forEach(m => {
+          if (!uniqueModelsMap.has(m.modelCode)) {
+             const categoryId = (m.matCategoryCode || "").substring(0, 2)
+             uniqueModelsMap.set(m.modelCode, {
+                id: m.modelCode, 
+                code: m.modelCode,
+                name: m.modelName,
+                categoryId: categoryId,
+                subcategoryId: m.matCategoryCode,
+                symptomTypeId: m.symptomTypeCode,
+                status: "active"
+             })
+          }
+        })
+        const mappedModels = Array.from(uniqueModelsMap.values())
+        
+        setCategories(data.categories)
+        setModels(mappedModels)
+        setGuides(data.guides)
+        setSubCategories(data.subCategories)
+        setSymptomTypes(data.symptomTypes)
+        setSymptoms(data.symptoms)
       } catch (error) {
         console.error("Failed to load technician data:", error)
       } finally {
@@ -87,7 +99,7 @@ export function TechnicianApp({
     if (view === "subcategories") setView("home")
     else if (view === "models") {
       // Check if this category has subcategories
-      const hasSubCats = subCategories.some(sc => sc.categoryId === categoryId)
+      const hasSubCats = subCategories.some(sc => sc.categoryId === categoryId || (category && sc.categoryId === category.slug))
       if (hasSubCats) {
         setView("subcategories")
       } else {
@@ -137,7 +149,8 @@ export function TechnicianApp({
                 setModel(null)
                 setSubCategoryId(null)
                 // Check if category has subcategories
-                const hasSubCats = subCategories.some(sc => sc.categoryId === id)
+                const category = categories.find(c => c.id === id)
+              const hasSubCats = subCategories.some(sc => sc.categoryId === id || (category && sc.categoryId === category.slug))
                 if (hasSubCats) {
                   setView("subcategories")
                 } else {
@@ -205,6 +218,7 @@ export function TechnicianApp({
           {view === "guide" && guide && (
             <GuideWizard 
               guide={guide} 
+              guides={guides}
               user={user}
               model={model}
               categories={categories}
@@ -218,24 +232,28 @@ export function TechnicianApp({
       )}
 
       {/* Bottom Navigation for Mobile */}
-      {view !== "home" && (
-        <div className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background/80 backdrop-blur-md pb-safe sm:hidden">
-          <div className="flex items-center justify-around p-3 max-w-lg mx-auto">
-            <button
-              onClick={handleBack}
-              className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors flex-1"
-            >
-              <ChevronLeft className="size-5" />
-              <span className="text-[10px] font-medium">ย้อนกลับ</span>
-            </button>
-            <div className="w-px h-8 bg-border"></div>
+      {view !== "guide" && (
+        <div className="fixed bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/70 backdrop-blur-2xl pb-safe">
+          <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
             <button
               onClick={() => setView("home")}
-              className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors flex-1"
+              className={`flex flex-col items-center justify-center gap-1 w-20 h-full transition-colors ${view === "home" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Home className="size-5" />
-              <span className="text-[10px] font-medium">หน้าแรก</span>
+              <Home className={`size-6 ${view === "home" ? "fill-primary/20" : ""}`} strokeWidth={view === "home" ? 2.5 : 2} />
+              <span className="text-[10px] font-medium tracking-wide">หน้าแรก</span>
             </button>
+            
+            {view !== "home" && (
+              <button
+                onClick={handleBack}
+                className="flex flex-col items-center justify-center gap-1 w-20 h-full text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="size-6" strokeWidth={2} />
+                <span className="text-[10px] font-medium tracking-wide">ย้อนกลับ</span>
+              </button>
+            )}
+            
+            {/* Can add more tabs here if needed, like Settings or Profile */}
           </div>
         </div>
       )}
