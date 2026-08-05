@@ -315,10 +315,10 @@ export async function getSubCategories(): Promise<SubCategory[]> {
   return uniqueRows.map(r => {
     const obj = mapRowToObject(headers, r);
     return {
-      id: obj.id,
-      categoryId: obj.categoryId,
-      index: obj.index || obj.Index || "",
-      name: obj.name
+      id: obj.ID || obj.id || `sub-${Date.now()}-${Math.random()}`,
+      categoryId: obj.Index || obj.categoryId || "",
+      index: obj['MAT Category Code'] || obj.index || "",
+      name: obj.Description || obj.name || ""
     };
   });
 }
