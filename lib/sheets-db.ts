@@ -18,8 +18,8 @@ const safeParse = (str: string, fallback: any) => {
 // ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
-export async function getUsers(): Promise<AuthUser[]> {
-  const allRows = await readSheet(`${SHEETS.USERS}!A1:Z`);
+export async function getUsers(forceFetch: boolean = false): Promise<AuthUser[]> {
+  const allRows = await readSheet(`${SHEETS.USERS}!A1:Z`, forceFetch);
   const headers = allRows[0] || [];
   const rows = allRows.slice(1);
   const empCodeIdx = getIndexCaseInsensitive(headers, 'employeeCode');
@@ -64,7 +64,7 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
     createdAt: newUser.createdAt,
     lineUserId: newUser.lineUserId || "",
     avatarUrl: newUser.avatar || "",
-    assignedSupervisors: (newUser.assignedSupervisors || []).join(','),
+    assignedHeads: (newUser.assignedSupervisors || []).join(','),
     accessibleMenus: (newUser.accessibleMenus || []).join(',')
   };
   
@@ -92,7 +92,7 @@ export async function updateUser(employeeCode: string, data: Partial<AuthUser>):
     createdAt: merged.createdAt,
     lineUserId: merged.lineUserId || "",
     avatarUrl: merged.avatar || "",
-    assignedSupervisors: (merged.assignedSupervisors || []).join(','),
+    assignedHeads: (merged.assignedSupervisors || []).join(','),
     accessibleMenus: (merged.accessibleMenus || []).join(',')
   };
   
@@ -143,8 +143,9 @@ export async function createModel(model: DeviceModel): Promise<DeviceModel> {
   
   const objToSave = {
     id: newModel.id,
-    subCategoryId: newModel.subcategoryId || "",
-    SymptomTypesID: newModel.symptomTypeId || "",
+    categoryId: newModel.categoryId || "",
+    subcategoryId: newModel.subcategoryId || "",
+    symptomTypeId: newModel.symptomTypeId || "",
     name: newModel.name,
     code: newModel.code,
     status: newModel.status,
@@ -167,8 +168,9 @@ export async function bulkCreateModels(models: DeviceModel[]): Promise<DeviceMod
     const newModel = { ...model, id: model.id || `m-${Date.now()}-${Math.random()}`, status: model.status || "active", createdAt: model.createdAt || new Date().toISOString(), updatedAt: model.updatedAt || new Date().toISOString() };
     const objToSave = {
       id: newModel.id,
-      subCategoryId: newModel.subcategoryId || "",
-      SymptomTypesID: newModel.symptomTypeId || "",
+      categoryId: newModel.categoryId || "",
+      subcategoryId: newModel.subcategoryId || "",
+      symptomTypeId: newModel.symptomTypeId || "",
       name: newModel.name,
       code: newModel.code,
       status: newModel.status,
@@ -240,23 +242,29 @@ export async function getCategories(): Promise<Category[]> {
   });
 }
 
-export async function createCategory(category: Partial<Category>): Promise<Category> {
-  const newCat: Category = {
-    id: category.id || `cat-${Date.now()}`,
-    name: category.name || "",
-    slug: category.slug || `slug-${Date.now()}`,
-    description: category.description || "",
-    status: "active",
-    createdAt: new Date().toISOString()
-  };
-  
+export async function createCategory(cat: Partial<Category>): Promise<Category> {
   const allRows = await readSheet(`${SHEETS.CATEGORIES}!A1:Z`);
   const headers = allRows[0] || [];
   
-  const rowToAppend = mapObjectToRow(headers, newCat as Record<string, any>);
-  await appendRow(`${SHEETS.CATEGORIES}!A2:Z`, rowToAppend);
+  let nextId: string = cat.id || "";
+  if (!nextId) {
+    const idIdx = getIndexCaseInsensitive(headers, 'id');
+    const maxId = allRows.slice(1).reduce((max, r) => {
+      const val = parseInt(r[idIdx], 10);
+      return !isNaN(val) && val > max ? val : max;
+    }, 0);
+    nextId = (maxId + 1).toString();
+  }
   
-  return newCat;
+  const objToSave = {
+    'ID': nextId,
+    'Index': cat.slug,
+    'Description': cat.name
+  };
+  
+  const rowToAppend = mapObjectToRow(headers, objToSave);
+  await appendRow(`${SHEETS.CATEGORIES}!A2:Z`, rowToAppend);
+  return { ...cat, id: nextId } as Category;
 }
 
 export async function bulkCreateCategories(categories: Partial<Category>[]): Promise<Category[]> {
@@ -275,7 +283,13 @@ export async function bulkCreateCategories(categories: Partial<Category>[]): Pro
       createdAt: new Date().toISOString()
     };
     createdCats.push(newCat);
-    return mapObjectToRow(headers, newCat as Record<string, any>);
+    
+    const objToSave = {
+      'ID': newCat.id,
+      'Index': newCat.slug,
+      'Description': newCat.name
+    };
+    return mapObjectToRow(headers, objToSave);
   });
   
   const { appendRows } = require('./google-sheets');
@@ -293,7 +307,13 @@ export async function updateCategory(id: string, data: Partial<Category>): Promi
   const allRows = await readSheet(`${SHEETS.CATEGORIES}!A1:Z`);
   const headers = allRows[0] || [];
   
-  const rowToUpdate = mapObjectToRow(headers, merged as Record<string, any>);
+  const objToSave = {
+    'ID': merged.id,
+    'Index': merged.slug,
+    'Description': merged.name
+  };
+  
+  const rowToUpdate = mapObjectToRow(headers, objToSave);
   await updateRowById(SHEETS.CATEGORIES, id, rowToUpdate);
   
   return merged;
@@ -323,12 +343,30 @@ export async function getSubCategories(): Promise<SubCategory[]> {
   });
 }
 
-export async function createSubCategory(subCat: SubCategory): Promise<SubCategory> {
+export async function createSubCategory(subCat: Partial<SubCategory>): Promise<SubCategory> {
   const allRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`);
   const headers = allRows[0] || [];
-  const rowToAppend = mapObjectToRow(headers, subCat as Record<string, any>);
+  
+  let nextId: string = subCat.id || "";
+  if (!nextId) {
+    const idIdx = getIndexCaseInsensitive(headers, 'id');
+    const maxId = allRows.slice(1).reduce((max, r) => {
+      const val = parseInt(r[idIdx], 10);
+      return !isNaN(val) && val > max ? val : max;
+    }, 0);
+    nextId = (maxId + 1).toString();
+  }
+  
+  const objToSave = {
+    'ID': nextId,
+    'Index': subCat.categoryId,
+    'MAT Category Code': subCat.index,
+    'Description': subCat.name
+  };
+  
+  const rowToAppend = mapObjectToRow(headers, objToSave);
   await appendRow(`${SHEETS.SUBCATEGORIES}!A2:Z`, rowToAppend);
-  return subCat;
+  return { ...subCat, id: nextId } as SubCategory;
 }
 
 export async function deleteSubCategory(id: string): Promise<void> {
@@ -342,7 +380,15 @@ export async function updateSubCategory(id: string, data: Partial<SubCategory>):
   const merged = { ...existing, ...data };
   const allRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`);
   const headers = allRows[0] || [];
-  await updateRowById(SHEETS.SUBCATEGORIES, id, mapObjectToRow(headers, merged));
+  
+  const objToSave = {
+    'ID': merged.id,
+    'Index': merged.categoryId,
+    'MAT Category Code': merged.index,
+    'Description': merged.name
+  };
+  
+  await updateRowById(SHEETS.SUBCATEGORIES, id, mapObjectToRow(headers, objToSave));
   return merged as any;
 }
 
@@ -363,7 +409,9 @@ export async function getSymptomTypes(): Promise<SymptomType[]> {
     return {
       id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `type-${index}`,
       categoryId: obj.categoryId || "",
-      name: obj['ชื่อกลุ่มอาการเสีย'] || obj.name || "ไม่มีชื่อกลุ่มอาการ"
+      subcategoryId: obj['รหัสอาการเสีย'] || obj.ID || obj.id || "",
+      name: obj['ชื่อกลุ่มอาการเสีย'] || obj.name || "ไม่มีชื่อกลุ่มอาการ",
+      description: obj['คำอธิบาย'] || obj.description || ""
     };
   }).filter(t => t.id && t.name);
   
@@ -376,14 +424,35 @@ export async function getSymptomTypes(): Promise<SymptomType[]> {
 }
 
 export async function createSymptomType(data: Partial<SymptomType>): Promise<SymptomType> {
-  const newSym: SymptomType = {
-    id: data.id || `type-${Date.now()}`,
-    categoryId: data.categoryId || "",
-    name: data.name || ""
-  };
   const allRows = await readSheet(`${SHEETS.SYMPTOM_TYPES}!A1:Z`);
   const headers = allRows[0] || [];
-  const rowToAppend = mapObjectToRow(headers, newSym as Record<string, any>);
+  
+  const idIdx = getIndexCaseInsensitive(headers, 'id');
+  const maxId = allRows.slice(1).reduce((max, r) => {
+    const val = parseInt(r[idIdx], 10);
+    return !isNaN(val) && val > max ? val : max;
+  }, 0);
+  const nextNumericId = (maxId + 1).toString();
+  
+  const code = data.subcategoryId || data.id || `type-${Date.now()}`;
+  
+  const newSym: SymptomType = {
+    id: code,
+    categoryId: data.categoryId || "",
+    subcategoryId: code,
+    name: data.name || "",
+    description: data.description || ""
+  };
+  
+  const objToSave = {
+    ...newSym,
+    'ID': nextNumericId,
+    'รหัสอาการเสีย': code,
+    'ชื่อกลุ่มอาการเสีย': newSym.name,
+    'คำอธิบาย': newSym.description
+  };
+  
+  const rowToAppend = mapObjectToRow(headers, objToSave);
   await appendRow(`${SHEETS.SYMPTOM_TYPES}!A2:Z`, rowToAppend);
   return newSym;
 }
@@ -395,7 +464,16 @@ export async function updateSymptomType(id: string, data: Partial<SymptomType>):
   const merged = { ...existing, ...data };
   const allRows = await readSheet(`${SHEETS.SYMPTOM_TYPES}!A1:Z`);
   const headers = allRows[0] || [];
-  const rowToUpdate = mapObjectToRow(headers, merged as Record<string, any>);
+  
+  const objToSave = {
+    ...merged,
+    'ID': merged.id,
+    'รหัสอาการเสีย': merged.id,
+    'ชื่อกลุ่มอาการเสีย': merged.name,
+    'คำอธิบาย': merged.description || ""
+  };
+  
+  const rowToUpdate = mapObjectToRow(headers, objToSave);
   await updateRowById(SHEETS.SYMPTOM_TYPES, id, rowToUpdate);
   return merged;
 }
@@ -419,7 +497,7 @@ export async function getSymptoms(): Promise<Symptom[]> {
       id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `sym-${index}`,
       symptomTypeId: obj['รหัสประเภทอาการ'] || obj.symptomTypeId || obj.SymptomTypesID || "",
       title: obj['อาการเสีย'] || obj.title || obj.name || "ระบุชื่ออาการ",
-      description: obj['อาการเสีย'] || obj.description || obj.name || "",
+      description: obj['คำอธิบาย'] || obj.description || "",
       severity: (obj.severity as any) || "Medium",
       tags: obj.tags ? obj.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       specificModelIds: obj.specificModelIds ? obj.specificModelIds.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined
@@ -435,20 +513,39 @@ export async function getSymptoms(): Promise<Symptom[]> {
 }
 
 export async function createSymptom(data: Partial<Symptom>): Promise<Symptom> {
+  const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const idIdx = getIndexCaseInsensitive(headers, 'id');
+  const maxId = allRows.slice(1).reduce((max, r) => {
+    const val = parseInt(r[idIdx], 10);
+    return !isNaN(val) && val > max ? val : max;
+  }, 0);
+  const nextNumericId = (maxId + 1).toString();
+
+  const code = data.id || `sym-${Date.now()}`;
+
   const newSym: Symptom = {
-    id: data.id || `sym-${Date.now()}`,
+    id: code,
     symptomTypeId: data.symptomTypeId || "",
     title: data.title || "",
     description: data.description || "",
     severity: data.severity || "Medium",
     tags: data.tags || []
   };
-  const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
-  const headers = allRows[0] || [];
+  
+  const types = await getSymptomTypes();
+  const st = types.find(t => t.id === newSym.symptomTypeId);
   
   const objToSave = {
     ...newSym,
-    tags: newSym.tags.join(',')
+    tags: newSym.tags.join(','),
+    'ID': nextNumericId,
+    'รหัสประเภทอาการ': newSym.symptomTypeId,
+    'ประเภทอาการอาการ': st ? st.name : "",
+    'รหัสอาการเสีย': code,
+    'อาการเสีย': newSym.title,
+    'คำอธิบาย': newSym.description || ""
   };
   
   const rowToAppend = mapObjectToRow(headers, objToSave);
@@ -465,9 +562,18 @@ export async function updateSymptom(id: string, data: Partial<Symptom>): Promise
   const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
   const headers = allRows[0] || [];
   
+  const types = await getSymptomTypes();
+  const st = types.find(t => t.id === merged.symptomTypeId);
+  
   const objToSave = {
     ...merged,
-    tags: merged.tags.join(',')
+    tags: merged.tags.join(','),
+    'ID': merged.id,
+    'รหัสประเภทอาการ': merged.symptomTypeId,
+    'ประเภทอาการอาการ': st ? st.name : "",
+    'รหัสอาการเสีย': merged.id,
+    'อาการเสีย': merged.title,
+    'คำอธิบาย': merged.description || ""
   };
   
   const rowToUpdate = mapObjectToRow(headers, objToSave as Record<string, any>);
@@ -492,9 +598,8 @@ export async function getGuides(): Promise<Guide[]> {
 
   return uniqueGuideRows.map((r, index) => {
     const obj = mapRowToObject(guideHeaders, r);
-    const guideId = obj.id;
     return {
-      id: guideId || obj['รหัสหัวขัอการตรวจสอบ'] || `guide-${index}`,
+      id: obj['รหัสหัวขัอการตรวจสอบ'] || obj.ID || obj.id || `guide-${index}`,
       title: obj['หัวข้อการตรวจสอบ'] || obj.title || obj.specificCause || "",
       categoryId: obj.categoryId || "",
       subcategoryId: obj.subcategoryId || "",
@@ -522,35 +627,43 @@ export async function getGuideById(id: string): Promise<Guide | null> {
   return guides.find(g => g.id === id) || null;
 }
 
-export async function createGuide(guide: Guide): Promise<Guide> {
-  const newGuide = { 
-    ...guide, 
-    status: guide.status || "published", 
-    createdAt: guide.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
+export async function createGuide(guide: Partial<Guide>): Promise<Guide> {
   const guideAllRows = await readSheet(`${SHEETS.GUIDES}!A1:Z`);
   const guideHeaders = guideAllRows[0] || [];
   
+  const idIdx = getIndexCaseInsensitive(guideHeaders, 'id');
+  const maxId = guideAllRows.slice(1).reduce((max, r) => {
+    const val = parseInt(r[idIdx], 10);
+    return !isNaN(val) && val > max ? val : max;
+  }, 0);
+  const nextNumericId = (maxId + 1).toString();
+  
+  const code = guide.id || `gd-${Date.now()}`;
+  
+  const newGuide = { 
+    ...guide, 
+    id: code,
+    status: guide.status || "published", 
+    createdAt: guide.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  } as Guide;
+  
+  const symptoms = await getSymptoms();
+  const sym = symptoms.find(s => s.id === newGuide.symptomId);
+  
   const objToSave = {
-    id: newGuide.id,
-    title: newGuide.title,
-    categoryId: newGuide.categoryId,
-    subcategoryId: newGuide.subcategoryId || "",
-    modelIds: (newGuide.modelIds || []).join(','),
-    symptomTypeId: newGuide.symptomTypeId || "",
-    symptomId: newGuide.symptomId || "",
-    description: newGuide.description || "",
-    difficulty: newGuide.difficulty || "",
-    timeEstimated: newGuide.timeEstimated || "",
-    status: newGuide.status,
+    ...newGuide,
     tags: (newGuide.tags || []).join(','),
     toolsRequired: (newGuide.toolsRequired || []).join(','),
     partsRequired: (newGuide.partsRequired || []).join(','),
-    createdAt: newGuide.createdAt,
-    updatedAt: newGuide.updatedAt,
-    steps: JSON.stringify(newGuide.steps || [])
+    steps: JSON.stringify(newGuide.steps || []),
+    'ID': nextNumericId,
+    'รหัสอาการเสีย': newGuide.symptomId || "",
+    'อาการเสีย': sym ? sym.title : "",
+    'รหัสหัวขัอการตรวจสอบ': code,
+    'หัวข้อการตรวจสอบ': newGuide.title || "",
+    'ลิงค์ VDO': newGuide.mediaUrl || "",
+    'ลิงค์ PDF': newGuide.pdfUrl || ""
   };
   
   const rowToAppend = mapObjectToRow(guideHeaders, objToSave);
@@ -581,24 +694,22 @@ export async function updateGuide(id: string, data: Partial<Guide>): Promise<Gui
   const guideAllRows = await readSheet(`${SHEETS.GUIDES}!A1:Z`);
   const guideHeaders = guideAllRows[0] || [];
   
+  const symptoms = await getSymptoms();
+  const sym = symptoms.find(s => s.id === merged.symptomId);
+  
   const objToSave = {
-    id: merged.id,
-    title: merged.title,
-    categoryId: merged.categoryId,
-    subcategoryId: merged.subcategoryId || "",
-    modelIds: (merged.modelIds || []).join(','),
-    symptomTypeId: merged.symptomTypeId || "",
-    symptomId: merged.symptomId || "",
-    description: merged.description || "",
-    difficulty: merged.difficulty || "",
-    timeEstimated: merged.timeEstimated || "",
-    status: merged.status,
+    ...merged,
     tags: (merged.tags || []).join(','),
     toolsRequired: (merged.toolsRequired || []).join(','),
     partsRequired: (merged.partsRequired || []).join(','),
-    createdAt: merged.createdAt,
-    updatedAt: merged.updatedAt,
-    steps: JSON.stringify(merged.steps || [])
+    steps: JSON.stringify(merged.steps || []),
+    'ID': merged.id,
+    'รหัสอาการเสีย': merged.symptomId || "",
+    'อาการเสีย': sym ? sym.title : "",
+    'รหัสหัวขัอการตรวจสอบ': merged.id,
+    'หัวข้อการตรวจสอบ': merged.title || "",
+    'ลิงค์ VDO': merged.mediaUrl || "",
+    'ลิงค์ PDF': merged.pdfUrl || ""
   };
   
   const rowToUpdate = mapObjectToRow(guideHeaders, objToSave);
@@ -747,10 +858,29 @@ export async function getMasterDataMappings(): Promise<MasterDataMapping[]> {
 export async function createMasterDataMapping(data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
   const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
   const headers = allRows[0] || [];
-  const id = data.id || `map-${Date.now()}`;
-  const obj = { ...data, id };
-  await appendRow(`${SHEETS.MASTERDATA}!A2:Z`, mapObjectToRow(headers, obj));
-  return obj as any;
+  
+  let nextId: string = data.id || "";
+  if (!nextId) {
+    const idIdx = getIndexCaseInsensitive(headers, 'id');
+    const maxId = allRows.slice(1).reduce((max, r) => {
+      const val = parseInt(r[idIdx], 10);
+      return !isNaN(val) && val > max ? val : max;
+    }, 0);
+    nextId = (maxId + 1).toString();
+  }
+  
+  const objToSave = {
+    'ID': nextId,
+    'รหัสสินค้า': data.modelCode || "",
+    'ชื่อสินค้า': data.modelName || "",
+    'MAT Category Code': data.matCategoryCode || "",
+    'MAT Category': data.matCategoryName || "",
+    'รหัสประเภทอาการ': data.symptomTypeCode || "",
+    'ประเภทอาการอาการ': data.symptomTypeName || "",
+  };
+  
+  await appendRow(`${SHEETS.MASTERDATA}!A2:Z`, mapObjectToRow(headers, objToSave));
+  return { ...data, id: nextId } as any;
 }
 export async function updateMasterDataMapping(id: string, data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
   const all = await getMasterDataMappings();
@@ -759,7 +889,18 @@ export async function updateMasterDataMapping(id: string, data: Partial<MasterDa
   const merged = { ...existing, ...data };
   const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
   const headers = allRows[0] || [];
-  await updateRowById(SHEETS.MASTERDATA, id, mapObjectToRow(headers, merged));
+  
+  const objToSave = {
+    'ID': merged.id,
+    'รหัสสินค้า': merged.modelCode || "",
+    'ชื่อสินค้า': merged.modelName || "",
+    'MAT Category Code': merged.matCategoryCode || "",
+    'MAT Category': merged.matCategoryName || "",
+    'รหัสประเภทอาการ': merged.symptomTypeCode || "",
+    'ประเภทอาการอาการ': merged.symptomTypeName || "",
+  };
+  
+  await updateRowById(SHEETS.MASTERDATA, id, mapObjectToRow(headers, objToSave));
   return merged as any;
 }
 export async function deleteMasterDataMapping(id: string): Promise<void> {

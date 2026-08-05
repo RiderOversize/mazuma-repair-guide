@@ -35,7 +35,7 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
   const [subCatForm, setSubCatForm] = useState({ id: '', index: '', name: '', isEdit: false })
 
   const [showSymModal, setShowSymModal] = useState(false)
-  const [symForm, setSymForm] = useState({ id: '', subcategoryId: '', name: '', isEdit: false })
+  const [symForm, setSymForm] = useState({ id: '', subcategoryId: '', name: '', description: '', isEdit: false })
 
   const [showIssueModal, setShowIssueModal] = useState(false)
   const [issueForm, setIssueForm] = useState({ id: '', title: '', description: '', severity: 'Medium', isEdit: false })
@@ -131,7 +131,7 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
   }
 
   const handleSaveSubCategory = async () => {
-    if (!subCatForm.id) return showToast("กรุณากรอกรหัส MAT Category Code", "error")
+    if (!subCatForm.index) return showToast("กรุณากรอกรหัส MAT Category Code", "error")
     if (!subCatForm.name) return showToast("กรุณากรอกชื่อหมวดหมู่ย่อย", "error")
     
     try {
@@ -140,7 +140,7 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
         await logActivity(user, "update", "subcategory", `หมวดหมู่ย่อย: ${subCatForm.name}`)
         showToast("แก้ไขหมวดหมู่ย่อยสำเร็จ", "success")
       } else {
-        await createSubCategory({ id: subCatForm.id, name: subCatForm.name, index: subCatForm.index, categoryId: activeCategory?.slug || '' })
+        await createSubCategory({ name: subCatForm.name, index: subCatForm.index, categoryId: activeCategory?.slug || '' })
         await logActivity(user, "create", "subcategory", `หมวดหมู่ย่อย: ${subCatForm.name}`)
         showToast("เพิ่มหมวดหมู่ย่อยสำเร็จ", "success")
       }
@@ -172,13 +172,13 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
 
   // SymptomType Actions
   const openAddSymptomType = () => {
-    setSymForm({ id: '', subcategoryId: '', name: '', isEdit: false })
+    setSymForm({ id: '', subcategoryId: '', name: '', description: '', isEdit: false })
     setShowSymModal(true)
   }
 
   const openEditSymptomType = (st: SymptomType, e: React.MouseEvent) => {
     e.stopPropagation()
-    setSymForm({ id: st.id, subcategoryId: st.subcategoryId || '', name: st.name, isEdit: true })
+    setSymForm({ id: st.id, subcategoryId: st.subcategoryId || '', name: st.name, description: st.description || '', isEdit: true })
     setShowSymModal(true)
   }
 
@@ -188,11 +188,11 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
     
     try {
       if (symForm.isEdit) {
-        await updateSymptomType(symForm.id, { subcategoryId: symForm.subcategoryId, name: symForm.name })
+        await updateSymptomType(symForm.id, { subcategoryId: symForm.subcategoryId, name: symForm.name, description: symForm.description })
         await logActivity(user, "update", "symptom_type", `กลุ่มอาการ: ${symForm.name}`)
         showToast("แก้ไขกลุ่มอาการสำเร็จ", "success")
       } else {
-        await createSymptomType({ subcategoryId: symForm.subcategoryId, name: symForm.name })
+        await createSymptomType({ subcategoryId: symForm.subcategoryId, name: symForm.name, description: symForm.description })
         await logActivity(user, "create", "symptom_type", `กลุ่มอาการ: ${symForm.name}`)
         showToast("เพิ่มกลุ่มอาการสำเร็จ", "success")
       }
@@ -440,7 +440,7 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
           <div className="flex flex-col">
             {(() => {
               const categoryIndex = activeCategory?.slug || '';
-              const filteredSubCategories = subCategories.filter(sc => sc.categoryId === activeCategory?.id || sc.index === categoryIndex);
+              const filteredSubCategories = subCategories.filter(sc => sc.categoryId === activeCategory?.id || sc.categoryId === categoryIndex);
               
               if (filteredSubCategories.length === 0) {
                 return (
@@ -507,7 +507,7 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-[15px] truncate text-foreground">{st.name}</p>
-                        <p className="text-[13px] text-muted-foreground truncate font-mono">รหัส: {st.subcategoryId || '-'}</p>
+                        <p className="text-[13px] text-muted-foreground truncate font-mono">คำอธิบาย: {st.description || '-'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -719,9 +719,9 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                   autoFocus
                   className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50 disabled:bg-muted" 
                   placeholder="เช่น F1-01-00"
-                  value={subCatForm.id}
+                  value={subCatForm.index}
                   disabled={subCatForm.isEdit}
-                  onChange={e => setSubCatForm({...subCatForm, id: e.target.value})}
+                  onChange={e => setSubCatForm({...subCatForm, index: e.target.value})}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSubCategory()}
                 />
               </div>
@@ -782,6 +782,15 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
                   value={symForm.name}
                   onChange={e => setSymForm({...symForm, name: e.target.value})}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSymptomType()}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
+                <textarea 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]" 
+                  placeholder="อธิบายเพิ่มเติม..."
+                  value={symForm.description || ''}
+                  onChange={e => setSymForm({...symForm, description: e.target.value})}
                 />
               </div>
             </div>

@@ -90,10 +90,10 @@ export function GuideForm({
       if (!model || !symType) throw new Error("ข้อมูลไม่ถูกต้อง")
 
       // Find category or subcategory for MAT category name
-      const category = categories.find(c => c.id === model.categoryId)
-      const subCategory = subCategories.find(sc => sc.id === model.subcategoryId)
+      const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
+      const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
       
-      const matCode = subCategory?.id || category?.slug || model.categoryId
+      const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
       const matName = subCategory?.name || category?.name || ""
 
       const mappingData = {

@@ -222,11 +222,13 @@ export function mapObjectToRow(headers: string[], obj: Record<string, any>): any
 // CRUD Helpers
 // ---------------------------------------------------------------------------
 
-export async function readSheet(range: string) {
+export async function readSheet(range: string, forceFetch: boolean = false) {
   // Check cache first
-  const cached = sheetCache.get(range);
-  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-    return cached.data;
+  if (!forceFetch) {
+    const cached = sheetCache.get(range);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      return cached.data;
+    }
   }
 
   // Request deduplication: if the same range is already being fetched, wait for it

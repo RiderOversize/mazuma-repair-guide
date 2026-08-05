@@ -11,6 +11,7 @@ export interface SymptomType {
   subcategoryId?: string
   categoryId?: string // Deprecated in favor of subcategoryId
   name: string
+  description?: string
 }
 
 export interface Symptom {

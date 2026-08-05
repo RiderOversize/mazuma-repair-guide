@@ -13,13 +13,19 @@ export const authOptions = {
     })
   ],
   callbacks: {
-    async session({ session, token }: any) {
+    async session({ session, token, trigger }: any) {
       if (session.user) {
          session.user.lineUserId = token.sub; // This is the LINE ID we will use to query Google Sheets
          
          // Fetch the actual user from Google Sheets
-         const users = await getUsers();
-         const dbUser = users.find(u => u.lineUserId === token.sub && u.status === "active");
+         let users = await getUsers();
+         let dbUser = users.find(u => u.lineUserId === token.sub && u.status === "active");
+         
+         // If update() was called from client (e.g. after binding), force fetch without cache
+         if (!dbUser && trigger === "update") {
+           users = await getUsers(true);
+           dbUser = users.find(u => u.lineUserId === token.sub && u.status === "active");
+         }
          
          if (dbUser) {
            session.user.dbUser = dbUser;
