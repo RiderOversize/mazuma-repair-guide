@@ -111,12 +111,17 @@ export function SecureVideoPlayer({
                     className="w-full h-full"
                     src={getYoutubeEmbedUrl(mediaUrl)}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    sandbox="allow-scripts allow-same-origin allow-presentation"
                     allowFullScreen
                   ></iframe>
-                  {/* Invisible overlay over the top right to block the 'Share' and 'Watch later' buttons */}
-                  <div className="absolute top-0 right-0 w-32 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" />
-                  {/* Invisible overlay over the YouTube logo to block clicking it */}
-                  <div className="absolute bottom-0 right-0 w-24 h-12 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" />
+                  {/* Top Bar Cover: blocks video title link and share button */}
+                  <div className="absolute top-0 inset-x-0 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  
+                  {/* Bottom Right Cover: blocks 'Watch on YouTube' button, leaves bottom 12px for progress bar */}
+                  <div className="absolute bottom-10 right-0 w-[45%] h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  
+                  {/* Bottom Left Cover: blocks floating Share / Watch Later buttons, leaves bottom 12px for progress bar */}
+                  <div className="absolute bottom-10 left-0 w-[35%] h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                 </>
               ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
@@ -124,9 +129,10 @@ export function SecureVideoPlayer({
                     className="w-full h-full"
                     src={getDriveEmbedUrl(mediaUrl)}
                     allow="autoplay"
+                    sandbox="allow-scripts allow-same-origin allow-presentation"
                   ></iframe>
                   {/* Invisible overlay over the top right to block the 'Pop-out' button */}
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" />
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                 </>
               ) : (
                 <video 
