@@ -15,6 +15,7 @@ function PageContent() {
   const { data: session, status, update } = useSession()
   const searchParams = useSearchParams()
   const isPreview = searchParams.get("preview") === "true"
+  const initialCategoryId = searchParams.get("categoryId") || undefined
 
   if (status === "loading") {
     return (
@@ -64,6 +65,7 @@ function PageContent() {
           onLogout={!isPreview ? () => signOut() : undefined} 
           preview={isPreview} 
           onExitPreview={() => window.location.href = '/'} 
+          initialCategoryId={initialCategoryId}
         />
       ) : (
         <AdminApp user={dbUser} onLogout={() => signOut()} />

@@ -9,7 +9,8 @@ import { UserMenu } from "@/components/user-menu"
 import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
 import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom } from "@/lib/types"
-import { logSessionActivity, preloadTechnicianData } from "@/lib/data-service"
+import { preloadTechnicianData } from "@/lib/data-service"
+import { logActivity } from "@/lib/activity-service"
 import type { AuthUser } from "@/lib/auth"
 
 type View = "home" | "subcategories" | "models" | "symptoms" | "guide"
@@ -19,14 +20,16 @@ export function TechnicianApp({
   onLogout,
   preview = false,
   onExitPreview,
+  initialCategoryId,
 }: {
   user: AuthUser
   onLogout?: () => void
   preview?: boolean
   onExitPreview?: () => void
+  initialCategoryId?: string
 }) {
-  const [view, setView] = useState<View>("home")
-  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [view, setView] = useState<View>(initialCategoryId ? "models" : "home")
+  const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId || null)
   const [subCategoryId, setSubCategoryId] = useState<string | null>(null)
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [guide, setGuide] = useState<Guide | null>(null)
@@ -68,6 +71,17 @@ export function TechnicianApp({
         setSubCategories(data.subCategories)
         setSymptomTypes(data.symptomTypes)
         setSymptoms(data.symptoms)
+
+        // Handle initial routing if category is passed
+        if (initialCategoryId && data.categories.some(c => c.id === initialCategoryId)) {
+          const category = data.categories.find(c => c.id === initialCategoryId)
+          const hasSubCats = data.subCategories.some(sc => sc.categoryId === initialCategoryId || (category && sc.categoryId === category.slug))
+          if (hasSubCats) {
+            setView("subcategories")
+          } else {
+            setView("models")
+          }
+        }
       } catch (error) {
         console.error("Failed to load technician data:", error)
       } finally {
@@ -75,25 +89,18 @@ export function TechnicianApp({
       }
     }
     loadData()
-  }, [])
+  }, [initialCategoryId])
 
   const category = categoryId ? categories.find(c => c.id === categoryId) : undefined
 
   useEffect(() => {
     if (preview) return
-    let action = "หน้าหลัก"
-    if (view === "subcategories" && category) {
-      action = `กำลังเลือกประเภทย่อยในหมวด: ${category.name}`
-    } else if (view === "models" && category) {
-      action = `กำลังเลือกรุ่นในหมวด: ${category.name}`
-    } else if (view === "symptoms" && category) {
-      action = `กำลังค้นหาอาการ: ${model ? model.name : category.name}`
+    const sessionKey = `logged_in_${user.employeeCode}`
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, "true")
+      logActivity(user, "login", "system", "แอปพลิเคชันช่าง", "", "เข้าใช้งานระบบ").catch(console.error)
     }
-    
-    if (view !== "guide") {
-      logSessionActivity(user.employeeCode, user.name, action).catch(console.error)
-    }
-  }, [view, category, model, preview, user])
+  }, [preview, user])
 
   const handleBack = () => {
     if (view === "subcategories") setView("home")

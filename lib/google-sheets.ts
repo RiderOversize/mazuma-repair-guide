@@ -407,8 +407,6 @@ export async function updateRowById(sheetName: string, id: string, updatedValues
     idIndex = getIndexCaseInsensitive(headers, 'รหัสหัวขัอการตรวจสอบ');
   } else if (sheetName === SHEETS.SYMPTOMS || sheetName === SHEETS.SYMPTOM_TYPES) {
     idIndex = getIndexCaseInsensitive(headers, 'รหัสอาการเสีย');
-  } else if (sheetName === SHEETS.MASTERDATA) {
-    idIndex = getIndexCaseInsensitive(headers, 'รหัสสินค้า');
   }
   
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'id');
@@ -453,8 +451,6 @@ export async function deleteRowById(sheetName: string, id: string) {
     idIndex = getIndexCaseInsensitive(headers, 'รหัสหัวขัอการตรวจสอบ');
   } else if (sheetName === SHEETS.SYMPTOMS || sheetName === SHEETS.SYMPTOM_TYPES) {
     idIndex = getIndexCaseInsensitive(headers, 'รหัสอาการเสีย');
-  } else if (sheetName === SHEETS.MASTERDATA) {
-    idIndex = getIndexCaseInsensitive(headers, 'รหัสสินค้า');
   }
   
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'id');

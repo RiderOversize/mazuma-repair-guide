@@ -20,6 +20,7 @@ import {
   deleteGuide as _deleteGuide,
   getMasterDataMappings as _getMasterDataMappings,
   createMasterDataMapping as _createMasterDataMapping,
+  bulkCreateMasterDataMappings as _bulkCreateMasterDataMappings,
   updateMasterDataMapping as _updateMasterDataMapping,
   deleteMasterDataMapping as _deleteMasterDataMapping,
   logRepairFeedback as _logRepairFeedback,
@@ -79,6 +80,7 @@ export const deleteGuide = _deleteGuide;
 
 export const getMasterDataMappings = _getMasterDataMappings;
 export const createMasterDataMapping = _createMasterDataMapping;
+export const bulkCreateMasterDataMappings = _bulkCreateMasterDataMappings;
 export const updateMasterDataMapping = _updateMasterDataMapping;
 export const deleteMasterDataMapping = _deleteMasterDataMapping;
 
@@ -101,6 +103,7 @@ export async function preloadTechnicianData() {
     `${SHEETS.SYMPTOM_TYPES}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
     `${SHEETS.MASTERDATA}!A1:Z`,
+    `${SHEETS.MODELS}!A1:Z`,
   ];
 
   // This single batchGet call populates the cache for all ranges
@@ -125,6 +128,7 @@ export async function preloadAdminData() {
     `${SHEETS.MASTERDATA}!A1:Z`,
     `${SHEETS.FEEDBACKS}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
+    `${SHEETS.MODELS}!A1:Z`,
   ];
 
   await readMultipleSheets(ranges);

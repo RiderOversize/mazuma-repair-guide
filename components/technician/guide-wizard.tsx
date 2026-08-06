@@ -25,7 +25,8 @@ import {
   type SymptomType,
 } from "@/lib/types"
 import { type AuthUser, SUPERVISORS } from "@/lib/auth"
-import { logRepairFeedback, logSessionActivity } from "@/lib/data-service"
+import { logRepairFeedback } from "@/lib/data-service"
+import { logActivity } from "@/lib/activity-service"
 import { cn } from "@/lib/utils"
 
 export function GuideWizard({
@@ -72,12 +73,21 @@ export function GuideWizard({
   const symptomType = symptomTypes?.find(st => st.id === currentGuide.symptomTypeId)
 
   useEffect(() => {
-    logSessionActivity(
-      user.employeeCode,
-      user.name,
-      `กำลังดูคู่มือ: ${currentGuide.title}${model ? ` (${model.name})` : ''}`
-    )
-  }, [user, currentGuide.title, model])
+    // Prevent spam by using a ref or session storage, but since currentGuide changes rarely in a session,
+    // we can log it. To avoid re-logging on remount, we check sessionStorage.
+    const viewKey = `viewed_${currentGuide.id}_${user.employeeCode}`;
+    if (!sessionStorage.getItem(viewKey)) {
+      sessionStorage.setItem(viewKey, "true");
+      logActivity(
+        user,
+        "view",
+        "guide",
+        currentGuide.title,
+        currentGuide.id,
+        model ? `ดูบนเครื่อง ${model.name}` : ""
+      ).catch(console.error)
+    }
+  }, [user, currentGuide.id, currentGuide.title, model])
 
   const handleFinish = () => {
     setShowFeedback(true)
@@ -97,10 +107,13 @@ export function GuideWizard({
         note: feedbackNote
       })
       
-      await logSessionActivity(
-        user.employeeCode,
-        user.name,
-        `ให้คะแนนคู่มือ: ${isHelpful ? 'มีประโยชน์' : 'ไม่มีประโยชน์'}`
+      await logActivity(
+        user,
+        "update",
+        "guide",
+        currentGuide.title,
+        currentGuide.id,
+        `ส่งผลการซ่อม: ${isHelpful ? 'สำเร็จ' : 'ไม่สำเร็จ'}`
       )
     } catch (e) {
       console.error(e)

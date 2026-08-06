@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users } from "lucide-react"
+import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users, Search } from "lucide-react"
 import type { AuthUser, Role } from "@/lib/auth"
 import { getUsers, createUser, updateUser, deleteUser } from "@/lib/data-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
@@ -26,10 +26,11 @@ export function UserManagement({ user }: { user?: AuthUser }) {
   const [saving, setSaving] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'detail'>('list')
+  const [searchQuery, setSearchQuery] = useState("")
+  const [headSearch, setHeadSearch] = useState("")
 
   const [newEmpCode, setNewEmpCode] = useState("")
   const [newName, setNewName] = useState("")
-  const [newTitle, setNewTitle] = useState("")
   const [newPhone, setNewPhone] = useState("")
   const [newRole, setNewRole] = useState<Role>("technician")
   const [newStatus, setNewStatus] = useState<"active" | "inactive">("active")
@@ -106,6 +107,29 @@ export function UserManagement({ user }: { user?: AuthUser }) {
     }
   }
 
+  const changeRole = async (newRole: Role) => {
+    if (!selectedUser || selectedUser.role === newRole) return
+    
+    const newTitle = newRole === "admin" ? "ผู้ดูแลระบบ" : newRole === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค";
+    let updates: Partial<AuthUser> = { role: newRole, title: newTitle }
+    
+    if (newRole !== "technician" && (!selectedUser.accessibleMenus || selectedUser.accessibleMenus.length === 0)) {
+      updates.accessibleMenus = ["dashboard", "guides", "models"]
+    }
+    
+    setUsers(prev => prev.map(u => 
+      u.employeeCode === selectedUserId ? { ...u, ...updates } : u
+    ))
+    try {
+      await updateUser(selectedUser.employeeCode, updates)
+      showToast("เปลี่ยนระดับสิทธิ์สำเร็จ", "success")
+    } catch (error) {
+      console.error(error)
+      showToast("เกิดข้อผิดพลาดในการบันทึก", "error")
+      loadUsers()
+    }
+  }
+
   const handleDelete = async (employeeCode: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     const isConfirmed = await confirmDelete(
@@ -138,7 +162,7 @@ export function UserManagement({ user }: { user?: AuthUser }) {
       const newUser: AuthUser = {
         role: newRole,
         name: newName,
-        title: newTitle || (newRole === "admin" ? "ผู้ดูแลระบบ" : "ช่างเทคนิค"),
+        title: newRole === "admin" ? "ผู้ดูแลระบบ" : newRole === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค",
         initials: newName.substring(0, 2),
         avatar: newRole === "admin" ? "/avatars/admin.png" : "/avatars/technician.png",
         lineName: "-",
@@ -151,7 +175,6 @@ export function UserManagement({ user }: { user?: AuthUser }) {
       }
       await createUser(newUser)
       setNewName("")
-      setNewTitle("")
       setNewEmpCode("")
       setNewPhone("")
       setNewAssignedSupervisors([])
@@ -213,9 +236,23 @@ export function UserManagement({ user }: { user?: AuthUser }) {
             </button>
           </div>
           
+          <div className="mb-4 relative">
+             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+             <input
+               type="text"
+               placeholder="ค้นหาชื่อ หรือรหัสพนักงาน..."
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+               className="w-full rounded-xl border border-border/50 bg-card px-9 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+             />
+          </div>
+          
           <div className="flex flex-col overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
-            {users.map((u, i) => {
-              const isLast = i === users.length - 1;
+            {users.filter(u => {
+              const q = searchQuery.toLowerCase()
+              return u.name.toLowerCase().includes(q) || u.employeeCode.toLowerCase().includes(q)
+            }).map((u, i, arr) => {
+              const isLast = i === arr.length - 1;
               return (
                 <div
                   key={u.employeeCode}
@@ -280,16 +317,7 @@ export function UserManagement({ user }: { user?: AuthUser }) {
               placeholder="ชื่อ นามสกุล"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">ตำแหน่ง (Title)</label>
-            <input
-              type="text"
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
-              placeholder="เช่น ช่างเทคนิคอาวุโส"
-            />
-          </div>
+
           <div className="space-y-1.5">
             <label className="text-[13px] font-semibold text-foreground">เบอร์โทรศัพท์</label>
             <input
@@ -328,21 +356,38 @@ export function UserManagement({ user }: { user?: AuthUser }) {
             <div className="mt-2 space-y-3">
               <div>
                 <label className="text-[13px] font-semibold text-foreground">กำหนดหัวหน้าช่างที่ปรึกษา</label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">เลือกหัวหน้าช่างที่สามารถให้คำปรึกษาได้ (เลือกได้มากกว่า 1)</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">เลือกหัวหน้าช่างที่สามารถให้คำปรึกษาได้ (เลือกได้มากกว่า 1)</p>
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาชื่อหัวหน้าช่าง..."
+                    value={headSearch}
+                    onChange={e => setHeadSearch(e.target.value)}
+                    className="w-full rounded-xl border border-input bg-background/50 pl-9 pr-4 py-2.5 text-[13px] outline-none transition-all focus:border-primary shadow-sm"
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {users.filter(u => u.role === "head").map(sup => {
+              <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map(sup => {
                   const hasAccess = newAssignedSupervisors.includes(sup.employeeCode)
                   return (
                     <label
                       key={sup.employeeCode}
                       className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                        "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-muted/30 active:scale-[0.98]",
                         hasAccess 
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                          ? "border-primary/50 bg-primary/5" 
                           : "border-border bg-card"
                       )}
                     >
+                      <div className="flex-1 min-w-0">
+                        <span className={cn(
+                          "block text-[15px] font-semibold truncate transition-colors",
+                          hasAccess ? "text-primary" : "text-foreground"
+                        )}>{sup.name}</span>
+                        <span className="block text-[13px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                      </div>
                       <input 
                         type="checkbox" 
                         className="hidden" 
@@ -356,20 +401,19 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                         }}
                       />
                       <div className={cn(
-                        "flex size-5 shrink-0 items-center justify-center rounded",
-                        hasAccess ? "bg-primary text-primary-foreground" : "border border-input bg-background"
+                        "w-12 h-7 rounded-full flex items-center shrink-0 transition-colors duration-300 relative border border-transparent shadow-inner",
+                        hasAccess ? "bg-primary" : "bg-muted-foreground/30"
                       )}>
-                        {hasAccess && <CheckCircle2 className="size-3.5" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="block text-[14px] font-semibold truncate text-foreground">{sup.name}</span>
-                        <span className="block text-[12px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                        <div className={cn(
+                          "absolute left-1 size-5 bg-white rounded-full shadow-sm transition-transform duration-300",
+                          hasAccess ? "translate-x-5" : "translate-x-0"
+                        )} />
                       </div>
                     </label>
                   )
                 })}
-                {users.filter(u => u.role === "head").length === 0 && (
-                  <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ยังไม่มีรายชื่อหัวหน้าช่างในระบบ</p>
+                {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
+                  <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
                 )}
               </div>
             </div>
@@ -443,18 +487,17 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                       <Shield className="size-3" />
                       {selectedUser.role.toUpperCase()}
                     </div>
-                    <button 
-                      onClick={toggleStatus}
+                    <div 
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-colors",
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
                         selectedUser.status === "active" 
-                          ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" 
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          ? "bg-green-500/10 text-green-600" 
+                          : "bg-muted text-muted-foreground"
                       )}
                     >
                       <Activity className="size-3" />
                       {selectedUser.status === "active" ? "ACTIVE" : "INACTIVE"}
-                    </button>
+                    </div>
                  </div>
                  {selectedUser.createdAt && (
                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
@@ -462,6 +505,20 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                    </p>
                  )}
                </div>
+            </div>
+            
+            {/* Role Change */}
+            <div className="mb-6 border-b border-border/40 pb-6">
+              <h4 className="font-display text-[15px] font-bold mb-3">ปรับเปลี่ยนระดับสิทธิ์ (Role)</h4>
+              <select
+                value={selectedUser.role}
+                onChange={(e) => changeRole(e.target.value as Role)}
+                className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm font-medium"
+              >
+                <option value="technician">ช่างเทคนิค (Technician)</option>
+                <option value="head">หัวหน้าช่าง (Head)</option>
+                <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+              </select>
             </div>
             
             {selectedUser.role === "technician" ? (
@@ -473,21 +530,38 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                 
                 <div className="mb-3">
                   <h4 className="font-display text-[15px] font-bold">กำหนดหัวหน้าช่างที่ปรึกษา</h4>
-                  <p className="text-[12px] text-muted-foreground mt-0.5">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 mb-3">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="ค้นหาชื่อหัวหน้าช่าง..."
+                      value={headSearch}
+                      onChange={e => setHeadSearch(e.target.value)}
+                      className="w-full rounded-xl border border-input bg-card pl-9 pr-4 py-2.5 text-[13px] outline-none transition-all focus:border-primary shadow-sm"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {users.filter(u => u.role === "head").map(sup => {
+                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                  {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map(sup => {
                     const hasAccess = (selectedUser.assignedSupervisors || []).includes(sup.employeeCode)
                     return (
                       <label
                         key={sup.employeeCode}
                         className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                          "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-muted/30 active:scale-[0.98]",
                           hasAccess 
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                            ? "border-primary/50 bg-primary/5" 
                             : "border-border bg-card"
                         )}
                       >
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            "block text-[15px] font-semibold truncate transition-colors",
+                            hasAccess ? "text-primary" : "text-foreground"
+                          )}>{sup.name}</span>
+                          <span className="block text-[13px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                        </div>
                         <input 
                           type="checkbox" 
                           className="hidden" 
@@ -495,20 +569,19 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                           onChange={() => toggleSupervisor(sup.employeeCode)}
                         />
                         <div className={cn(
-                          "flex size-5 shrink-0 items-center justify-center rounded",
-                          hasAccess ? "bg-primary text-primary-foreground" : "border border-input bg-background"
+                          "w-12 h-7 rounded-full flex items-center shrink-0 transition-colors duration-300 relative border border-transparent shadow-inner",
+                          hasAccess ? "bg-primary" : "bg-muted-foreground/30"
                         )}>
-                          {hasAccess && <CheckCircle2 className="size-3.5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="block text-[14px] font-semibold truncate text-foreground">{sup.name}</span>
-                          <span className="block text-[12px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                          <div className={cn(
+                            "absolute left-1 size-5 bg-white rounded-full shadow-sm transition-transform duration-300",
+                            hasAccess ? "translate-x-5" : "translate-x-0"
+                          )} />
                         </div>
                       </label>
                     )
                   })}
-                  {users.filter(u => u.role === "head").length === 0 && (
-                    <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ยังไม่มีรายชื่อหัวหน้าช่างในระบบ</p>
+                  {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
+                    <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
                   )}
                 </div>
               </>
@@ -525,12 +598,16 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                       <label
                         key={menu.id}
                         className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                          "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-muted/30 active:scale-[0.98]",
                           hasAccess 
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                            ? "border-primary/50 bg-primary/5" 
                             : "border-border bg-card"
                         )}
                       >
+                        <span className={cn(
+                          "text-[15px] font-semibold transition-colors",
+                          hasAccess ? "text-primary" : "text-foreground"
+                        )}>{menu.label}</span>
                         <input 
                           type="checkbox" 
                           className="hidden" 
@@ -538,18 +615,53 @@ export function UserManagement({ user }: { user?: AuthUser }) {
                           onChange={() => toggleMenu(menu.id)}
                         />
                         <div className={cn(
-                          "flex size-5 shrink-0 items-center justify-center rounded",
-                          hasAccess ? "bg-primary text-primary-foreground" : "border border-input bg-background"
+                          "w-12 h-7 rounded-full flex items-center shrink-0 transition-colors duration-300 relative border border-transparent shadow-inner",
+                          hasAccess ? "bg-primary" : "bg-muted-foreground/30"
                         )}>
-                          {hasAccess && <CheckCircle2 className="size-3.5" />}
+                          <div className={cn(
+                            "absolute left-1 size-5 bg-white rounded-full shadow-sm transition-transform duration-300",
+                            hasAccess ? "translate-x-5" : "translate-x-0"
+                          )} />
                         </div>
-                        <span className="text-[14px] font-semibold text-foreground">{menu.label}</span>
                       </label>
                     )
                   })}
                 </div>
               </>
             )}
+
+            <div className="mt-6 pt-6 border-t border-border/40">
+              <h4 className="font-display text-[15px] font-bold mb-3 text-destructive">ตั้งค่าสถานะบัญชี</h4>
+              <label className={cn(
+                "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-destructive/5 active:scale-[0.98]",
+                selectedUser.status === "inactive"
+                  ? "border-destructive/50 bg-destructive/10" 
+                  : "border-border bg-card"
+              )}>
+                <div className="flex-1 min-w-0">
+                  <span className={cn(
+                    "block text-[15px] font-semibold truncate transition-colors",
+                    selectedUser.status === "inactive" ? "text-destructive" : "text-foreground"
+                  )}>ระงับสิทธิ์การใช้งานบัญชีนี้</span>
+                  <span className="block text-[13px] text-muted-foreground truncate">ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้ชั่วคราว</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  className="hidden" 
+                  checked={selectedUser.status === "inactive"}
+                  onChange={toggleStatus}
+                />
+                <div className={cn(
+                  "w-12 h-7 rounded-full flex items-center shrink-0 transition-colors duration-300 relative border border-transparent shadow-inner",
+                  selectedUser.status === "inactive" ? "bg-destructive" : "bg-muted-foreground/30"
+                )}>
+                  <div className={cn(
+                    "absolute left-1 size-5 bg-white rounded-full shadow-sm transition-transform duration-300",
+                    selectedUser.status === "inactive" ? "translate-x-5" : "translate-x-0"
+                  )} />
+                </div>
+              </label>
+            </div>
           </div>
         </div>
       )}

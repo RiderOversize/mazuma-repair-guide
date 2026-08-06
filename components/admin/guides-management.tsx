@@ -11,21 +11,23 @@ import {
   Boxes,
   Stethoscope
 } from "lucide-react"
-import type { Category, MasterDataMapping } from "@/lib/types"
+import type { Category, MasterDataMapping, DeviceModel, SymptomType } from "@/lib/types"
 import { getCategories, getMasterDataMappings, deleteMasterDataMapping } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { AuthUser } from "@/lib/auth"
 import { GuideForm } from "./guide-form"
 
-export function GuidesManagement({ user }: { user: AuthUser }) {
+export function GuidesManagement({ user, initialSearch = "", initialModelId }: { user: AuthUser, initialSearch?: string, initialModelId?: string }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [mappings, setMappings] = useState<MasterDataMapping[]>([])
+  const [models, setModels] = useState<DeviceModel[]>([])
+  const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState(initialSearch)
 
-  // Modal State
-  const [showModal, setShowModal] = useState(false)
+  // Edit Modal State
+  const [showModal, setShowModal] = useState(!!initialModelId)
   const [editMapping, setEditMapping] = useState<MasterDataMapping | null>(null)
 
   useEffect(() => {
@@ -75,7 +77,8 @@ export function GuidesManagement({ user }: { user: AuthUser }) {
   const filteredMappings = mappings.filter((m) => {
     const matchSearch = (m.modelName || '').toLowerCase().includes(search.toLowerCase()) || 
                         (m.modelCode || '').toLowerCase().includes(search.toLowerCase()) ||
-                        (m.symptomTypeName || '').toLowerCase().includes(search.toLowerCase())
+                        (m.symptomTypeName || '').toLowerCase().includes(search.toLowerCase()) ||
+                        (m.matCategoryCode || '').toLowerCase().includes(search.toLowerCase())
     return matchSearch
   })
 
@@ -153,11 +156,16 @@ export function GuidesManagement({ user }: { user: AuthUser }) {
         )}
       </div>
 
+      {/* Create / Edit Modal */}
       {showModal && (
         <GuideForm 
-          user={user} 
-          editMapping={editMapping} 
-          onFinish={handleModalFinish} 
+          user={user}
+          editMapping={editMapping}
+          initialModelIds={initialModelId && !editMapping ? [initialModelId] : undefined}
+          onFinish={() => {
+            setShowModal(false)
+            loadData()
+          }} 
         />
       )}
     </div>

@@ -109,26 +109,23 @@ export async function deleteUser(employeeCode: string): Promise<void> {
 // Models
 // ---------------------------------------------------------------------------
 export async function getModels(): Promise<DeviceModel[]> {
-  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
   const headers = allRows[0] || [];
   const rows = allRows.slice(1);
-  const idIdx = getIndexCaseInsensitive(headers, 'id') !== -1 ? getIndexCaseInsensitive(headers, 'id') : getIndexCaseInsensitive(headers, 'รหัสสินค้า');
+  const idIdx = getIndexCaseInsensitive(headers, 'id');
   const uniqueRows = Array.from(new Map(rows.map(r => [r[idIdx !== -1 ? idIdx : 0], r])).values());
   
   return uniqueRows.map((r, index) => {
     const obj = mapRowToObject(headers, r);
-    const code = obj['รหัสสินค้า'] || obj.code || "";
-    const subCatCode = obj['MAT Category Code'] || obj.subcategoryId || obj.subCategoryId || obj.categoryId || "";
-    const categoryId = obj.categoryId || (subCatCode.substring(0, 2) || "F1"); 
     
     return {
-      id: obj['รหัสสินค้า'] || obj.ID || obj.id || `m-${index}`,
-      subcategoryId: subCatCode || undefined,
-      symptomTypeId: obj['รหัสประเภทอาการ'] || obj.symptomTypeId || obj.SymptomTypesID || undefined,
-      categoryId: categoryId,
-      name: obj['ชื่อสินค้า'] || obj.name || "ระบุชื่อรุ่น",
-      code: code,
-      status: "active",
+      id: obj.id || obj.ID || `m-${index}`,
+      subcategoryId: obj.subcategoryId || "",
+      symptomTypeId: obj.symptomTypeId || "",
+      categoryId: obj.categoryId || "",
+      name: obj.name || "ระบุชื่อรุ่น",
+      code: obj.code || "",
+      status: obj.status || "active",
       thumbnail: obj.thumbnail || "",
       createdAt: obj.createdAt || new Date().toISOString(),
       updatedAt: obj.updatedAt || new Date().toISOString()
@@ -195,26 +192,24 @@ export async function updateModel(id: string, data: Partial<DeviceModel>): Promi
   
   const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
   
-  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
   const headers = allRows[0] || [];
   
-  const types = await getSymptomTypes();
-  const st = types.find(t => t.id === merged.symptomTypeId);
-  
-  const subCats = await getSubCategories();
-  const sc = subCats.find(s => s.index === merged.subcategoryId || s.id === merged.subcategoryId);
-
   const objToSave = {
-    'รหัสสินค้า': merged.code || merged.id,
-    'ชื่อสินค้า': merged.name,
-    'MAT Category Code': merged.subcategoryId || "",
-    'MAT Category': sc ? sc.name : "",
-    'รหัสประเภทอาการ': merged.symptomTypeId || "",
-    'ประเภทอาการอาการ': st ? st.name : ""
+    id: merged.id,
+    categoryId: merged.categoryId || "",
+    subcategoryId: merged.subcategoryId || "",
+    symptomTypeId: merged.symptomTypeId || "",
+    name: merged.name,
+    code: merged.code,
+    status: merged.status,
+    thumbnail: merged.thumbnail || "",
+    createdAt: merged.createdAt,
+    updatedAt: merged.updatedAt
   };
 
   const rowToUpdate = mapObjectToRow(headers, objToSave);
-  await updateRowById(SHEETS.MASTERDATA, id, rowToUpdate);
+  await updateRowById(SHEETS.MODELS, id, rowToUpdate);
   return merged;
 }
 
@@ -801,7 +796,9 @@ export async function getRepairStats() {
     ? (successRows.reduce((sum, r) => sum + parseInt(r[stepsViewedIndex] || "0"), 0) / successRows.length).toFixed(1)
     : "0";
 
-  return { total, successRate, avgStepsSuccess };
+  const failedCount = total - successCount;
+
+  return { total, successRate, avgStepsSuccess, successCount, failedCount };
 }
 
 export async function logSessionActivity(userId: string, userName: string, action: string) {
@@ -884,6 +881,38 @@ export async function createMasterDataMapping(data: Partial<MasterDataMapping>):
   
   await appendRow(`${SHEETS.MASTERDATA}!A2:Z`, mapObjectToRow(headers, objToSave));
   return { ...data, id: nextId } as any;
+}
+export async function bulkCreateMasterDataMappings(mappings: Partial<MasterDataMapping>[]): Promise<MasterDataMapping[]> {
+  if (mappings.length === 0) return [];
+  const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
+  const headers = allRows[0] || [];
+  
+  const idIdx = getIndexCaseInsensitive(headers, 'id');
+  const maxId = allRows.slice(1).reduce((max, r) => {
+    const val = parseInt(r[idIdx], 10);
+    return !isNaN(val) && val > max ? val : max;
+  }, 0);
+  
+  let currentId = maxId + 1;
+  const createdMappings: MasterDataMapping[] = [];
+  const rowsToAppend = mappings.map(data => {
+    const nextId = (currentId++).toString();
+    const objToSave = {
+      'ID': nextId,
+      'รหัสสินค้า': data.modelCode || "",
+      'ชื่อสินค้า': data.modelName || "",
+      'MAT Category Code': data.matCategoryCode || "",
+      'MAT Category': data.matCategoryName || "",
+      'รหัสประเภทอาการ': data.symptomTypeCode || "",
+      'ประเภทอาการอาการ': data.symptomTypeName || "",
+    };
+    createdMappings.push({ ...data, id: nextId } as MasterDataMapping);
+    return mapObjectToRow(headers, objToSave);
+  });
+  
+  const { appendRows } = require('./google-sheets');
+  await appendRows(`${SHEETS.MASTERDATA}!A2:Z`, rowsToAppend);
+  return createdMappings;
 }
 export async function updateMasterDataMapping(id: string, data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
   const all = await getMasterDataMappings();

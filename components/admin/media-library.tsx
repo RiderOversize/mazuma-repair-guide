@@ -37,20 +37,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   })
 
   const handleUploadClick = async () => {
-    // Mock upload flow
-    showAlert("ระบบจำลอง", "ขณะนี้เป็นระบบจำลอง การกดปุ่มนี้จะจำลองการเพิ่มรูปภาพใหม่ในคลัง", "info")
-    const newMedia: MediaFile = {
-      id: `md-${Date.now()}`,
-      name: `upload-${Date.now()}.jpg`,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1542013936693-884638332954",
-      thumbnailUrl: "https://images.unsplash.com/photo-1542013936693-884638332954?w=200&h=200&fit=crop",
-      size: "800 KB",
-      createdAt: new Date().toISOString()
-    }
-    setMedia([newMedia, ...media])
-    showToast("อัปโหลดสำเร็จ", "success")
-    await logActivity(user, "create", "system", `อัปโหลดไฟล์ ${newMedia.name}`)
+    showAlert("แจ้งเตือน", "ฟีเจอร์อัปโหลดไฟล์กำลังอยู่ในช่วงพัฒนา (Coming Soon)", "info")
   }
 
   const handleDelete = async (id: string, name: string) => {

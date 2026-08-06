@@ -32,6 +32,7 @@ import { ModelsManagement } from "./models-management"
 import { GuidesManagement } from "./guides-management"
 import { MasterDataManagement } from "./master-data"
 import { MediaLibrary } from "./media-library"
+import { SettingsManagement } from "./settings-management"
 import { TechnicianApp } from "@/components/technician/technician-app"
 import { UserMenu } from "@/components/user-menu"
 import { cn } from "@/lib/utils"
@@ -61,10 +62,33 @@ export function AdminApp({
 }) {
   const [view, setView] = useState<AdminView | "more">("dashboard")
   const [editGuideId, setEditGuideId] = useState<string | null>(null)
+  const [guidesSearch, setGuidesSearch] = useState("")
+  const [guidesInitialModelId, setGuidesInitialModelId] = useState<string | undefined>()
+  const [masterDataSubView, setMasterDataSubView] = useState<string>("mainMenu")
 
   const go = (v: AdminView | "more") => {
     setView(v)
     if (v !== "create") setEditGuideId(null)
+    if (v !== "guides") setGuidesSearch("")
+  }
+
+  const handleNavigateToGuides = (search: string) => {
+    setGuidesSearch(search)
+    setGuidesInitialModelId(undefined)
+    setView("guides")
+  }
+
+  const handleNavigateToCreateGuideForModel = (modelId: string) => {
+    setGuidesSearch("")
+    setGuidesInitialModelId(modelId)
+    setView("guides")
+  }
+
+  const handleNavigateTo = (targetView: AdminView, subView?: string) => {
+    if (targetView === "master-data" && subView) {
+      setMasterDataSubView(subView)
+    }
+    setView(targetView)
   }
 
   const handleCreateGuide = () => {
@@ -138,13 +162,13 @@ export function AdminApp({
 
     return (
       <div className="pb-24 pt-4">
-        {view === "dashboard" && <AdminDashboard user={user} onCreate={handleCreateGuide} />}
-        {view === "guides" && <GuidesManagement user={user} />}
+        {view === "dashboard" && <AdminDashboard user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
+        {view === "guides" && <GuidesManagement key={guidesInitialModelId || 'guides'} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} />}
         {view === "models" && <ModelsManagement user={user} />}
-        {view === "master-data" && <MasterDataManagement user={user} />}
+        {view === "master-data" && <MasterDataManagement user={user} initialView={masterDataSubView} />}
         {view === "media" && <MediaLibrary user={user} />}
         {view === "users" && <UserManagement user={user} />}
-        {view === "settings" && <PlaceholderView title="ตั้งค่าระบบ" desc="ตั้งค่าทั่วไปของระบบและฐานข้อมูล" />}
+        {view === "settings" && <SettingsManagement user={user} />}
       </div>
     )
   }

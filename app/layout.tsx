@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="th" className={`${prompt.variable} ${sarabun.variable} bg-background`}>
+    <html lang="th" suppressHydrationWarning className={`${prompt.variable} ${sarabun.variable} bg-background`}>
       <body className="font-sans antialiased bg-muted/20 text-foreground selection:bg-primary/20">
         <div className="mx-auto flex min-h-screen max-w-[480px] flex-col bg-background shadow-2xl relative sm:border-x border-border/40 overflow-x-hidden">
           <Providers>

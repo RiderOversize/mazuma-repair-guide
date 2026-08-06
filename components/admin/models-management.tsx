@@ -55,7 +55,11 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   const filteredModels = useMemo(() => {
     let res = models
     if (filterSubCategory) {
-      res = res.filter(m => m.subcategoryId === filterSubCategory)
+      const selectedSubCat = subCategories.find(sc => sc.id === filterSubCategory);
+      res = res.filter(m => 
+        m.subcategoryId === filterSubCategory || 
+        (selectedSubCat && (m.subcategoryId === selectedSubCat.index || m.subcategoryId === selectedSubCat.name))
+      )
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -177,9 +181,17 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
             className="h-11 w-full appearance-none rounded-2xl border border-input bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
           >
             <option value="">ทุกหมวดหมู่ย่อย</option>
-            {subCategories.map(sc => (
-              <option key={sc.id} value={sc.id}>{sc.name}</option>
-            ))}
+            {categories.map(cat => {
+              const subCatsForCat = subCategories.filter(sc => sc.categoryId === cat.id || sc.categoryId === cat.slug);
+              if (subCatsForCat.length === 0) return null;
+              return (
+                <optgroup key={cat.id} label={`หมวดหมู่: ${cat.name}`}>
+                  {subCatsForCat.map(sc => (
+                    <option key={sc.id} value={sc.id}>{sc.name}</option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
         </div>
       </div>
@@ -248,7 +260,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
       {/* Form Modal (Full Screen Mobile) */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300">
+        <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border-x border-border/40 shadow-2xl">
           <div className="flex items-center justify-between px-4 py-3 pt-safe border-b border-border/40 bg-background/70 backdrop-blur-2xl">
             <button type="button" onClick={() => setIsFormOpen(false)} className="text-[15px] font-medium text-muted-foreground">ยกเลิก</button>
             <h3 className="font-display text-[17px] font-bold">{editingId ? "แก้ไขรุ่น" : "เพิ่มรุ่นใหม่"}</h3>

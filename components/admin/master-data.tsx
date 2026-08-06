@@ -14,7 +14,7 @@ import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
 import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown } from "lucide-react"
 
-export function MasterDataManagement({ user }: { user: AuthUser }) {
+export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user: AuthUser, initialView?: string }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
@@ -44,7 +44,13 @@ export function MasterDataManagement({ user }: { user: AuthUser }) {
   const [guideForm, setGuideForm] = useState({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false })
 
   // Drill-down state
-  const [currentView, setCurrentView] = useState<'mainMenu' | 'categories' | 'subCategories' | 'symptomTypesRoot' | 'symptoms' | 'guides'>('mainMenu')
+  const [currentView, setCurrentView] = useState<any>(initialView)
+
+  useEffect(() => {
+    if (initialView) {
+      setCurrentView(initialView)
+    }
+  }, [initialView])
 
   useEffect(() => {
     loadData()

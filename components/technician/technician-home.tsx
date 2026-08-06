@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
+import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes, Moon, Sun } from "lucide-react"
 import {
   type Category,
   type DeviceModel,
@@ -35,16 +36,24 @@ export function TechnicianHome({
   onSelectModel: (model: DeviceModel) => void
 }) {
   const [query, setQuery] = useState("")
+  const { theme, setTheme, systemTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const results = query.trim()
     ? models.filter(m => m.name.toLowerCase().includes(query.toLowerCase()) || m.code.toLowerCase().includes(query.toLowerCase()))
     : []
 
+  const currentTheme = theme === "system" ? systemTheme : theme
+
   return (
     <div className="mx-auto w-full max-w-[480px] px-4 pb-20 pt-safe">
       <div className="sticky top-0 z-20 bg-background/70 backdrop-blur-2xl pt-14 pb-4 -mx-4 px-4 border-b border-border/40 mb-5">
         {/* Brand header */}
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20 font-display text-xl font-bold text-primary-foreground">
               M
@@ -56,6 +65,16 @@ export function TechnicianHome({
               <p className="text-xs font-medium text-muted-foreground/80">คู่มือซ่อมสำหรับช่างเทคนิค</p>
             </div>
           </div>
+          
+          {mounted && (
+            <button
+              onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
+              className="flex size-9 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="สลับโหมดหน้าจอ"
+            >
+              {currentTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
+          )}
         </div>
 
         {/* Global search */}

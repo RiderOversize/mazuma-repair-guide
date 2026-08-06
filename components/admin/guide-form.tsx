@@ -8,10 +8,11 @@ import {
   Boxes,
   Stethoscope,
   Search,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2
 } from "lucide-react"
 import { type DeviceModel, type SymptomType, type Category, type SubCategory, type MasterDataMapping } from "@/lib/types"
-import { getModels, getSymptomTypes, createMasterDataMapping, updateMasterDataMapping, getCategories, getSubCategories, getMasterDataMappings } from "@/lib/data-service"
+import { getModels, getSymptomTypes, createMasterDataMapping, bulkCreateMasterDataMappings, updateMasterDataMapping, getCategories, getSubCategories, getMasterDataMappings } from "@/lib/data-service"
 import { showToast, showAlert } from "@/lib/swal"
 import type { AuthUser } from "@/lib/auth"
 import { logActivity } from "@/lib/activity-service"
@@ -19,10 +20,12 @@ import { logActivity } from "@/lib/activity-service"
 export function GuideForm({ 
   user, 
   editMapping,
+  initialModelIds,
   onFinish 
 }: { 
   user?: AuthUser, 
   editMapping?: MasterDataMapping | null,
+  initialModelIds?: string[],
   onFinish?: () => void 
 }) {
   const [models, setModels] = useState<DeviceModel[]>([])
@@ -32,7 +35,7 @@ export function GuideForm({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const [selectedModelId, setSelectedModelId] = useState<string>("")
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>(initialModelIds || [])
   const [selectedSymptomTypeId, setSelectedSymptomTypeId] = useState<string>("")
   
   // Custom dropdown search state
@@ -66,8 +69,7 @@ export function GuideForm({
       // Find model ID by code from available models
       const m = availableModels.find(x => x.code === editMapping.modelCode)
       if (m) {
-        setSelectedModelId(m.id)
-        setModelSearch(`${m.name} (${m.code})`)
+        setSelectedModelIds([m.id])
       }
       
       // Symptom type code might be saved in subcategoryId
@@ -79,40 +81,62 @@ export function GuideForm({
   }
 
   const handleSave = async () => {
-    if (!selectedModelId) return showToast("กรุณาเลือกรุ่นสินค้า", "error")
+    if (selectedModelIds.length === 0) return showToast("กรุณาเลือกรุ่นสินค้า", "error")
     if (!selectedSymptomTypeId) return showToast("กรุณาเลือกประเภทอาการ", "error")
 
     setSaving(true)
     try {
-      const model = models.find(m => m.id === selectedModelId)
       const symType = symptomTypes.find(st => st.id === selectedSymptomTypeId)
-
-      if (!model || !symType) throw new Error("ข้อมูลไม่ถูกต้อง")
-
-      // Find category or subcategory for MAT category name
-      const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
-      const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
-      
-      const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
-      const matName = subCategory?.name || category?.name || ""
-
-      const mappingData = {
-        modelCode: model.code,
-        modelName: model.name,
-        matCategoryCode: matCode,
-        matCategoryName: matName,
-        symptomTypeCode: symType.subcategoryId || symType.id,
-        symptomTypeName: symType.name,
-      }
+      if (!symType) throw new Error("ข้อมูลประเภทอาการไม่ถูกต้อง")
 
       if (editMapping) {
+        const model = models.find(m => m.id === selectedModelIds[0])
+        if (!model) throw new Error("ข้อมูลสินค้ารุ่นไม่ถูกต้อง")
+        
+        const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
+        const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
+        
+        const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
+        const matName = subCategory?.name || category?.name || ""
+
+        const mappingData = {
+          modelCode: model.code,
+          modelName: model.name,
+          matCategoryCode: matCode,
+          matCategoryName: matName,
+          symptomTypeCode: symType.subcategoryId || symType.id,
+          symptomTypeName: symType.name,
+        }
         await updateMasterDataMapping(editMapping.id, mappingData as any)
         if (user) await logActivity(user, "update", "masterdata_mapping", `${mappingData.modelName} -> ${mappingData.symptomTypeName}`, editMapping.id)
         showToast("อัปเดตการผูกข้อมูลสำเร็จ", "success")
       } else {
-        await createMasterDataMapping(mappingData as any)
-        if (user) await logActivity(user, "create", "masterdata_mapping", `${mappingData.modelName} -> ${mappingData.symptomTypeName}`)
-        showToast("บันทึกการผูกข้อมูลสำเร็จ", "success")
+        const mappingsToCreate = []
+        for (const modelId of selectedModelIds) {
+          const model = models.find(m => m.id === modelId)
+          if (!model) continue
+          
+          const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
+          const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
+          
+          const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
+          const matName = subCategory?.name || category?.name || ""
+
+          mappingsToCreate.push({
+            modelCode: model.code,
+            modelName: model.name,
+            matCategoryCode: matCode,
+            matCategoryName: matName,
+            symptomTypeCode: symType.subcategoryId || symType.id,
+            symptomTypeName: symType.name,
+          })
+        }
+        
+        if (mappingsToCreate.length > 0) {
+          await bulkCreateMasterDataMappings(mappingsToCreate as any)
+          if (user) await logActivity(user, "create", "masterdata_mapping", `ผูกสินค้า ${mappingsToCreate.length} รุ่น -> ${symType.name}`)
+        }
+        showToast(`บันทึกการผูกข้อมูลสำเร็จ ${mappingsToCreate.length} รายการ`, "success")
       }
       
       if (onFinish) onFinish()
@@ -165,8 +189,26 @@ export function GuideForm({
               <div className="space-y-2.5">
                 <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
                   <Boxes className="size-4 text-blue-500" />
-                  เลือกรุ่นสินค้า (Product)
+                  เลือกรุ่นสินค้า (Product) {selectedModelIds.length > 0 && !editMapping && <span className="text-muted-foreground font-normal">({selectedModelIds.length} รุ่น)</span>}
                 </label>
+                
+                {selectedModelIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1 mb-2 max-h-[100px] overflow-y-auto custom-scrollbar">
+                    {selectedModelIds.map(id => {
+                      const m = models.find(x => x.id === id)
+                      if (!m) return null;
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-[12px] font-semibold border border-primary/20 shadow-sm">
+                          {m.name}
+                          <button type="button" onClick={() => setSelectedModelIds(prev => prev.filter(x => x !== id))} className="hover:text-primary/70 hover:bg-primary/20 rounded-full p-0.5 transition-colors">
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+                
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Search className="size-4 text-muted-foreground" />
@@ -178,7 +220,6 @@ export function GuideForm({
                     onChange={(e) => {
                       setModelSearch(e.target.value)
                       setIsModelDropdownOpen(true)
-                      if (selectedModelId) setSelectedModelId("")
                     }}
                     onFocus={() => setIsModelDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setIsModelDropdownOpen(false), 200)}
@@ -191,20 +232,31 @@ export function GuideForm({
                   {isModelDropdownOpen && (
                     <div className="absolute z-[100] left-0 right-0 mt-1 bg-card border border-border/50 rounded-xl shadow-lg max-h-[220px] overflow-y-auto custom-scrollbar">
                       {filteredModels.length > 0 ? (
-                        filteredModels.map(m => (
+                        filteredModels.map(m => {
+                          const isSelected = selectedModelIds.includes(m.id)
+                          return (
                           <div
                             key={m.id}
                             onClick={() => {
-                              setSelectedModelId(m.id)
-                              setModelSearch(`${m.name} (${m.code})`)
-                              setIsModelDropdownOpen(false)
+                              if (editMapping) {
+                                setSelectedModelIds([m.id])
+                                setIsModelDropdownOpen(false)
+                              } else {
+                                setSelectedModelIds(prev => prev.includes(m.id) ? prev.filter(x => x !== m.id) : [...prev, m.id])
+                              }
                             }}
-                            className={`px-4 py-2.5 text-[13px] cursor-pointer hover:bg-muted transition-colors border-b border-border/10 last:border-0 ${selectedModelId === m.id ? 'bg-primary/5' : ''}`}
+                            className={`px-4 py-2.5 text-[13px] cursor-pointer hover:bg-muted transition-colors border-b border-border/10 last:border-0 ${isSelected ? 'bg-primary/5' : ''}`}
                           >
-                            <div className={`font-semibold ${selectedModelId === m.id ? 'text-primary' : 'text-foreground'}`}>{m.name}</div>
-                            <div className={`text-[11px] ${selectedModelId === m.id ? 'text-primary/70' : 'text-muted-foreground'}`}>{m.code}</div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className={`font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{m.name}</div>
+                                <div className={`text-[11px] ${isSelected ? 'text-primary/70' : 'text-muted-foreground'}`}>{m.code}</div>
+                              </div>
+                              {isSelected && <CheckCircle2 className="size-4 text-primary" />}
+                            </div>
                           </div>
-                        ))
+                          )
+                        })
                       ) : (
                         <div className="px-4 py-4 text-[13px] text-muted-foreground text-center">ไม่พบรุ่นสินค้า</div>
                       )}
@@ -246,7 +298,7 @@ export function GuideForm({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || loading || !selectedModelId || !selectedSymptomTypeId}
+            disabled={saving || loading || selectedModelIds.length === 0 || !selectedSymptomTypeId}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 active:scale-95"
           >
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
