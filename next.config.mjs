@@ -15,6 +15,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ['ssh2-sftp-client', 'ssh2', 'cpu-features'],
 }
 
 export default withPWA(nextConfig)
