@@ -20,7 +20,7 @@ const AVAILABLE_MENUS = [
   { id: "preview", label: "ดูหน้าแอปช่าง" },
 ]
 
-export function UserManagement({ user }: { user?: AuthUser }) {
+export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGlobalBack?: (fn: (() => void) | null) => void }) {
   const [users, setUsers] = useState<AuthUser[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -40,6 +40,16 @@ export function UserManagement({ user }: { user?: AuthUser }) {
   useEffect(() => {
     loadUsers()
   }, [])
+
+  useEffect(() => {
+    if (setGlobalBack) {
+      if (currentView !== 'list') {
+        setGlobalBack(() => goBack)
+      } else {
+        setGlobalBack(null)
+      }
+    }
+  }, [currentView, setGlobalBack])
 
   const loadUsers = async () => {
     setLoading(true)
@@ -201,17 +211,6 @@ export function UserManagement({ user }: { user?: AuthUser }) {
     <div className="mx-auto w-full px-4 pb-8">
       {/* Header */}
       <div className="mb-6">
-        {currentView !== 'list' && (
-          <button
-            type="button"
-            onClick={goBack}
-            className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
-            กลับ
-          </button>
-        )}
-        
         <h1 className="font-display text-2xl font-bold tracking-tight text-foreground line-clamp-2">
           {currentView === 'list' && "ผู้ใช้งานทั้งหมด"}
           {currentView === 'create' && "เพิ่มผู้ใช้งานใหม่"}

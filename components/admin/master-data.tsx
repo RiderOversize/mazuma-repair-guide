@@ -14,7 +14,7 @@ import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
 import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown } from "lucide-react"
 
-export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user: AuthUser, initialView?: string }) {
+export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobalBack }: { user: AuthUser, initialView?: string, setGlobalBack?: (fn: (() => void) | null) => void }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
@@ -55,6 +55,16 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (setGlobalBack) {
+      if (currentView !== 'mainMenu') {
+        setGlobalBack(() => goBack)
+      } else {
+        setGlobalBack(null)
+      }
+    }
+  }, [currentView, setGlobalBack])
 
   const loadData = async () => {
     setLoading(true)

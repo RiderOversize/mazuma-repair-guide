@@ -85,6 +85,8 @@ export function AdminApp({
   const [guidesInitialModelId, setGuidesInitialModelId] = useState<string | undefined>()
   const [masterDataSubView, setMasterDataSubView] = useState<string>("mainMenu")
 
+  const [globalBack, setGlobalBack] = useState<(() => void) | null>(null)
+  
   const go = (v: AdminView | "more") => {
     setView(v)
     if (v !== "create") setEditGuideId(null)
@@ -184,9 +186,9 @@ export function AdminApp({
         {view === "dashboard" && <AdminDashboard user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
         {view === "guides" && <GuidesManagement key={guidesInitialModelId || 'guides'} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} />}
         {view === "models" && <ModelsManagement user={user} />}
-        {view === "master-data" && <MasterDataManagement user={user} initialView={masterDataSubView} />}
+        {view === "master-data" && <MasterDataManagement user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
         {view === "media" && <MediaLibrary user={user} />}
-        {view === "users" && <UserManagement user={user} />}
+        {view === "users" && <UserManagement user={user} setGlobalBack={setGlobalBack} />}
         {view === "settings" && <SettingsManagement user={user} />}
       </div>
     )
@@ -218,6 +220,15 @@ export function AdminApp({
         {/* Bottom Tab Bar */}
         <div className="absolute bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
           <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
+            {globalBack && (
+              <button
+                onClick={globalBack}
+                className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-foreground transition-colors"
+              >
+                <ChevronLeft className="size-6" strokeWidth={2} />
+                <span className="text-[10px] font-medium tracking-wide">ย้อนกลับ</span>
+              </button>
+            )}
             {availableTopNavItems.map((item) => {
               const Icon = item.icon
               const isActive = activeTab === item.id
@@ -225,7 +236,7 @@ export function AdminApp({
                 <button
                   key={item.id}
                   onClick={() => go(item.id as AdminView | "more")}
-                  className={`flex flex-col items-center justify-center gap-1 w-[20%] h-full transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className={`size-6 ${isActive ? "fill-primary/20" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
                   <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
