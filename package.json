@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npx kill-port 3000 & next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "sync:sftp": "npx tsx scripts/sync-sftp.ts"
