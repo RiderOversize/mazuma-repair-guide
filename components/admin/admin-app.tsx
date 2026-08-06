@@ -220,9 +220,13 @@ export function AdminApp({
         {/* Bottom Tab Bar */}
         <div className="absolute bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
           <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
-            {globalBack && (
+            {(globalBack || (view !== "dashboard" && view !== "more")) && (
               <button
-                onClick={globalBack}
+                onClick={() => {
+                  if (globalBack) globalBack();
+                  else if (availableMoreItems.some(i => i.id === view)) go("more");
+                  else go("dashboard");
+                }}
                 className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-foreground transition-colors"
               >
                 <ChevronLeft className="size-6" strokeWidth={2} />
