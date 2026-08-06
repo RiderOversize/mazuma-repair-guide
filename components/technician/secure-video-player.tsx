@@ -114,14 +114,15 @@ export function SecureVideoPlayer({
                     sandbox="allow-scripts allow-same-origin allow-presentation"
                     allowFullScreen
                   ></iframe>
-                  {/* Top Bar Cover: blocks video title link and share button */}
-                  <div className="absolute top-0 inset-x-0 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  {/* --- Anti-Share / Anti-Click Overlays --- */}
+                  {/* Top Cover: blocks video title link and top-right share button */}
+                  <div className="absolute top-0 inset-x-0 h-[25%] z-10 pointer-events-auto bg-transparent" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                   
-                  {/* Bottom Right Cover: blocks 'Watch on YouTube' button, leaves bottom 12px for progress bar */}
-                  <div className="absolute bottom-10 right-0 w-[45%] h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  {/* Middle-Left Cover: blocks floating Share and Watch Later icons */}
+                  <div className="absolute top-[25%] left-0 w-[30%] h-[55%] z-10 pointer-events-auto bg-transparent" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                   
-                  {/* Bottom Left Cover: blocks floating Share / Watch Later buttons, leaves bottom 12px for progress bar */}
-                  <div className="absolute bottom-10 left-0 w-[35%] h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  {/* Middle-Right Cover: blocks floating 'Watch on YouTube' button */}
+                  <div className="absolute top-[25%] right-0 w-[40%] h-[55%] z-10 pointer-events-auto bg-transparent" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                 </>
               ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
