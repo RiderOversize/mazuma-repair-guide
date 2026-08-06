@@ -55,7 +55,7 @@ export function SecureVideoPlayer({
   const getDriveEmbedUrl = (url: string) => {
     try {
       const urlObj = new URL(url);
-      if (urlObj.hostname.includes("drive.google.com")) {
+      if (urlObj.hostname.includes("drive.google.com") || urlObj.hostname.includes("docs.google.com")) {
         const fileIdMatch = urlObj.pathname.match(/\/file\/d\/([^/]+)/);
         if (fileIdMatch && fileIdMatch[1]) {
           return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
@@ -118,7 +118,7 @@ export function SecureVideoPlayer({
                   {/* Invisible overlay over the YouTube logo to block clicking it */}
                   <div className="absolute bottom-0 right-0 w-24 h-12 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" />
                 </>
-              ) : mediaUrl?.includes("drive.google.com") ? (
+              ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
                   <iframe
                     className="w-full h-full"
