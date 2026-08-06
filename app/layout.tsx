@@ -21,12 +21,20 @@ export const metadata: Metadata = {
   description:
     'ระบบคู่มือการซ่อมแบบอินเทอร์แอคทีฟสำหรับช่างเทคนิค Mazuma ค้นหาตามอาการเสีย ดูขั้นตอนพร้อมวิดีโอ',
   generator: 'v0.app',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Mazuma Guide',
+  },
 }
 
 export const viewport: Viewport = {
   themeColor: '#0e6ba8',
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
