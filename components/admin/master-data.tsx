@@ -423,11 +423,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
                       <Boxes className="size-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[15px] truncate text-foreground">
+                      <p className="font-semibold text-[15px] break-words text-foreground">
                         {cat.slug && <span className="text-primary font-bold mr-1">{cat.slug} -</span>}
                         {cat.name}
                       </p>
-                      <p className="text-[13px] text-muted-foreground truncate">{cat.description || 'ไม่มีคำอธิบาย'}</p>
+                      <p className="text-[13px] text-muted-foreground break-words">{cat.description || 'ไม่มีคำอธิบาย'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -468,11 +468,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
                         <ListTree className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">
+                        <p className="font-semibold text-[15px] break-words text-foreground">
                           <span className="text-indigo-500 font-bold mr-1">{subCat.index} -</span>
                           {subCat.name}
                         </p>
-                        <p className="text-[13px] text-muted-foreground truncate font-mono">ID: {subCat.id}</p>
+                        <p className="text-[13px] text-muted-foreground break-words font-mono">ID: {subCat.id}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -512,11 +512,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
                         <Stethoscope className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">
+                        <p className="font-semibold text-[15px] break-words text-foreground">
                           <span className="text-blue-500 font-bold mr-1">{st.id} -</span>
                           {st.name}
                         </p>
-                        <p className="text-[13px] text-muted-foreground truncate font-mono">คำอธิบาย: {st.description || '-'}</p>
+                        <p className="text-[13px] text-muted-foreground break-words font-mono">คำอธิบาย: {st.description || '-'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -564,8 +564,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
                         <AlertTriangle className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">{sym.title}</p>
-                        <p className="text-[13px] text-muted-foreground truncate">{sym.description || 'ไม่มีคำอธิบาย'}</p>
+                        <p className="font-semibold text-[15px] break-words text-foreground">{sym.title}</p>
+                        <p className="text-[13px] text-muted-foreground break-words">{sym.description || 'ไม่มีคำอธิบาย'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -615,7 +615,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu' }: { user:
                         <FileText className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] truncate text-foreground">{guide.title}</p>
+                        <p className="font-semibold text-[15px] break-words text-foreground">{guide.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {guide.mediaUrl ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-semibold">
