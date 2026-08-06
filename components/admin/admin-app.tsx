@@ -60,7 +60,26 @@ export function AdminApp({
   user: AuthUser
   onLogout: () => void
 }) {
-  const [view, setView] = useState<AdminView | "more">("dashboard")
+  const allowedMenus = user.accessibleMenus || [];
+  const hasAccess = (menuId: string) => {
+    if (menuId === "more") return true;
+    if (user.role === "admin" && allowedMenus.length === 0) return true;
+    return allowedMenus.includes(menuId);
+  }
+
+  const availableTopNavItems = topNavItems.filter(item => hasAccess(item.id));
+  const availableMoreItems = moreItems.filter(item => hasAccess(item.id));
+  if (availableMoreItems.length === 0) {
+    const moreIdx = availableTopNavItems.findIndex(i => i.id === "more");
+    if (moreIdx > -1) availableTopNavItems.splice(moreIdx, 1);
+  }
+
+  const [view, setView] = useState<AdminView | "more">(() => {
+    if (user.role === "admin" && allowedMenus.length === 0) return "dashboard";
+    if (allowedMenus.includes("dashboard")) return "dashboard";
+    if (allowedMenus.length > 0) return allowedMenus[0] as AdminView;
+    return "dashboard";
+  })
   const [editGuideId, setEditGuideId] = useState<string | null>(null)
   const [guidesSearch, setGuidesSearch] = useState("")
   const [guidesInitialModelId, setGuidesInitialModelId] = useState<string | undefined>()
@@ -135,8 +154,8 @@ export function AdminApp({
           </div>
 
           <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
-            {moreItems.map((item, i) => {
-              const isLast = i === moreItems.length - 1;
+            {availableMoreItems.map((item, i) => {
+              const isLast = i === availableMoreItems.length - 1;
               const Icon = item.icon;
               return (
                 <button
@@ -174,7 +193,7 @@ export function AdminApp({
   }
 
   // Which bottom tab is active
-  const activeTab = view === "more" || topNavItems.some(t => t.id === view) ? view : "more";
+  const activeTab = view === "more" || availableTopNavItems.some(t => t.id === view) ? view : "more";
 
   return (
     <div className="min-h-screen bg-background flex justify-center overflow-hidden">
@@ -199,7 +218,7 @@ export function AdminApp({
         {/* Bottom Tab Bar */}
         <div className="absolute bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
           <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
-            {topNavItems.map((item) => {
+            {availableTopNavItems.map((item) => {
               const Icon = item.icon
               const isActive = activeTab === item.id
               return (
