@@ -91,7 +91,7 @@ export function TechnicianApp({
     loadData()
   }, [initialCategoryId])
 
-  const category = categoryId ? categories.find(c => c.id === categoryId) : undefined
+  const category = categoryId ? categories.find(c => c.id === categoryId || c.slug === categoryId) : undefined
 
   useEffect(() => {
     if (preview) return
