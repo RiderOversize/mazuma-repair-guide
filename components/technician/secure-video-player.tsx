@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Play, Lock, FileText, Video } from "lucide-react"
+import { CustomYouTubePlayer } from "./custom-youtube-player"
 
 const VIEW_DATE = "10 ก.ค. 2026"
 
@@ -107,33 +108,7 @@ export function SecureVideoPlayer({
             {isRealVideo ? (
               mediaUrl?.includes("youtube.com") || mediaUrl?.includes("youtu.be") ? (
                 <>
-                  <iframe
-                    className="w-full h-full"
-                    src={getYoutubeEmbedUrl(mediaUrl)}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    sandbox="allow-scripts allow-same-origin allow-presentation"
-                    allowFullScreen
-                  ></iframe>
-                  {/* --- SUPER AGGRESSIVE OVERLAYS --- */}
-                  {/* Webkit bug fix: use bg-black/5 so the browser detects the click target, but it's nearly invisible */}
-                  
-                  {/* Top Block: Blocks top 35% completely (Title, Top Share) */}
-                  <div className="absolute top-0 inset-x-0 h-[35%] z-[100] pointer-events-auto bg-black/5" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
-                  
-                  {/* Left Block: Blocks 40% width, from 35% to 80% height (Share, Watch Later) */}
-                  <div className="absolute top-[35%] left-0 w-[40%] h-[45%] z-[100] pointer-events-auto bg-black/5" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
-                  
-                  {/* Right Block: Blocks 40% width, from 35% to 80% height (Watch on YouTube) */}
-                  <div className="absolute top-[35%] right-0 w-[40%] h-[45%] z-[100] pointer-events-auto bg-black/5" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
-                  
-                  {/* Center-Bottom Block: Blocks the area directly under the play button, above the control bar */}
-                  <div className="absolute top-[65%] left-[40%] w-[20%] h-[15%] z-[100] pointer-events-auto bg-black/5" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
-                  
-                  {/* This layout leaves exactly: 
-                      - A 20% width x 30% height hole perfectly in the center (for the Big Red Play button)
-                      - The bottom 20% completely open (for the control bar: play, volume, seek, settings) 
-                  */}
-                </>
+                  <CustomYouTubePlayer videoUrl={mediaUrl} />
               ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
                   <iframe
