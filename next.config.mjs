@@ -16,6 +16,7 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['ssh2-sftp-client', 'ssh2', 'cpu-features'],
+  turbopack: {},
 }
 
 export default withPWA(nextConfig)
