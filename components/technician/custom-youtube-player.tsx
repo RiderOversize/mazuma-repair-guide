@@ -45,6 +45,8 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
       if (!containerRef.current) return;
       playerRef.current = new window.YT.Player(containerRef.current, {
         videoId: videoId,
+        width: '100%',
+        height: '100%',
         playerVars: {
           controls: 0,
           disablekb: 1,
@@ -142,7 +144,9 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     <div className="relative w-full h-full bg-black group select-none">
       {/* The actual YouTube iframe will be mounted here */}
       {/* Absolute inset-0 on containerRef ensures it fills the wrapper */}
-      <div className="absolute inset-0 pointer-events-none" ref={containerRef} />
+      <div className="absolute inset-0 pointer-events-none">
+        <div ref={containerRef} />
+      </div>
 
       {/* 100% Overlay to block ALL clicks to the iframe */}
       <div 
