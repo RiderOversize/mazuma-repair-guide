@@ -107,8 +107,7 @@ export function SecureVideoPlayer({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
             {isRealVideo ? (
               mediaUrl?.includes("youtube.com") || mediaUrl?.includes("youtu.be") ? (
-                <>
-                  <CustomYouTubePlayer videoUrl={mediaUrl} />
+                <CustomYouTubePlayer videoUrl={mediaUrl} />
               ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
                   <iframe
