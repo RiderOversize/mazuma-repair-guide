@@ -39,6 +39,7 @@ export function GuideWizard({
   symptoms,
   symptomTypes,
   onBack,
+  onHome,
 }: {
   guide: Guide
   guides?: Guide[]
