@@ -49,6 +49,7 @@ export function GuideWizard({
   symptoms: Symptom[]
   symptomTypes?: SymptomType[]
   onBack: () => void
+  onHome?: () => void
 }) {
   const [finished, setFinished] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -178,7 +179,7 @@ export function GuideWizard({
           </div>
         ) : (
           <button
-            onClick={onBack}
+            onClick={onHome || onBack}
             className="rounded-xl border border-input bg-background px-6 py-2.5 text-sm font-semibold hover:bg-muted shadow-sm transition-all hover:shadow-md"
           >
             กลับหน้าแรก
@@ -465,7 +466,8 @@ export function GuideWizard({
               <button
                 onClick={() => {
                   setShowAskContact(false)
-                  onBack()
+                  if (onHome) onHome()
+                  else onBack()
                 }}
                 className="flex-1 rounded-2xl border border-input bg-background px-4 py-3.5 text-sm font-bold text-foreground hover:bg-muted transition-all active:scale-95"
               >
@@ -501,7 +503,8 @@ export function GuideWizard({
             <button
               onClick={() => {
                 setShowThankYou(false)
-                onBack()
+                if (onHome) onHome()
+                else onBack()
               }}
               className="mt-4 w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
             >

@@ -233,6 +233,7 @@ export function TechnicianApp({
               symptoms={symptoms}
               symptomTypes={symptomTypes}
               onBack={() => setView("symptoms")} 
+              onHome={() => setView("home")}
             />
           )}
         </>
