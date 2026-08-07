@@ -55,6 +55,8 @@ export function GuideWizard({
   const [showContact, setShowContact] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedbackNote, setFeedbackNote] = useState("")
+  const [showThankYou, setShowThankYou] = useState(false)
+  const [showAskContact, setShowAskContact] = useState(false)
 
   const symGuides = guides?.filter(g => g.symptomId === guide.symptomId && g.status === 'published') || [guide]
   const [currentIndex, setCurrentIndex] = useState(() => {
@@ -120,7 +122,11 @@ export function GuideWizard({
     }
     setIsSubmitting(false)
     setShowFeedback(false)
-    if (!isHelpful) setShowContact(true)
+    if (isHelpful) {
+      setShowThankYou(true)
+    } else {
+      setShowAskContact(true)
+    }
   }
 
   if (finished) {
@@ -438,6 +444,68 @@ export function GuideWizard({
               className="mt-2 text-sm font-semibold text-muted-foreground hover:text-foreground text-center flex justify-center items-center gap-2"
             >
               {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "ยังไม่เสร็จ ขอดูต่อ"}
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Ask Contact Modal */}
+      {showAskContact && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-4 text-center">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-2">
+              <Phone className="size-8" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">
+              ต้องการติดต่อหัวหน้าช่างหรือไม่?
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              เนื่องจากการซ่อมไม่สำเร็จ คุณสามารถติดต่อหัวหน้าช่างเพื่อขอคำปรึกษาเพิ่มเติมได้
+            </p>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowAskContact(false)
+                  onBack()
+                }}
+                className="flex-1 rounded-2xl border border-input bg-background px-4 py-3.5 text-sm font-bold text-foreground hover:bg-muted transition-all active:scale-95"
+              >
+                ไม่เป็นไร
+              </button>
+              <button
+                onClick={() => {
+                  setShowAskContact(false)
+                  setShowContact(true)
+                }}
+                className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thank You Modal */}
+      {showThankYou && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-4 text-center">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-2">
+              <ThumbsUp className="size-8" />
+            </div>
+            <h2 className="text-2xl font-display font-bold text-foreground">
+              ขอบคุณสำหรับข้อมูล!
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              เราจะนำข้อมูลนี้ไปพัฒนาคู่มือให้ดียิ่งขึ้นต่อไปครับ
+            </p>
+            <button
+              onClick={() => {
+                setShowThankYou(false)
+                onBack()
+              }}
+              className="mt-4 w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+            >
+              กลับหน้าแรก
             </button>
           </div>
         </div>
