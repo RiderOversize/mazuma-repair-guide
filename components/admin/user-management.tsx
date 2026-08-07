@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users, Search } from "lucide-react"
+import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users, Search, Edit2 } from "lucide-react"
 import type { AuthUser, Role } from "@/lib/auth"
 import { getUsers, createUser, updateUser, deleteUser } from "@/lib/data-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
@@ -36,6 +36,9 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
   const [newStatus, setNewStatus] = useState<"active" | "inactive">("active")
   const [newAccessibleMenus, setNewAccessibleMenus] = useState<string[]>([])
   const [newAssignedSupervisors, setNewAssignedSupervisors] = useState<string[]>([])
+
+  const [editingName, setEditingName] = useState(false)
+  const [editNameValue, setEditNameValue] = useState("")
 
   useEffect(() => {
     loadUsers()
@@ -164,6 +167,36 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
     setSaving(false)
   }
 
+  const startEditName = () => {
+    if (selectedUser) {
+      setEditNameValue(selectedUser.name)
+      setEditingName(true)
+    }
+  }
+
+  const saveName = async () => {
+    if (!selectedUser || !editNameValue.trim() || editNameValue.trim() === selectedUser.name) {
+      setEditingName(false)
+      return
+    }
+    
+    const newName = editNameValue.trim()
+    const newInitials = newName.substring(0, 2)
+    
+    setUsers(prev => prev.map(u => 
+      u.employeeCode === selectedUserId ? { ...u, name: newName, initials: newInitials } : u
+    ))
+    try {
+      await updateUser(selectedUser.employeeCode, { name: newName, initials: newInitials })
+      showToast("เปลี่ยนชื่อสำเร็จ", "success")
+    } catch (error) {
+      console.error(error)
+      showToast("เกิดข้อผิดพลาดในการบันทึก", "error")
+      loadUsers()
+    }
+    setEditingName(false)
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newName || !newEmpCode) return
@@ -214,7 +247,32 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
         <h1 className="font-display text-2xl font-bold tracking-tight text-foreground line-clamp-2">
           {currentView === 'list' && "ผู้ใช้งานทั้งหมด"}
           {currentView === 'create' && "เพิ่มผู้ใช้งานใหม่"}
-          {currentView === 'detail' && selectedUser?.name}
+          {currentView === 'detail' && (
+            editingName ? (
+              <div className="flex items-center gap-2 mt-1">
+                <input 
+                  type="text" 
+                  value={editNameValue} 
+                  onChange={e => setEditNameValue(e.target.value)} 
+                  className="rounded-xl border border-input bg-card px-4 py-1.5 text-xl outline-none focus:border-primary shadow-sm flex-1 min-w-0"
+                  autoFocus
+                />
+                <button onClick={saveName} className="rounded-xl bg-primary p-2 text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95 shrink-0">
+                  <CheckCircle2 className="size-5" />
+                </button>
+                <button onClick={() => setEditingName(false)} className="rounded-xl bg-muted p-2 text-muted-foreground hover:bg-muted/80 transition-all active:scale-95 shrink-0">
+                  <X className="size-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 group">
+                <span className="truncate">{selectedUser?.name}</span>
+                <button onClick={startEditName} className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full opacity-60 hover:opacity-100 transition-all active:scale-95 shrink-0">
+                  <Edit2 className="size-5" />
+                </button>
+              </div>
+            )
+          )}
         </h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           {currentView === 'list' && "จัดการพนักงานและสิทธิ์การเข้าถึง"}
