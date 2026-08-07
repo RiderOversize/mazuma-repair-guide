@@ -351,7 +351,7 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
       )}
 
       {currentView === 'create' && (
-        <form onSubmit={handleCreate} className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-4 shadow-sm pb-8">
+        <form onSubmit={handleCreate} className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-4 shadow-sm pb-8 md:max-w-3xl md:mx-auto w-full">
           <div className="space-y-1.5">
             <label className="text-[13px] font-semibold text-foreground">รหัสพนักงาน <span className="text-destructive">*</span></label>
             <input
@@ -532,7 +532,7 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
       )}
 
       {currentView === 'detail' && selectedUser && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:max-w-3xl md:mx-auto w-full">
           <div className="rounded-2xl border border-border/40 bg-card p-5 shadow-sm">
             <div className="flex items-center gap-4 border-b border-border/40 pb-5 mb-5">
                <div className="relative size-16 shrink-0 overflow-hidden rounded-full ring-2 ring-background border border-border/40 shadow-sm">

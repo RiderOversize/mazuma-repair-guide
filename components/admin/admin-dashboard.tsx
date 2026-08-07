@@ -212,7 +212,7 @@ export function AdminDashboard({
       <h2 className="mb-3 font-display text-[16px] font-bold flex items-center gap-2">
         <BarChart3 className="size-4 text-primary" /> ฐานข้อมูลระบบ
       </h2>
-      <div className="mb-6 grid grid-cols-2 gap-3">
+      <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((s) => {
           const Icon = s.icon
           return (
@@ -233,7 +233,7 @@ export function AdminDashboard({
         })}
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top Models Chart */}
         <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
@@ -411,7 +411,7 @@ export function AdminDashboard({
       {/* Show All Categories Modal */}
       {showAllCategories && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-lg rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+          <div className="bg-card w-full max-w-lg md:max-w-3xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-display font-bold text-foreground">
                 หมวดหมู่ทั้งหมด ({categoriesWithCount.length})
@@ -458,7 +458,7 @@ export function AdminDashboard({
       {/* Show All Active Users Modal */}
       {showAllActiveUsers && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-lg rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+          <div className="bg-card w-full max-w-lg md:max-w-3xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-display font-bold text-foreground">
                 ผู้เข้าใช้งานทั้งหมด ({uniqueUsers.length})
@@ -493,7 +493,7 @@ export function AdminDashboard({
       {/* Show All Activities Modal */}
       {showAllActivities && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-lg rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+          <div className="bg-card w-full max-w-lg md:max-w-3xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-display font-bold text-foreground">
                 ความเคลื่อนไหวทั้งหมด ({activities.length})
@@ -533,7 +533,7 @@ export function AdminDashboard({
       {/* Show Missing Mappings Modal */}
       {showMissingMappingsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-2xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+          <div className="bg-card w-full max-w-2xl md:max-w-4xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-display font-bold text-destructive flex items-center gap-2">
                 <AlertCircle className="size-5" /> สินค้ารุ่นที่ยังไม่ได้ผูกอาการ ({modelsWithoutMappings.length})

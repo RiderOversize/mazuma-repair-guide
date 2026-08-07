@@ -662,8 +662,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       {/* Category Modal */}
       {showCatModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
                 {catForm.isEdit ? 'แก้ไขหมวดหมู่หลัก' : 'เพิ่มหมวดหมู่หลัก'}
@@ -720,8 +720,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       {/* SubCategory Modal */}
       {showSubCatModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
                 {subCatForm.isEdit ? 'แก้ไขหมวดหมู่ย่อย' : 'เพิ่มหมวดหมู่ย่อย'}
@@ -770,8 +770,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       {/* SymptomType Modal */}
       {showSymModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
                 {symForm.isEdit ? 'แก้ไขกลุ่มอาการ' : 'เพิ่มกลุ่มอาการใหม่'}
@@ -828,8 +828,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       {/* Issue Modal */}
       {showIssueModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
                 {issueForm.isEdit ? 'แก้ไข Issue' : 'เพิ่ม Issue'}
@@ -876,8 +876,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       {/* Guide Modal */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
                 {guideForm.isEdit ? 'แก้ไขหัวข้อการตรวจสอบ' : 'เพิ่มหัวข้อการตรวจสอบ'}

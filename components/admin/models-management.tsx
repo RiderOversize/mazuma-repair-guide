@@ -156,8 +156,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="mb-6 flex flex-col gap-3">
-        <div className="relative w-full">
+      <div className="mb-6 flex flex-col md:flex-row gap-3">
+        <div className="relative w-full md:flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -170,7 +170,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
             className="h-11 w-full rounded-2xl border border-input bg-card pl-9 pr-4 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
           />
         </div>
-        <div className="relative w-full">
+        <div className="relative w-full md:flex-1">
           <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <select
             value={filterSubCategory}
@@ -196,8 +196,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
         </div>
       </div>
 
-      {/* Mobile Card List */}
-      <div className="flex flex-col gap-3">
+      {/* Mobile Card List / PC Grid List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {paginatedModels.map((m: DeviceModel) => {
           const subCat = subCategories.find(c => c.id === m.subcategoryId)
           return (
@@ -258,9 +258,11 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
         </div>
       )}
 
-      {/* Form Modal (Full Screen Mobile) */}
+      {/* Form Modal (Full Screen Mobile / Centered PC) */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border-x border-border/40 shadow-2xl">
+        <>
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[90] hidden md:block" onClick={() => setIsFormOpen(false)}></div>
+          <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl">
           <div className="flex items-center justify-between px-4 py-3 pt-safe border-b border-border/40 bg-background/70 backdrop-blur-2xl">
             <button type="button" onClick={() => setIsFormOpen(false)} className="text-[15px] font-medium text-muted-foreground">ยกเลิก</button>
             <h3 className="font-display text-[17px] font-bold">{editingId ? "แก้ไขรุ่น" : "เพิ่มรุ่นใหม่"}</h3>
@@ -363,6 +365,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
             </form>
           </div>
         </div>
+        </>
       )}
     </div>
   )

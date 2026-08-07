@@ -118,7 +118,7 @@ export function GuidesManagement({ user, initialSearch = "", initialModelId }: {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredMappings.map((m) => (
           <div key={m.id} className="group relative flex flex-col rounded-2xl bg-card border border-border/40 p-4 shadow-sm">
              <div className="flex items-start justify-between gap-3 mb-2">

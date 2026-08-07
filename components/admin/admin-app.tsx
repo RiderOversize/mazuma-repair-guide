@@ -84,11 +84,17 @@ export function AdminApp({
   const [guidesSearch, setGuidesSearch] = useState("")
   const [guidesInitialModelId, setGuidesInitialModelId] = useState<string | undefined>()
   const [masterDataSubView, setMasterDataSubView] = useState<string>("mainMenu")
+  const [resetKey, setResetKey] = useState(0)
 
   const [globalBack, setGlobalBack] = useState<(() => void) | null>(null)
   
   const go = (v: AdminView | "more") => {
-    setView(v)
+    if (view === v) {
+      setResetKey(prev => prev + 1)
+      if (v === "master-data") setMasterDataSubView("mainMenu")
+    } else {
+      setView(v)
+    }
     if (v !== "create") setEditGuideId(null)
     if (v !== "guides") setGuidesSearch("")
   }
@@ -183,13 +189,13 @@ export function AdminApp({
 
     return (
       <div className="pb-24 pt-4">
-        {view === "dashboard" && <AdminDashboard user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
-        {view === "guides" && <GuidesManagement key={guidesInitialModelId || 'guides'} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} />}
-        {view === "models" && <ModelsManagement user={user} />}
-        {view === "master-data" && <MasterDataManagement user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
-        {view === "media" && <MediaLibrary user={user} />}
-        {view === "users" && <UserManagement user={user} setGlobalBack={setGlobalBack} />}
-        {view === "settings" && <SettingsManagement user={user} />}
+        {view === "dashboard" && <AdminDashboard key={resetKey} user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
+        {view === "guides" && <GuidesManagement key={`guides-${guidesInitialModelId || 'none'}-${resetKey}`} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} />}
+        {view === "models" && <ModelsManagement key={resetKey} user={user} />}
+        {view === "master-data" && <MasterDataManagement key={resetKey} user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
+        {view === "media" && <MediaLibrary key={resetKey} user={user} />}
+        {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} />}
+        {view === "settings" && <SettingsManagement key={resetKey} user={user} />}
       </div>
     )
   }
@@ -199,10 +205,63 @@ export function AdminApp({
 
   return (
     <div className="min-h-screen bg-background flex justify-center overflow-hidden">
-      <div className="w-full max-w-[480px] bg-background h-[100dvh] relative shadow-2xl sm:border-x border-border/40 flex flex-col">
+      <div className="w-full md:max-w-none max-w-[480px] bg-background h-[100dvh] relative md:shadow-none shadow-2xl md:border-none sm:border-x border-border/40 flex flex-col md:flex-row">
+        
+        {/* Sidebar for PC/Tablet */}
+        <div className="hidden md:flex flex-col w-64 border-r border-border/40 bg-card z-50 shrink-0">
+          <div className="flex items-center gap-3 p-4 border-b border-border/40 h-16 shrink-0">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground shadow-sm">
+              M
+            </div>
+            <span className="font-display font-semibold text-foreground">Mazuma Admin</span>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+            {(() => {
+              const allItems = [
+                ...topNavItems.filter(item => item.id !== "more" && hasAccess(item.id)),
+                ...moreItems.filter(item => hasAccess(item.id))
+              ];
+              return allItems.map(item => {
+                const Icon = item.icon;
+                const isActive = view === item.id || (view === "create" && item.id === "guides");
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => go(item.id as AdminView)}
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                  >
+                    <Icon className="size-5" />
+                    <span className="font-medium text-[14px]">{item.label}</span>
+                  </button>
+                )
+              });
+            })()}
+          </div>
+          
+          <div className="p-4 border-t border-border/40 shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
+                <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="40px" />
+              </span>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-sm font-bold text-foreground">{user.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.title}</p>
+              </div>
+              <button
+                onClick={onLogout}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                title="ออกจากระบบ"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Mobile top bar (only if not in 'more' view to save space) */}
         {view !== "more" && (
-          <div className="flex-none z-40 flex items-center justify-between border-b border-border/40 bg-background/95 px-4 py-3 pt-safe backdrop-blur-2xl">
+          <div className="flex-none z-40 flex md:hidden items-center justify-between border-b border-border/40 bg-background/95 px-4 py-3 pt-safe backdrop-blur-2xl">
             <div className="flex items-center gap-2">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground shadow-sm">
                 M
@@ -213,12 +272,35 @@ export function AdminApp({
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+          {/* PC Header - Global Back Button Support */}
+          <div className="hidden md:flex h-16 border-b border-border/40 items-center px-6 sticky top-0 bg-background/95 backdrop-blur-sm z-30">
+            {globalBack ? (
+              <button
+                onClick={globalBack}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium text-sm"
+              >
+                <ChevronLeft className="size-5" />
+                ย้อนกลับ
+              </button>
+            ) : (
+              <h2 className="font-display font-semibold text-lg text-foreground">
+                {view === "dashboard" ? "ภาพรวม" :
+                 view === "guides" ? "คู่มือ" :
+                 view === "create" ? (editGuideId ? "แก้ไขคู่มือ" : "สร้างคู่มือ") :
+                 view === "master-data" ? "จัดการข้อมูล" :
+                 view === "models" ? "จัดการรุ่นสินค้า" :
+                 view === "media" ? "คลังสื่อ (Media)" :
+                 view === "users" ? "ผู้ใช้งานและสิทธิ์" :
+                 view === "settings" ? "ตั้งค่าระบบ" : ""}
+              </h2>
+            )}
+          </div>
           {renderContent()}
         </main>
 
-        {/* Bottom Tab Bar */}
-        <div className="absolute bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
+        {/* Bottom Tab Bar (Mobile Only) */}
+        <div className="absolute md:hidden bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-2xl pb-safe">
           <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
             {(globalBack || (view !== "dashboard" && view !== "more")) && (
               <button

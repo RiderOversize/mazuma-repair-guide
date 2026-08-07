@@ -45,7 +45,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
   const currentTheme = theme === "system" ? systemTheme : theme
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pb-24 pt-4 md:max-w-3xl md:mx-auto w-full">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">ตั้งค่าระบบ</h1>
