@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Plus, Trash2, Edit, Save, X, Loader2, Image as ImageIcon, CheckCircle2, AlertCircle, Boxes, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Trash2, Edit, Save, X, Loader2, Image as ImageIcon, CheckCircle2, AlertCircle, Boxes, Search, Filter, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import type { DeviceModel, Category, SubCategory, SymptomType } from "@/lib/types"
 import { getModels, createModel, updateModel, deleteModel, getCategories, getSubCategories, getSymptomTypes } from "@/lib/data-service"
+import { getLastSyncTime } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
@@ -13,6 +14,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Filter and Pagination state
@@ -44,12 +46,24 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
   const loadData = async () => {
     setLoading(true)
-    const [mods, cats, subCats, symTypes] = await Promise.all([getModels(), getCategories(), getSubCategories(), getSymptomTypes()])
-    setModels(mods)
-    setCategories(cats)
-    setSubCategories(subCats)
-    setSymptomTypes(symTypes)
-    setLoading(false)
+    try {
+      const [mods, cats, subCats, symTypes, syncTime] = await Promise.all([
+        getModels(), 
+        getCategories(), 
+        getSubCategories(), 
+        getSymptomTypes(),
+        getLastSyncTime()
+      ])
+      setModels(mods)
+      setCategories(cats)
+      setSubCategories(subCats)
+      setSymptomTypes(symTypes)
+      setLastSyncTime(syncTime)
+    } catch (err: any) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filteredModels = useMemo(() => {
@@ -140,9 +154,23 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
   return (
     <div className="mx-auto w-full px-4 pb-8">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight">จัดการรุ่นสินค้า</h1>
-        <p className="text-[13px] text-muted-foreground mt-1">ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">จัดการรุ่นสินค้า</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ</p>
+        </div>
+        {lastSyncTime && (
+          <div className="bg-chart-4/10 border border-chart-4/20 text-chart-4 px-3 py-1.5 rounded-lg flex items-center gap-2 self-start">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-chart-4 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-4"></span>
+            </span>
+            <div className="text-xs">
+              <span className="font-semibold block">ดึงข้อมูล SFTP ล่าสุด</span>
+              <span className="opacity-90">{new Date(lastSyncTime).toLocaleString("th-TH")}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end mb-4">
@@ -215,8 +243,12 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                       {m.status === "discontinued" && <span className="size-2 rounded-full bg-destructive" title="Discontinued"></span>}
                     </div>
                   </div>
-                  <p className="text-[12px] text-muted-foreground font-mono mt-0.5">{m.code}</p>
+                  <p className="text-[12px] font-medium text-muted-foreground truncate">{m.code}</p>
                   <p className="text-[12px] text-muted-foreground truncate">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-2 flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3" />
+                    อัปเดต/ซิงค์: {m.lastSyncAt ? new Date(m.lastSyncAt).toLocaleString('th-TH') : (m.updatedAt ? new Date(m.updatedAt).toLocaleString('th-TH') : '-')}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-1 mt-1">
                   <button onClick={() => openEdit(m)} className="p-1.5 text-muted-foreground hover:bg-black/5 rounded-lg transition-colors"><Edit className="size-4" /></button>

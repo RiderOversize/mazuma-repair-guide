@@ -48,6 +48,16 @@ export async function getActivities(): Promise<ActivityLog[]> {
   }
 }
 
+export async function getLastSyncTime(): Promise<string | null> {
+  try {
+    const activities = await getActivities()
+    const syncActivity = activities.find(a => a.userName === 'SFTP Auto Sync')
+    return syncActivity ? syncActivity.timestamp : null
+  } catch (error) {
+    return null
+  }
+}
+
 export async function logActivity(
   user: AuthUser,
   action: ActivityAction,

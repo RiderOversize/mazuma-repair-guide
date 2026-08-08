@@ -51,6 +51,7 @@ export interface DeviceModel {
   thumbnail?: string
   createdAt?: string
   updatedAt?: string
+  lastSyncAt?: string
 }
 
 export interface GuideStep {

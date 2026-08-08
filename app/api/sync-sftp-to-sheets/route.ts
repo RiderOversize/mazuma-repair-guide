@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import Client from 'ssh2-sftp-client';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+import { clearCache } from '@/lib/google-sheets';
+
+export const maxDuration = 300; // 5 minutes
 
 // Developed for: นาย ภานุเดช ตะวงษ์
 
@@ -56,13 +59,13 @@ export async function GET(request: Request) {
     }
     
     // Fetch SubCategories map to translate Thai names to IDs
-    const subCatSheet = doc.sheetsByTitle['SubCategories'];
+    const subCatSheet = doc.sheetsByTitle['ProductCategory'];
     const subCatMap = new Map();
     if (subCatSheet) {
       const subCatRows = await subCatSheet.getRows();
       subCatRows.forEach(r => {
-        const name = r.get('name');
-        const id = r.get('id');
+        const name = r.get('Description') || r.get('name');
+        const id = r.get('ID') || r.get('id');
         if (name && id) {
           subCatMap.set(name.trim(), id);
         }
@@ -83,6 +86,7 @@ export async function GET(request: Request) {
     
     // 9. Process incoming data
     const rowsToAdd: any[] = [];
+    const rowsToUpdate: any[] = [];
     let updateCount = 0;
     
     for (const item of dataArray) {
@@ -93,7 +97,17 @@ export async function GET(request: Request) {
       const itemName = item.MAT || item.productName || item.name || item.PRODUCT_NAME || item.itemName || '';
       const rawCat = item.MATCategoryUSERID_Full || item.categoryCode || item.categoryId || item.subCategoryId || '';
       
-      const subCatId = subCatMap.get(rawCat.trim());
+      let subCatId = subCatMap.get(rawCat.trim());
+      if (!subCatId) {
+        // Try partial match
+        for (const [key, value] of subCatMap.entries()) {
+          if (key.includes(rawCat.trim()) || rawCat.trim().includes(key)) {
+            subCatId = value;
+            break;
+          }
+        }
+      }
+
       if (!subCatId) {
          // Skip if subcategory is not found in the DB (avoids junk categories)
          continue;
@@ -122,15 +136,15 @@ export async function GET(request: Request) {
            changed = true;
         }
         
-        // Also update updatedAt if changed, or if it doesn't have an updatedAt yet
-        if (changed || !existingRow.get('updatedAt')) {
-          existingRow.assign({ 'updatedAt': currentTime });
-          await existingRow.save();
+        if (changed) {
+          existingRow.assign({ 'updatedAt': currentTime, 'lastSyncAt': currentTime });
           updateCount++;
+          rowsToUpdate.push(existingRow);
         }
+        
       } else {
         // Insert new
-        rowsToAdd.push({
+        const newRow = {
           'id': `m-${code}-${Date.now()}`,
           'code': code,
           'name': itemName,
@@ -139,13 +153,46 @@ export async function GET(request: Request) {
           'status': 'active', 
           'createdAt': currentTime,
           'updatedAt': currentTime,
-        });
+          'lastSyncAt': currentTime,
+        };
+        rowsToAdd.push(newRow);
       }
     }
     
-    // 10. Append new rows
+    // Save updates in chunks to avoid rate limits
+    if (rowsToUpdate.length > 0) {
+      for (const row of rowsToUpdate) {
+        await row.save();
+      }
+    }
+    
+    // Add new rows
     if (rowsToAdd.length > 0) {
       await sheet.addRows(rowsToAdd);
+    }
+    
+    try {
+      const activitySheet = doc.sheetsByTitle['ActivityLogs'];
+      if (activitySheet) {
+        await activitySheet.addRow({
+          id: `log-${Date.now()}`,
+          action: 'update',
+          resource: 'system',
+          userCode: 'SYSTEM_CRON',
+          userName: 'SFTP Auto Sync',
+          timestamp: new Date().toISOString(),
+          details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length})`
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to log sync activity:', logError);
+    }
+    
+    // Invalidate Next.js cache so the frontend sees the new models and new activity log immediately
+    try {
+      clearCache();
+    } catch (cacheErr) {
+      console.warn('Could not clear cache (this is normal if running as an isolated script):', cacheErr);
     }
     
     return NextResponse.json({
@@ -155,10 +202,7 @@ export async function GET(request: Request) {
         totalReceived: dataArray.length,
         updated: updateCount,
         inserted: rowsToAdd.length,
-      },
-      debug: (updateCount === 0 && rowsToAdd.length === 0 && dataArray.length > 0) 
-        ? { sampleItem: dataArray[0] } 
-        : undefined
+      }
     });
 
   } catch (error: any) {

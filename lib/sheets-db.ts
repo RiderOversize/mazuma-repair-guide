@@ -128,7 +128,8 @@ export async function getModels(): Promise<DeviceModel[]> {
       status: obj.status || "active",
       thumbnail: obj.thumbnail || "",
       createdAt: obj.createdAt || new Date().toISOString(),
-      updatedAt: obj.updatedAt || new Date().toISOString()
+      updatedAt: obj.updatedAt || new Date().toISOString(),
+      lastSyncAt: obj.lastSyncAt || ""
     };
   });
 }
