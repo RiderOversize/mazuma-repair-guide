@@ -58,7 +58,7 @@ export async function initSheets() {
   const existingTitles = meta.data.sheets?.map(s => s.properties?.title) || [];
 
   const requiredSheets = [
-    { title: SHEETS.USERS, headers: ["employeeCode", "name", "phone", "role", "status", "createdAt", "lineUserId", "assignedHeads"] },
+    { title: SHEETS.USERS, headers: ["employeeCode", "name", "phone", "role", "status", "createdAt", "lineUserId", "avatarUrl", "assignedHeads", "accessibleMenus"] },
     { title: SHEETS.CATEGORIES, headers: ["id", "name", "slug", "description", "status", "createdAt"] },
     { title: SHEETS.SYMPTOM_TYPES, headers: ["id", "categoryId", "name"] },
     { title: SHEETS.SYMPTOMS, headers: ["id", "symptomTypeId", "title", "description", "severity", "tags"] },
@@ -128,6 +128,60 @@ export async function initSheets() {
               }]
             }
           });
+        }
+      } else {
+        // Sheet exists, let's check and append missing headers
+        try {
+          const res = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${reqSheet.title}!1:1`,
+          });
+          const existingHeaders = res.data.values?.[0] || [];
+          const missingHeaders = reqSheet.headers.filter(h => !existingHeaders.includes(h));
+          
+          if (missingHeaders.length > 0) {
+            const newHeaders = [...existingHeaders, ...missingHeaders];
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${reqSheet.title}!A1:Z1`,
+              valueInputOption: "USER_ENTERED",
+              requestBody: {
+                values: [newHeaders]
+              }
+            });
+            console.log(`Added missing headers [${missingHeaders.join(', ')}] to ${reqSheet.title}`);
+          }
+        } catch (e) {
+          console.error(`Failed to sync headers for ${reqSheet.title}`, e);
+        }
+      }
+    }
+  } else {
+    // If no new sheets were created, still sync headers for existing sheets
+    for (const reqSheet of requiredSheets) {
+      if (existingTitles.includes(reqSheet.title)) {
+        try {
+          const res = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${reqSheet.title}!1:1`,
+          });
+          const existingHeaders = res.data.values?.[0] || [];
+          const missingHeaders = reqSheet.headers.filter(h => !existingHeaders.includes(h));
+          
+          if (missingHeaders.length > 0) {
+            const newHeaders = [...existingHeaders, ...missingHeaders];
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${reqSheet.title}!A1:Z1`,
+              valueInputOption: "USER_ENTERED",
+              requestBody: {
+                values: [newHeaders]
+              }
+            });
+            console.log(`Added missing headers [${missingHeaders.join(', ')}] to ${reqSheet.title}`);
+          }
+        } catch (e) {
+          console.error(`Failed to sync headers for ${reqSheet.title}`, e);
         }
       }
     }
