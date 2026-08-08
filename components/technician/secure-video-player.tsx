@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Play, Lock, FileText, Video } from "lucide-react"
+import { Play, Lock, FileText, Video, FileDown } from "lucide-react"
 import { CustomYouTubePlayer } from "./custom-youtube-player"
 
 const VIEW_DATE = "10 ก.ค. 2026"
@@ -155,21 +155,28 @@ export function SecureVideoPlayer({
           </div>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-slate-100 to-slate-200">
+            <FileText className="size-16 text-slate-400" />
+            <p className="text-sm font-medium text-slate-600">
+              เอกสารหัวข้อตรวจสอบที่ {stepNum}
+            </p>
+            {label ? (
+              <p className="max-w-[80%] text-center text-xs text-slate-500">{label}</p>
+            ) : null}
+            
             {isRealPdf ? (
-              <iframe src={pdfUrl} className="w-full h-full" />
+              <a 
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-md hover:bg-primary/90 transition-all active:scale-95"
+              >
+                <FileDown className="size-4" />
+                เปิดอ่านเอกสาร PDF
+              </a>
             ) : (
-              <>
-                <FileText className="size-16 text-slate-400" />
-                <p className="text-sm font-medium text-slate-600">
-                  เอกสารหัวข้อตรวจสอบที่ {stepNum}
-                </p>
-                {label ? (
-                  <p className="max-w-[80%] text-center text-xs text-slate-500">{label}</p>
-                ) : null}
-                <button className="mt-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow hover:bg-primary/90">
-                  แตะเพื่อเปิด PDF
-                </button>
-              </>
+              <button disabled className="mt-2 rounded-xl bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground shadow-sm">
+                ไม่มีเอกสาร
+              </button>
             )}
           </div>
         )}
