@@ -39,7 +39,7 @@ export async function getUsers(forceFetch: boolean = false): Promise<AuthUser[]>
       avatar: obj.avatarUrl || (obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png"),
       lineName: "-",
       lineUserId: obj.lineUserId,
-      assignedSupervisors: obj.assignedSupervisors ? obj.assignedSupervisors.split(',').filter(Boolean) : [],
+      assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').filter(Boolean) : [],
       accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').filter(Boolean) : undefined,
     };
   });

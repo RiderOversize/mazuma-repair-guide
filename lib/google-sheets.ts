@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { unstable_cache, revalidateTag } from "next/cache";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
@@ -189,25 +190,16 @@ export async function initSheets() {
 }
 
 // ---------------------------------------------------------------------------
-// In-Memory Cache (For Server Actions Performance)
+// Cache Management (Next.js Data Cache)
 // ---------------------------------------------------------------------------
-type CacheEntry = {
-  data: any[];
-  timestamp: number;
-};
-const sheetCache = new Map<string, CacheEntry>();
-const inflightRequests = new Map<string, Promise<any[]>>();
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 export function clearCache(sheetName?: string) {
   if (sheetName) {
-    for (const key of sheetCache.keys()) {
-      if (key.startsWith(`${sheetName}!`)) {
-        sheetCache.delete(key);
-      }
-    }
+    // @ts-expect-error Next.js 15 canary types issue
+    revalidateTag(`sheet-${sheetName}`);
   } else {
-    sheetCache.clear();
+    // @ts-expect-error Next.js 15 canary types issue
+    revalidateTag('all-sheets');
   }
 }
 
@@ -277,103 +269,88 @@ export function mapObjectToRow(headers: string[], obj: Record<string, any>): any
 // ---------------------------------------------------------------------------
 
 export async function readSheet(range: string, forceFetch: boolean = false) {
-  // Check cache first
-  if (!forceFetch) {
-    const cached = sheetCache.get(range);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-      return cached.data;
-    }
+  const sheetName = range.split('!')[0];
+  
+  if (forceFetch) {
+    // @ts-expect-error Next.js 15 canary types issue
+    revalidateTag(`sheet-${sheetName}`);
   }
 
-  // Request deduplication: if the same range is already being fetched, wait for it
-  if (inflightRequests.has(range)) {
-    return inflightRequests.get(range)!;
-  }
-
-  const promise = (async () => {
-    const sheets = await getSheetsClient();
-    const spreadsheetId = await getSpreadsheetId();
-    
-    let response;
-    try {
-      response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-      });
-    } catch (error: any) {
-      if (error.message && error.message.includes("Unable to parse range")) {
-        console.log(`Sheet missing for range ${range}. Initializing sheets...`);
-        await initSheets();
+  const getCachedData = unstable_cache(
+    async () => {
+      const sheets = await getSheetsClient();
+      const spreadsheetId = await getSpreadsheetId();
+      
+      let response;
+      try {
         response = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range,
         });
-      } else {
-        throw error;
+      } catch (error: any) {
+        if (error.message && error.message.includes("Unable to parse range")) {
+          console.log(`Sheet missing for range ${range}. Initializing sheets...`);
+          await initSheets();
+          response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+          });
+        } else {
+          throw error;
+        }
       }
+      
+      return response.data.values || [];
+    },
+    [`sheet-range-${range}`],
+    {
+      tags: [`sheet-${sheetName}`, 'all-sheets'],
+      revalidate: 3600 // Cache for 1 hour, invalidated manually on mutation
     }
-    
-    const data = response.data.values || [];
-    
-    // Save to cache
-    sheetCache.set(range, { data, timestamp: Date.now() });
-    
-    return data;
-  })();
+  );
 
-  inflightRequests.set(range, promise);
-  try {
-    const result = await promise;
-    return result;
-  } finally {
-    inflightRequests.delete(range);
-  }
+  return getCachedData();
 }
 
-// Batch read multiple sheets in a single API call (much faster than individual reads)
+// Batch read multiple sheets in a single API call
 export async function readMultipleSheets(ranges: string[]): Promise<Record<string, any[][]>> {
-  const result: Record<string, any[][]> = {};
-  const uncachedRanges: string[] = [];
+  const tags = ranges.map(r => `sheet-${r.split('!')[0]}`);
+  const key = `batch-${ranges.slice().sort().join('-')}`;
+  
+  const getCachedBatch = unstable_cache(
+    async () => {
+      const sheets = await getSheetsClient();
+      const spreadsheetId = await getSpreadsheetId();
 
-  // Check cache first for each range
-  for (const range of ranges) {
-    const cached = sheetCache.get(range);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-      result[range] = cached.data;
-    } else {
-      uncachedRanges.push(range);
+      try {
+        const response = await sheets.spreadsheets.values.batchGet({
+          spreadsheetId,
+          ranges,
+        });
+
+        const result: Record<string, any[][]> = {};
+        const valueRanges = response.data.valueRanges || [];
+        for (let i = 0; i < ranges.length; i++) {
+          result[ranges[i]] = valueRanges[i]?.values || [];
+        }
+        return result;
+      } catch (error: any) {
+        console.warn("batchGet failed, falling back to individual reads:", error.message);
+        const result: Record<string, any[][]> = {};
+        for (const range of ranges) {
+          result[range] = await readSheet(range, true); // force fetch to bypass individual cache if batch fails
+        }
+        return result;
+      }
+    },
+    [key],
+    {
+      tags: [...tags, 'all-sheets'],
+      revalidate: 3600
     }
-  }
+  );
 
-  // If all cached, return immediately
-  if (uncachedRanges.length === 0) return result;
-
-  // Batch fetch uncached ranges in a single API call
-  const sheets = await getSheetsClient();
-  const spreadsheetId = await getSpreadsheetId();
-
-  try {
-    const response = await sheets.spreadsheets.values.batchGet({
-      spreadsheetId,
-      ranges: uncachedRanges,
-    });
-
-    const valueRanges = response.data.valueRanges || [];
-    for (let i = 0; i < uncachedRanges.length; i++) {
-      const range = uncachedRanges[i];
-      const data = valueRanges[i]?.values || [];
-      result[range] = data;
-      sheetCache.set(range, { data, timestamp: Date.now() });
-    }
-  } catch (error: any) {
-    // Fallback: fetch individually if batchGet fails
-    console.warn("batchGet failed, falling back to individual reads:", error.message);
-    for (const range of uncachedRanges) {
-      result[range] = await readSheet(range);
-    }
-  }
-
-  return result;
+  return getCachedBatch();
 }
 
 export async function appendRows(range: string, values: any[][]) {

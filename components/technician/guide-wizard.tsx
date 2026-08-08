@@ -24,8 +24,8 @@ import {
   type Symptom,
   type SymptomType,
 } from "@/lib/types"
-import { type AuthUser, SUPERVISORS } from "@/lib/auth"
-import { logRepairFeedback } from "@/lib/data-service"
+import { type AuthUser } from "@/lib/auth"
+import { logRepairFeedback, getUsers } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { cn } from "@/lib/utils"
 
@@ -59,6 +59,15 @@ export function GuideWizard({
   const [feedbackNote, setFeedbackNote] = useState("")
   const [showThankYou, setShowThankYou] = useState(false)
   const [showAskContact, setShowAskContact] = useState(false)
+  const [dbSupervisors, setDbSupervisors] = useState<AuthUser[]>([])
+
+  useEffect(() => {
+    if (showContact && dbSupervisors.length === 0) {
+      getUsers().then(users => {
+        setDbSupervisors(users.filter(u => u.role === "head"))
+      }).catch(console.error)
+    }
+  }, [showContact, dbSupervisors.length])
 
   const symGuides = guides?.filter(g => g.symptomId === guide.symptomId && g.status === 'published') || [guide]
   const [currentIndex, setCurrentIndex] = useState(() => {
@@ -361,12 +370,18 @@ export function GuideWizard({
             </div>
             
             <div className="flex flex-col gap-3">
-              {SUPERVISORS.filter(sup => user.assignedSupervisors?.includes(sup.employeeCode)).map((sup) => (
+              {dbSupervisors.filter(sup => user.assignedSupervisors?.includes(sup.employeeCode)).map((sup) => (
                 <div key={sup.employeeCode} className="flex items-center justify-between p-3 rounded-2xl border border-border bg-background hover:border-primary/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                      {sup.initials}
-                    </div>
+                    {sup.avatar && sup.avatar !== "/avatars/technician.png" && sup.avatar !== "/avatars/admin.png" ? (
+                      <div className="size-10 rounded-full overflow-hidden shrink-0 border border-border shadow-sm">
+                        <img src={sup.avatar} alt={sup.name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 shadow-sm">
+                        {sup.initials}
+                      </div>
+                    )}
                     <div>
                       <p className="font-bold text-sm">{sup.name}</p>
                       <p className="text-xs text-muted-foreground">{sup.phone || "ไม่มีเบอร์"}</p>
@@ -385,7 +400,7 @@ export function GuideWizard({
                   )}
                 </div>
               ))}
-              {SUPERVISORS.filter(sup => user.assignedSupervisors?.includes(sup.employeeCode)).length === 0 && (
+              {dbSupervisors.filter(sup => user.assignedSupervisors?.includes(sup.employeeCode)).length === 0 && (
                 <div className="text-center py-6">
                   <p className="text-sm font-semibold text-foreground">ยังไม่มีหัวหน้าช่างที่ปรึกษาที่กำหนดไว้</p>
                   <p className="text-xs text-muted-foreground mt-1">กรุณาติดต่อแอดมินเพื่อกำหนดหัวหน้าช่างประจำตัว</p>
