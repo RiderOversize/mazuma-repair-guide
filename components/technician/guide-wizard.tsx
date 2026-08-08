@@ -83,7 +83,7 @@ export function GuideWizard({
 
   const category = categories.find(c => c.id === currentGuide.categoryId)
   const symptom = symptoms.find(s => s.id === currentGuide.symptomId)
-  const symptomType = symptomTypes?.find(st => st.id === currentGuide.symptomTypeId)
+  const symptomType = symptomTypes?.find(st => st.id === (currentGuide.symptomTypeId || symptom?.symptomTypeId))
 
   useEffect(() => {
     // Prevent spam by using a ref or session storage, but since currentGuide changes rarely in a session,
@@ -228,16 +228,22 @@ export function GuideWizard({
         <div className="flex items-start gap-2.5 rounded-xl border border-chart-3/40 bg-chart-3/10 p-3">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-chart-3" />
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              สาเหตุที่วินิจฉัย
-            </p>
-            <p className="font-display font-semibold text-foreground">
-              {symptom?.title || symptom?.description || "ไม่ระบุสาเหตุ"}
-            </p>
-            <p className="mt-1 text-sm text-foreground/80">
-              <span className="font-medium text-muted-foreground">คู่มือ: </span>
-              {currentGuide.title}
-            </p>
+            <div className="mb-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                อาการเสีย
+              </p>
+              <p className="mt-0.5 font-display text-[15px] font-semibold leading-snug text-foreground">
+                {symptom?.title || symptom?.description || "ไม่ระบุอาการเสีย"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                สาเหตุที่วินิจฉัย
+              </p>
+              <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/90">
+                {currentGuide.title}
+              </p>
+            </div>
           </div>
         </div>
 
