@@ -59,7 +59,8 @@ export function EmployeeBindView({
       // Bind the LINE ID to the user in the database
       await updateUser(user.employeeCode, { 
         lineUserId, 
-        avatar: lineProfile.avatar 
+        avatar: lineProfile.avatar,
+        lineName: lineProfile.lineName
       })
       
       setStatus("success")

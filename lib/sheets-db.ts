@@ -37,7 +37,7 @@ export async function getUsers(forceFetch: boolean = false): Promise<AuthUser[]>
       createdAt: obj.createdAt,
       initials: obj.name ? obj.name.substring(0, 2) : "",
       avatar: obj.avatarUrl || (obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png"),
-      lineName: "-",
+      lineName: obj.LineName || obj.lineName || "-",
       lineUserId: obj.lineUserId,
       assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').filter(Boolean) : [],
       accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').filter(Boolean) : undefined,
@@ -64,6 +64,7 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
     createdAt: newUser.createdAt,
     lineUserId: newUser.lineUserId || "",
     avatarUrl: newUser.avatar || "",
+    LineName: newUser.lineName || "-",
     assignedHeads: (newUser.assignedSupervisors || []).join(','),
     accessibleMenus: (newUser.accessibleMenus || []).join(',')
   };
@@ -92,6 +93,7 @@ export async function updateUser(employeeCode: string, data: Partial<AuthUser>):
     createdAt: merged.createdAt,
     lineUserId: merged.lineUserId || "",
     avatarUrl: merged.avatar || "",
+    LineName: merged.lineName || "-",
     assignedHeads: (merged.assignedSupervisors || []).join(','),
     accessibleMenus: (merged.accessibleMenus || []).join(',')
   };

@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
-import { LogOut, ChevronDown, User, Shield, X } from "lucide-react"
+import { LogOut, ChevronDown, User, Shield, X, Unlink, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
+import { updateUser } from "@/lib/data-service"
+import { MySwal, showToast, showAlert } from "@/lib/swal"
 
 export function UserMenu({
   user,
@@ -18,6 +20,46 @@ export function UserMenu({
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
+
+  const handleDisconnectLine = async () => {
+    const result = await MySwal.fire({
+      title: "ยกเลิกการเชื่อมต่อ?",
+      text: "คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการเชื่อมต่อบัญชี LINE นี้?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ยกเลิกการเชื่อมต่อ",
+      cancelButtonText: "ปิด",
+      customClass: {
+        popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+        title: "font-display text-xl font-bold text-foreground",
+        htmlContainer: "text-sm text-muted-foreground",
+        confirmButton: "rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-colors",
+        cancelButton: "rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted transition-colors",
+        actions: "gap-2",
+      },
+      buttonsStyling: false,
+    })
+    
+    if (!result.isConfirmed) return;
+    
+    setDisconnecting(true)
+    try {
+      await updateUser(user.employeeCode, {
+        lineUserId: "",
+        avatar: "",
+        lineName: "-"
+      })
+      await showAlert("สำเร็จ!", "ยกเลิกการเชื่อมต่อ LINE สำเร็จ! ระบบกำลังนำคุณออกจากระบบเพื่อให้เข้าสู่ระบบใหม่", "success")
+      setOpen(false)
+      onLogout()
+    } catch (err) {
+      console.error(err)
+      showToast("เกิดข้อผิดพลาดในการยกเลิกการเชื่อมต่อ", "error")
+    } finally {
+      setDisconnecting(false)
+    }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -88,13 +130,24 @@ export function UserMenu({
 
             <div className="space-y-2">
               <div className="flex items-center gap-3 p-4 rounded-2xl border border-border/40 bg-card">
-                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00B900]/10 text-[#00B900]">
                     <User className="size-5" />
                  </div>
-                 <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">บัญชี LINE ที่เชื่อมต่อ</p>
-                    <p className="text-[14px] font-bold text-foreground">{user.lineName || "ไม่ได้ระบุ"}</p>
+                 <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
+                    <p className="text-[14px] font-bold text-foreground truncate">{user.lineName && user.lineName !== "-" ? user.lineName : "ไม่ได้ระบุ"}</p>
+                    {user.lineUserId && <p className="text-[11px] text-muted-foreground truncate mt-0.5">UID: {user.lineUserId}</p>}
                  </div>
+                 {user.lineUserId && (
+                   <button
+                     onClick={handleDisconnectLine}
+                     disabled={disconnecting}
+                     className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors shrink-0 disabled:opacity-50"
+                     title="ยกเลิกการเชื่อมต่อ"
+                   >
+                     {disconnecting ? <Loader2 className="size-4 animate-spin" /> : <Unlink className="size-4" />}
+                   </button>
+                 )}
               </div>
               
               <button

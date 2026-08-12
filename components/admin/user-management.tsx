@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users, Search, Edit2, ChevronRight } from "lucide-react"
+import { Shield, ShieldAlert, Save, CheckCircle2, UserPlus, Trash2, Loader2, X, Calendar, Activity, Users, Search, Edit2, ChevronRight, User } from "lucide-react"
 import type { AuthUser, Role } from "@/lib/auth"
 import { getUsers, createUser, updateUser, deleteUser } from "@/lib/data-service"
-import { showToast, confirmDelete, showAlert } from "@/lib/swal"
+import { showToast, confirmDelete, showAlert, MySwal } from "@/lib/swal"
 import { cn } from "@/lib/utils"
 
 const AVAILABLE_MENUS = [
@@ -20,7 +20,7 @@ const AVAILABLE_MENUS = [
   { id: "preview", label: "ดูหน้าแอปช่าง" },
 ]
 
-export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGlobalBack?: (fn: (() => void) | null) => void }) {
+export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthUser, setGlobalBack?: (fn: (() => void) | null) => void, onLogout?: () => void }) {
   const [users, setUsers] = useState<AuthUser[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -165,6 +165,54 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
       showAlert("ลบไม่สำเร็จ", "ไม่สามารถลบผู้ใช้งานได้ในขณะนี้", "error")
     }
     setSaving(false)
+  }
+
+  const handleDisconnectLineAdmin = async () => {
+    if (!selectedUser) return;
+    const result = await MySwal.fire({
+      title: "ยกเลิกการเชื่อมต่อ?",
+      text: `คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการเชื่อมต่อบัญชี LINE ของ ${selectedUser.name}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ยกเลิกการเชื่อมต่อ",
+      cancelButtonText: "ปิด",
+      customClass: {
+        popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+        title: "font-display text-xl font-bold text-foreground",
+        htmlContainer: "text-sm text-muted-foreground",
+        confirmButton: "rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-colors",
+        cancelButton: "rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted transition-colors",
+        actions: "gap-2",
+      },
+      buttonsStyling: false,
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    setSaving(true);
+    try {
+      await updateUser(selectedUser.employeeCode, {
+        lineUserId: "",
+        avatar: "",
+        lineName: "-"
+      });
+      setUsers(prev => prev.map(u => 
+        u.employeeCode === selectedUserId ? { ...u, lineUserId: "", avatar: "", lineName: "-" } : u
+      ));
+      
+      if (user && selectedUser.employeeCode === user.employeeCode) {
+        await showAlert("สำเร็จ", "ยกเลิกการเชื่อมต่อ LINE สำเร็จ! ระบบกำลังนำคุณออกจากระบบเพื่อให้เข้าสู่ระบบใหม่", "success");
+        if (onLogout) onLogout();
+        else window.location.href = "/api/auth/signout";
+      } else {
+        showToast("ยกเลิกการเชื่อมต่อ LINE สำเร็จ", "success");
+      }
+    } catch (error) {
+      console.error(error);
+      showAlert("เกิดข้อผิดพลาด", "ไม่สามารถยกเลิกการเชื่อมต่อได้", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const startEditName = () => {
@@ -573,6 +621,29 @@ export function UserManagement({ user, setGlobalBack }: { user?: AuthUser, setGl
                  )}
                </div>
             </div>
+            
+            {selectedUser.lineUserId && (
+              <div className="mb-6 rounded-2xl border border-border/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-muted/20">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00B900]/10 text-[#00B900]">
+                    <User className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
+                    <p className="text-[14px] font-bold text-foreground truncate">{selectedUser.lineName && selectedUser.lineName !== "-" ? selectedUser.lineName : "ไม่ได้ระบุ"}</p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">UID: {selectedUser.lineUserId}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDisconnectLineAdmin}
+                  disabled={saving}
+                  className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-2 text-[13px] font-bold text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-50 w-full sm:w-auto shrink-0"
+                >
+                  ยกเลิกการเชื่อมต่อ
+                </button>
+              </div>
+            )}
             
             {/* Role Change */}
             <div className="mb-6 border-b border-border/40 pb-6">

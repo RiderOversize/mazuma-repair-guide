@@ -194,7 +194,7 @@ export function AdminApp({
         {view === "models" && <ModelsManagement key={resetKey} user={user} />}
         {view === "master-data" && <MasterDataManagement key={resetKey} user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
         {view === "media" && <MediaLibrary key={resetKey} user={user} />}
-        {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} />}
+        {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} onLogout={onLogout} />}
         {view === "settings" && <SettingsManagement key={resetKey} user={user} />}
       </div>
     )

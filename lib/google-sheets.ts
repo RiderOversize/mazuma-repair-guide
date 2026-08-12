@@ -59,7 +59,7 @@ export async function initSheets() {
   const existingTitles = meta.data.sheets?.map(s => s.properties?.title) || [];
 
   const requiredSheets = [
-    { title: SHEETS.USERS, headers: ["employeeCode", "name", "phone", "role", "status", "createdAt", "lineUserId", "avatarUrl", "assignedHeads", "accessibleMenus"] },
+    { title: SHEETS.USERS, headers: ["employeeCode", "name", "phone", "role", "status", "createdAt", "lineUserId", "avatarUrl", "assignedHeads", "accessibleMenus", "LineName"] },
     { title: SHEETS.CATEGORIES, headers: ["id", "name", "slug", "description", "status", "createdAt"] },
     { title: SHEETS.SYMPTOM_TYPES, headers: ["id", "categoryId", "name"] },
     { title: SHEETS.SYMPTOMS, headers: ["id", "symptomTypeId", "title", "description", "severity", "tags"] },

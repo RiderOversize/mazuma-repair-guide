@@ -30,10 +30,22 @@ export const authOptions = {
          if (dbUser) {
            session.user.dbUser = dbUser;
            
-           // If the database avatar is different from the LINE picture, or doesn't exist, update it in the background
+           // If the database avatar or lineName is different from the LINE token, update it in the background
+           let needsUpdate = false;
+           const updateData: any = {};
+           
            if (token.picture && dbUser.avatar !== token.picture) {
+             updateData.avatar = token.picture as string;
+             needsUpdate = true;
+           }
+           if (token.name && dbUser.lineName !== token.name) {
+             updateData.lineName = token.name as string;
+             needsUpdate = true;
+           }
+           
+           if (needsUpdate) {
               const { updateUser } = await import("@/lib/sheets-db");
-              updateUser(dbUser.employeeCode, { avatar: token.picture as string }).catch(console.error);
+              updateUser(dbUser.employeeCode, updateData).catch(console.error);
            }
          } else {
            session.user.dbUser = null; // Needs to bind
