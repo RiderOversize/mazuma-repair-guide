@@ -102,7 +102,7 @@ export function SecureVideoPlayer({
         </button>
       </div>
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-900 ring-1 ring-black/20">
+      <div className="relative aspect-[3/4] md:aspect-[4/3] w-full overflow-hidden rounded-xl bg-black ring-1 ring-black/20">
         {activeTab === "video" ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
             {isRealVideo ? (
@@ -111,13 +111,13 @@ export function SecureVideoPlayer({
               ) : (mediaUrl?.includes("drive.google.com") || mediaUrl?.includes("docs.google.com")) ? (
                 <>
                   <iframe
-                    className="w-full h-full"
+                    className="w-full h-full border-0"
                     src={getDriveEmbedUrl(mediaUrl)}
                     allow="autoplay"
                     sandbox="allow-scripts allow-same-origin allow-presentation"
                   ></iframe>
-                  {/* Invisible overlay over the top right to block the 'Pop-out' button */}
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
+                  {/* Invisible overlay over the entire top bar to block the 'Pop-out' and 'Share' buttons */}
+                  <div className="absolute top-0 left-0 right-0 h-16 bg-transparent z-10 pointer-events-auto" title="เนื้อหามีลิขสิทธิ์" onContextMenu={e => e.preventDefault()} />
                 </>
               ) : (
                 <video 

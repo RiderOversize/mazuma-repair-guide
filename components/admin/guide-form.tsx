@@ -187,10 +187,21 @@ export function GuideForm({
             <div className="space-y-6 relative">
               {/* Model Selection (Searchable Dropdown) */}
               <div className="space-y-2.5">
-                <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
-                  <Boxes className="size-4 text-blue-500" />
-                  เลือกรุ่นสินค้า (Product) {selectedModelIds.length > 0 && !editMapping && <span className="text-muted-foreground font-normal">({selectedModelIds.length} รุ่น)</span>}
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+                    <Boxes className="size-4 text-blue-500" />
+                    เลือกรุ่นสินค้า (Product) {selectedModelIds.length > 0 && !editMapping && <span className="text-muted-foreground font-normal">({selectedModelIds.length} รุ่น)</span>}
+                  </label>
+                  {selectedModelIds.length > 0 && !editMapping && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModelIds([])}
+                      className="text-[12px] font-semibold text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      ล้างทั้งหมด
+                    </button>
+                  )}
+                </div>
                 
                 {selectedModelIds.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-1 mb-2 max-h-[100px] overflow-y-auto custom-scrollbar">
@@ -231,6 +242,27 @@ export function GuideForm({
                   
                   {isModelDropdownOpen && (
                     <div className="absolute z-[100] left-0 right-0 mt-1 bg-card border border-border/50 rounded-xl shadow-lg max-h-[220px] overflow-y-auto custom-scrollbar">
+                      {!editMapping && filteredModels.length > 0 && (
+                        <div
+                          onClick={() => {
+                            const allFilteredIds = filteredModels.map(m => m.id)
+                            const allSelected = allFilteredIds.every(id => selectedModelIds.includes(id))
+                            if (allSelected) {
+                              setSelectedModelIds(prev => prev.filter(id => !allFilteredIds.includes(id)))
+                            } else {
+                              setSelectedModelIds(prev => {
+                                const newSet = new Set([...prev, ...allFilteredIds])
+                                return Array.from(newSet)
+                              })
+                            }
+                          }}
+                          className="px-4 py-2.5 text-[13px] cursor-pointer hover:bg-muted transition-colors border-b border-border/50 font-bold text-primary flex items-center justify-between sticky top-0 bg-card/95 backdrop-blur-sm z-10"
+                        >
+                          <span>{filteredModels.every(m => selectedModelIds.includes(m.id)) ? 'ยกเลิกการเลือกทั้งหมด (Deselect All)' : 'เลือกทั้งหมด (Select All)'}</span>
+                          {filteredModels.every(m => selectedModelIds.includes(m.id)) && <CheckCircle2 className="size-4" />}
+                        </div>
+                      )}
+                      
                       {filteredModels.length > 0 ? (
                         filteredModels.map(m => {
                           const isSelected = selectedModelIds.includes(m.id)

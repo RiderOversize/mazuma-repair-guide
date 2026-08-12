@@ -12,7 +12,7 @@ import {
 } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
-import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown } from "lucide-react"
+import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, Upload } from "lucide-react"
 
 export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobalBack }: { user: AuthUser, initialView?: string, setGlobalBack?: (fn: (() => void) | null) => void }) {
   const [categories, setCategories] = useState<Category[]>([])
@@ -46,6 +46,50 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   // Drill-down state
   const [currentView, setCurrentView] = useState<any>(initialView)
 
+  const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [uploadingVdo, setUploadingVdo] = useState(false)
+  
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'vdo') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (type === 'pdf') {
+      if (file.type !== 'application/pdf') {
+        return showToast('กรุณาเลือกไฟล์ PDF เท่านั้น', 'error')
+      }
+      setUploadingPdf(true)
+    } else {
+      setUploadingVdo(true)
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      const data = await res.json()
+      
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      
+      if (type === 'pdf') {
+        setGuideForm(prev => ({ ...prev, pdfUrl: data.url }))
+        showToast('อัพโหลด PDF สำเร็จ', 'success')
+      } else {
+        setGuideForm(prev => ({ ...prev, mediaUrl: data.url }))
+        showToast('อัพโหลด VDO สำเร็จ', 'success')
+      }
+    } catch (err: any) {
+      showToast(err.message || 'เกิดข้อผิดพลาดในการอัพโหลด', 'error')
+    } finally {
+      if (type === 'pdf') setUploadingPdf(false)
+      else setUploadingVdo(false)
+      e.target.value = ''
+    }
+  }
   useEffect(() => {
     if (initialView) {
       setCurrentView(initialView)
@@ -903,23 +947,47 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Video className="size-4 text-blue-500" /> ลิงค์ VDO (ไม่บังคับ)
                 </label>
-                <input 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
-                  placeholder="https://..."
-                  value={guideForm.mediaUrl}
-                  onChange={e => setGuideForm({...guideForm, mediaUrl: e.target.value})}
-                />
+                <div className="flex gap-2">
+                  <input 
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                    placeholder="https://..."
+                    value={guideForm.mediaUrl}
+                    onChange={e => setGuideForm({...guideForm, mediaUrl: e.target.value})}
+                  />
+                  <label className={`flex items-center justify-center gap-2 rounded-xl bg-muted px-4 hover:bg-muted/80 transition-colors shrink-0 text-sm font-medium text-foreground cursor-pointer ${uploadingVdo ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadingVdo ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    อัพโหลด
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      className="hidden" 
+                      onChange={(e) => handleUpload(e, 'vdo')} 
+                    />
+                  </label>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <FileDown className="size-4 text-orange-500" /> ลิงค์ PDF (ไม่บังคับ)
                 </label>
-                <input 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
-                  placeholder="https://..."
-                  value={guideForm.pdfUrl}
-                  onChange={e => setGuideForm({...guideForm, pdfUrl: e.target.value})}
-                />
+                <div className="flex gap-2">
+                  <input 
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                    placeholder="https://..."
+                    value={guideForm.pdfUrl}
+                    onChange={e => setGuideForm({...guideForm, pdfUrl: e.target.value})}
+                  />
+                  <label className={`flex items-center justify-center gap-2 rounded-xl bg-muted px-4 hover:bg-muted/80 transition-colors shrink-0 text-sm font-medium text-foreground cursor-pointer ${uploadingPdf ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadingPdf ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    อัพโหลด
+                    <input 
+                      type="file" 
+                      accept=".pdf" 
+                      className="hidden" 
+                      onChange={(e) => handleUpload(e, 'pdf')} 
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 

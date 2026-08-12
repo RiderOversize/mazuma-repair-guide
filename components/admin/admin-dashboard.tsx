@@ -129,7 +129,13 @@ export function AdminDashboard({
   const topCategories = categoriesWithCount.slice(0, 5)
   const maxCategoryCount = topCategories[0]?.modelCount || 1
 
-  const uniqueUsers = Array.from(new Map(activities.map(a => [a.userCode, a])).values())
+  const uniqueUsersMap = new Map()
+  for (const a of activities) {
+    if (!uniqueUsersMap.has(a.userCode)) {
+      uniqueUsersMap.set(a.userCode, a)
+    }
+  }
+  const uniqueUsers = Array.from(uniqueUsersMap.values())
 
   return (
     <div className="mx-auto w-full px-4 pb-8">

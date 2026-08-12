@@ -16,6 +16,7 @@ import {
   Bell
 } from "lucide-react"
 
+import { showToast } from "@/lib/swal"
 import type { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
@@ -30,12 +31,22 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
     setMounted(true)
   }, [])
 
-  const handleClearCache = () => {
+  const handleClearCache = async () => {
     setIsClearing(true)
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/cache/clear", { method: "POST" })
+      if (!res.ok) throw new Error("Failed to clear cache")
+      showToast("ล้างแคชระบบเรียบร้อยแล้ว", "success")
+      // Reload page to fetch new data
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error) {
+      console.error(error)
+      showToast("เกิดข้อผิดพลาดในการล้างแคช", "error")
+    } finally {
       setIsClearing(false)
-      alert("ล้างแคชระบบเรียบร้อยแล้ว")
-    }, 1500)
+    }
   }
 
   if (!mounted) {
