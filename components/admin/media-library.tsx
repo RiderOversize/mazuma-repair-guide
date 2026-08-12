@@ -69,15 +69,18 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   const [activeGuide, setActiveGuide] = useState<any>(null)
   const [guideUploadingState, setGuideUploadingState] = useState<'pdf' | 'vdo' | null>(null)
   const [videoDestination, setVideoDestination] = useState<'drive' | 'youtube'>('drive')
+  const [activeTab, setActiveTab] = useState<'drive' | 'youtube'>('drive')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const viewMenuRef = useRef<HTMLDivElement>(null)
   const sortMenuRef = useRef<HTMLDivElement>(null)
 
-  const fetchMedia = async (folderId: string) => {
+  const fetchMedia = async (folderId: string, tab: 'drive' | 'youtube' = activeTab) => {
     setIsLoading(true)
     try {
-      const url = folderId === 'root' ? '/api/media' : `/api/media?folderId=${folderId}`
+      const url = tab === 'youtube' 
+        ? '/api/media/youtube'
+        : (folderId === 'root' ? '/api/media' : `/api/media?folderId=${folderId}`)
       const res = await fetch(url)
       const data = await res.json()
       if (res.ok) {
@@ -94,9 +97,9 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   }
 
   useEffect(() => {
-    fetchMedia(currentFolderId)
-    setSelectedIds(new Set()) // Clear selection on folder change
-  }, [currentFolderId])
+    fetchMedia(currentFolderId, activeTab)
+    setSelectedIds(new Set()) // Clear selection on folder/tab change
+  }, [currentFolderId, activeTab])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -295,28 +298,48 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
     })
 
     try {
-      // 1. Get resumable upload session URL from our backend
-      const sessionRes = await fetch('/api/upload/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
-      })
+      if (activeTab === 'youtube') {
+        const sessionRes = await fetch('/api/upload/youtube/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
+        })
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize YouTube upload')
 
-      const sessionData = await sessionRes.json()
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type, 'Content-Length': file.size.toString() },
+          body: file,
+        })
+        if (!uploadRes.ok) throw new Error('Upload to YouTube failed')
+        
+        showAlert("สำเร็จ", "อัปโหลดวิดีโอขึ้น YouTube สำเร็จ", "success")
+        await logActivity(user, "create", "system", `อัปโหลดวิดีโอเข้า YouTube: ${file.name}`)
+      } else {
+        // 1. Get resumable upload session URL from our backend
+        const sessionRes = await fetch('/api/upload/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
+        })
 
-      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
-      const uploadRes = await fetch(sessionData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      })
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
 
-      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+        // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
 
-      showAlert("สำเร็จ", "อัปโหลดไฟล์สำเร็จ", "success")
-      await logActivity(user, "create", "system", `อัปโหลดเอกสาร ${file.name}`)
-      fetchMedia(currentFolderId)
+        if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+
+        showAlert("สำเร็จ", "อัปโหลดไฟล์สำเร็จ", "success")
+        await logActivity(user, "create", "system", `อัปโหลดเอกสาร ${file.name}`)
+      }
+      fetchMedia(currentFolderId, activeTab)
     } catch (error: any) {
       console.error(error)
       showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถอัปโหลดไฟล์ได้", "error")
@@ -405,15 +428,16 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       })
 
       try {
-        const res = await fetch("/api/media/rename", {
+        const url = activeTab === 'youtube' ? "/api/media/youtube" : "/api/media/rename"
+        const res = await fetch(url, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId, newName })
+          body: JSON.stringify(activeTab === 'youtube' ? { id: fileId, name: newName } : { fileId, newName })
         })
 
         if (res.ok) {
           showAlert("สำเร็จ", "เปลี่ยนชื่อสำเร็จ", "success")
-          fetchMedia(currentFolderId)
+          fetchMedia(currentFolderId, activeTab)
         } else {
           const data = await res.json()
           throw new Error(data.error)
@@ -439,7 +463,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
     })
     try {
       const idsParam = Array.from(selectedIds).join(',')
-      const res = await fetch(`/api/media?ids=${idsParam}`, {
+      const url = activeTab === 'youtube' ? `/api/media/youtube?ids=${idsParam}` : `/api/media?ids=${idsParam}`
+      const res = await fetch(url, {
         method: "DELETE"
       })
 
@@ -609,23 +634,42 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground mb-2">คลังสื่อ (PDF/Video)</h1>
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground overflow-x-auto pb-1">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
-                {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
-                <button
-                  onClick={() => navigateToBreadcrumb(index)}
-                  className={cn(
-                    "hover:text-primary transition-colors hover:underline",
-                    index === breadcrumbs.length - 1 && "font-semibold text-foreground pointer-events-none"
-                  )}
-                >
-                  {crumb.name}
-                </button>
-              </div>
-            ))}
+          
+          {/* Tabs */}
+          <div className="flex items-center gap-2 mb-4 bg-muted/50 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab('drive')}
+              className={cn("px-4 py-2 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'drive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              Google Drive
+            </button>
+            <button
+              onClick={() => setActiveTab('youtube')}
+              className={cn("px-4 py-2 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'youtube' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              YouTube
+            </button>
           </div>
+
+          {/* Breadcrumbs */}
+          {activeTab === 'drive' && (
+            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground overflow-x-auto pb-1">
+              {breadcrumbs.map((crumb, index) => (
+                <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
+                  {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
+                  <button
+                    onClick={() => navigateToBreadcrumb(index)}
+                    className={cn(
+                      "hover:text-primary transition-colors hover:underline",
+                      index === breadcrumbs.length - 1 && "font-semibold text-foreground pointer-events-none"
+                    )}
+                  >
+                    {crumb.name}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <input
@@ -633,27 +677,40 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           ref={fileInputRef}
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,application/pdf"
+          accept={activeTab === 'youtube' ? "video/*" : ".pdf,application/pdf"}
         />
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCreateFolder}
-            disabled={isCreatingFolder}
-            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {isCreatingFolder ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />}
-            สร้างโฟลเดอร์
-          </button>
-          <button
-            type="button"
-            onClick={handleUploadClick}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-          >
-            <UploadCloud className="size-4" />
-            อัปโหลดเอกสาร
-          </button>
+          {activeTab === 'drive' && (
+            <button
+              type="button"
+              onClick={handleCreateFolder}
+              disabled={isCreatingFolder}
+              className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {isCreatingFolder ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />}
+              สร้างโฟลเดอร์
+            </button>
+          )}
+          {activeTab === 'drive' ? (
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+            >
+              <UploadCloud className="size-4" />
+              อัปโหลดเอกสาร
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
+            >
+              <UploadCloud className="size-4" />
+              อัปโหลดวิดีโอผูกกับคู่มือ
+            </button>
+          )}
         </div>
       </div>
 
