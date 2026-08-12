@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         "X-Upload-Content-Type": mimeType,
+        "Origin": request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
       },
       body: JSON.stringify(metadata),
     });
