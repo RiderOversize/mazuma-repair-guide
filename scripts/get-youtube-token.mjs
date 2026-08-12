@@ -30,9 +30,9 @@ if (!clientId || !clientSecret) {
 const REDIRECT_URI = 'http://localhost:3000/api/auth/callback/google'; 
 const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
 
-// ONLY Request YouTube scope to prevent scope mixing error
+// Request full YouTube scope for CRUD operations
 const SCOPES = [
-  'https://www.googleapis.com/auth/youtube.upload'
+  'https://www.googleapis.com/auth/youtube'
 ];
 
 const authUrl = oAuth2Client.generateAuthUrl({
