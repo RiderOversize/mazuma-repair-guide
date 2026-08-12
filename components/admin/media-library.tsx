@@ -38,7 +38,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   const [sortBy, setSortBy] = useState<SortOption>("date-desc")
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false)
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
-  
+
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([{ id: 'root', name: 'หน้าหลัก' }])
   const currentFolderId = breadcrumbs[breadcrumbs.length - 1].id
 
@@ -54,20 +54,21 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
   // Drill-down Upload Modal State
   const [isDrilldownModalOpen, setIsDrilldownModalOpen] = useState(false)
-  const [drillStep, setDrillStep] = useState<1|2|3|4>(1)
-  
+  const [drillStep, setDrillStep] = useState<1 | 2 | 3 | 4>(1)
+
   // Master Data Cache
   const [symptomTypes, setSymptomTypes] = useState<any[]>([])
   const [symptoms, setSymptoms] = useState<any[]>([])
   const [guides, setGuides] = useState<any[]>([])
   const [isMasterDataLoaded, setIsMasterDataLoaded] = useState(false)
   const [isMasterDataLoading, setIsMasterDataLoading] = useState(false)
-  
+
   // Drill-down Selections
   const [activeSymType, setActiveSymType] = useState<any>(null)
   const [activeSym, setActiveSym] = useState<any>(null)
   const [activeGuide, setActiveGuide] = useState<any>(null)
-  const [guideUploadingState, setGuideUploadingState] = useState<'pdf'|'vdo'|null>(null)
+  const [guideUploadingState, setGuideUploadingState] = useState<'pdf' | 'vdo' | null>(null)
+  const [videoDestination, setVideoDestination] = useState<'drive' | 'youtube'>('drive')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const viewMenuRef = useRef<HTMLDivElement>(null)
@@ -122,8 +123,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         case "size-asc": return a.rawSize - b.rawSize
         case "size-desc": return b.rawSize - a.rawSize
         case "date-asc": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        case "date-desc": 
-        default: 
+        case "date-desc":
+        default:
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       }
     })
@@ -213,37 +214,60 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         MySwal.showLoading()
       }
     })
-    
-    try {
-      // 1. Get resumable upload session URL from our backend
-      const sessionRes = await fetch('/api/upload/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
-      })
-      
-      const sessionData = await sessionRes.json()
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
-      
-      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
-      const uploadRes = await fetch(sessionData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      })
 
-      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+    try {
+      let fileUrl = "";
       
-      const data = await uploadRes.json()
-      const fileUrl = data.webViewLink
-      
+      if (type === 'vdo' && videoDestination === 'youtube') {
+        // 1. Get YouTube resumable upload session
+        const sessionRes = await fetch('/api/upload/youtube/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
+        })
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize YouTube upload')
+
+        // 2. Upload directly to YouTube
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type, 'Content-Length': file.size.toString() },
+          body: file,
+        })
+        if (!uploadRes.ok) throw new Error('Upload to YouTube failed')
+        const data = await uploadRes.json()
+        fileUrl = `https://www.youtube.com/watch?v=${data.id}`
+      } else {
+        // 1. Get Google Drive resumable upload session URL from our backend
+        const sessionRes = await fetch('/api/upload/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
+        })
+
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize Drive upload')
+
+        // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
+
+        if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+
+        const data = await uploadRes.json()
+        fileUrl = data.webViewLink
+      }
+
       const updateData = type === 'pdf' ? { pdfUrl: fileUrl } : { mediaUrl: fileUrl }
       const updatedGuide = await updateGuide(activeGuide.id, updateData)
-      
+
       // Update local guides state
       setGuides(prev => prev.map(g => g.id === updatedGuide.id ? updatedGuide : g))
       setActiveGuide(updatedGuide)
-      
+
       showAlert("สำเร็จ", `อัปโหลดและผูก ${type.toUpperCase()} สำเร็จ!`, "success")
       await logActivity(user, "update", "guide", `ผูกไฟล์ ${type.toUpperCase()} กับคู่มือ: ${updatedGuide.title}`)
       fetchMedia(currentFolderId)
@@ -269,7 +293,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         MySwal.showLoading()
       }
     })
-    
+
     try {
       // 1. Get resumable upload session URL from our backend
       const sessionRes = await fetch('/api/upload/session', {
@@ -277,10 +301,10 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
       })
-      
+
       const sessionData = await sessionRes.json()
       if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
-      
+
       // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
       const uploadRes = await fetch(sessionData.uploadUrl, {
         method: 'PUT',
@@ -289,7 +313,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       })
 
       if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
-      
+
       showAlert("สำเร็จ", "อัปโหลดไฟล์สำเร็จ", "success")
       await logActivity(user, "create", "system", `อัปโหลดเอกสาร ${file.name}`)
       fetchMedia(currentFolderId)
@@ -330,12 +354,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         const res = await fetch("/api/media/folder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             name: folderName,
             parentId: currentFolderId === 'root' ? null : currentFolderId
           })
         })
-        
+
         if (res.ok) {
           showAlert("สำเร็จ", "สร้างโฟลเดอร์สำเร็จ", "success")
           fetchMedia(currentFolderId)
@@ -379,14 +403,14 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           MySwal.showLoading()
         }
       })
-      
+
       try {
         const res = await fetch("/api/media/rename", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileId, newName })
         })
-        
+
         if (res.ok) {
           showAlert("สำเร็จ", "เปลี่ยนชื่อสำเร็จ", "success")
           fetchMedia(currentFolderId)
@@ -418,7 +442,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       const res = await fetch(`/api/media?ids=${idsParam}`, {
         method: "DELETE"
       })
-      
+
       if (res.ok) {
         setMedia(prev => prev.filter(m => !selectedIds.has(m.id)))
         setSelectedIds(new Set())
@@ -490,7 +514,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
   const handleConfirmMove = async () => {
     if (selectedIds.size === 0) return
-    
+
     // Prevent moving to the exact same folder they are currently in
     if (moveTargetFolderId === currentFolderId) {
       setIsMoveModalOpen(false)
@@ -506,7 +530,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         MySwal.showLoading()
       }
     })
-    
+
     try {
       const res = await fetch("/api/media/move", {
         method: "PUT",
@@ -554,10 +578,10 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       return (
         <>
           <div className="w-full h-full p-2 flex items-center justify-center relative z-10 pointer-events-none">
-            <img 
-              src={m.thumbnailUrl} 
-              alt={m.name} 
-              className="max-w-full max-h-full object-contain drop-shadow-md bg-white pointer-events-auto" 
+            <img
+              src={m.thumbnailUrl}
+              alt={m.name}
+              className="max-w-full max-h-full object-contain drop-shadow-md bg-white pointer-events-auto"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.opacity = '0';
@@ -571,7 +595,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         </>
       )
     }
-    
+
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-muted/10 text-primary/40 gap-2 pointer-events-none">
         <FileText className={viewMode === "large" ? "size-16" : "size-10"} />
@@ -584,7 +608,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
     <div className="mx-auto w-full px-4 pb-24">
       <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground mb-2">คลังเอกสาร (PDF)</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground mb-2">คลังสื่อ (PDF/Video)</h1>
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground overflow-x-auto pb-1">
             {breadcrumbs.map((crumb, index) => (
@@ -603,15 +627,15 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             ))}
           </div>
         </div>
-        
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          onChange={handleFileChange} 
-          accept=".pdf,application/pdf" 
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,application/pdf"
         />
-        
+
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -634,122 +658,122 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       </div>
 
       <div className="mb-6 flex flex-col sm:flex-row gap-3 items-center">
-         <div className="relative w-full sm:w-auto flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="ค้นหาชื่อเอกสารหรือโฟลเดอร์..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-border/50 bg-card px-9 py-2.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
-            />
-         </div>
+        <div className="relative w-full sm:w-auto flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="ค้นหาชื่อเอกสารหรือโฟลเดอร์..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-border/50 bg-card px-9 py-2.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+          />
+        </div>
 
-         <div className="flex w-full sm:w-auto gap-2">
-           <button
-             onClick={selectAll}
-             className="w-full sm:w-auto flex items-center justify-center gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-           >
-             {selectedIds.size === filtered.length && filtered.length > 0 ? (
-               <><CheckSquare className="size-4 text-primary" /> ยกเลิก</>
-             ) : (
-               <><Square className="size-4 text-muted-foreground" /> เลือกทั้งหมด</>
-             )}
-           </button>
+        <div className="flex w-full sm:w-auto gap-2">
+          <button
+            onClick={selectAll}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+          >
+            {selectedIds.size === filtered.length && filtered.length > 0 ? (
+              <><CheckSquare className="size-4 text-primary" /> ยกเลิก</>
+            ) : (
+              <><Square className="size-4 text-muted-foreground" /> เลือกทั้งหมด</>
+            )}
+          </button>
 
-           {/* Sort Options Dropdown */}
-           <div className="relative flex-1 sm:flex-initial" ref={sortMenuRef}>
-              <button
-                 onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-                 className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-              >
-                 <span className="flex items-center gap-2">
-                   <ArrowDownUp className="size-4 text-muted-foreground" />
-                   จัดเรียง
-                 </span>
-                 <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isSortMenuOpen && "rotate-180")} />
-              </button>
+          {/* Sort Options Dropdown */}
+          <div className="relative flex-1 sm:flex-initial" ref={sortMenuRef}>
+            <button
+              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+              className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <ArrowDownUp className="size-4 text-muted-foreground" />
+                จัดเรียง
+              </span>
+              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isSortMenuOpen && "rotate-180")} />
+            </button>
 
-              {isSortMenuOpen && (
-                <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
-                  <button
-                    onClick={() => { setSortBy("date-desc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <CalendarDays className="size-4" /> ใหม่สุดไปเก่าสุด
-                  </button>
-                  <button
-                    onClick={() => { setSortBy("date-asc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <CalendarDays className="size-4" /> เก่าสุดไปใหม่สุด
-                  </button>
-                  
-                  <div className="border-t border-border/50 my-1"></div>
-                  
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
-                  <button
-                    onClick={() => { setSortBy("name-asc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <ArrowDownAZ className="size-4" /> A-Z, ก-ฮ
-                  </button>
-                  <button
-                    onClick={() => { setSortBy("name-desc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <ArrowUpAZ className="size-4" /> Z-A, ฮ-ก
-                  </button>
-                </div>
-              )}
-           </div>
+            {isSortMenuOpen && (
+              <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
+                <button
+                  onClick={() => { setSortBy("date-desc"); setIsSortMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <CalendarDays className="size-4" /> ใหม่สุดไปเก่าสุด
+                </button>
+                <button
+                  onClick={() => { setSortBy("date-asc"); setIsSortMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <CalendarDays className="size-4" /> เก่าสุดไปใหม่สุด
+                </button>
 
-           {/* View Options Dropdown */}
-           <div className="relative flex-1 sm:flex-initial" ref={viewMenuRef}>
-              <button
-                 onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-                 className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-              >
-                 <span className="flex items-center gap-2">
-                   {viewMode === "large" && <LayoutGrid className="size-4" />}
-                   {viewMode === "medium" && <Grid3X3 className="size-4" />}
-                   {viewMode === "list" && <List className="size-4" />}
-                   <span className="hidden sm:inline">มุมมอง</span>
-                 </span>
-                 <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isViewMenuOpen && "rotate-180")} />
-              </button>
+                <div className="border-t border-border/50 my-1"></div>
 
-              {isViewMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <button
-                    onClick={() => { setViewMode("large"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <LayoutGrid className="size-4" /> ไอคอนขนาดใหญ่
-                  </button>
-                  <button
-                    onClick={() => { setViewMode("medium"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <Grid3X3 className="size-4" /> ไอคอนขนาดกลาง
-                  </button>
-                  <button
-                    onClick={() => { setViewMode("list"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                  >
-                    <List className="size-4" /> รายละเอียด (List)
-                  </button>
-                </div>
-              )}
-           </div>
-         </div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
+                <button
+                  onClick={() => { setSortBy("name-asc"); setIsSortMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <ArrowDownAZ className="size-4" /> A-Z, ก-ฮ
+                </button>
+                <button
+                  onClick={() => { setSortBy("name-desc"); setIsSortMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <ArrowUpAZ className="size-4" /> Z-A, ฮ-ก
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* View Options Dropdown */}
+          <div className="relative flex-1 sm:flex-initial" ref={viewMenuRef}>
+            <button
+              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+              className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                {viewMode === "large" && <LayoutGrid className="size-4" />}
+                {viewMode === "medium" && <Grid3X3 className="size-4" />}
+                {viewMode === "list" && <List className="size-4" />}
+                <span className="hidden sm:inline">มุมมอง</span>
+              </span>
+              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isViewMenuOpen && "rotate-180")} />
+            </button>
+
+            {isViewMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  onClick={() => { setViewMode("large"); setIsViewMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <LayoutGrid className="size-4" /> ไอคอนขนาดใหญ่
+                </button>
+                <button
+                  onClick={() => { setViewMode("medium"); setIsViewMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <Grid3X3 className="size-4" /> ไอคอนขนาดกลาง
+                </button>
+                <button
+                  onClick={() => { setViewMode("list"); setIsViewMenuOpen(false); }}
+                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                >
+                  <List className="size-4" /> รายละเอียด (List)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
-           <Loader2 className="size-8 animate-spin text-primary mb-3" />
-           <p className="text-muted-foreground text-sm">กำลังโหลดข้อมูลจาก Google Drive...</p>
+          <Loader2 className="size-8 animate-spin text-primary mb-3" />
+          <p className="text-muted-foreground text-sm">กำลังโหลดข้อมูลจาก Google Drive...</p>
         </div>
       ) : (
         <div className={getGridClass()}>
@@ -759,8 +783,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
             if (viewMode === "list") {
               return (
-                <div 
-                  key={m.id} 
+                <div
+                  key={m.id}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-xl border transition-colors shadow-sm gap-4 cursor-pointer group",
                     isSelected ? "border-primary bg-primary/5" : "border-border/40 bg-card hover:border-primary/30"
@@ -781,11 +805,11 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       {isSelected ? <CheckSquare className="size-5" /> : <Square className="size-5" />}
                     </button>
                     <div className={cn("size-10 rounded-lg flex items-center justify-center shrink-0", isFolder ? "bg-amber-100" : "bg-red-100")}>
-                       {isFolder ? <Folder className="size-5 text-amber-600" /> : <FileText className="size-5 text-red-600" />}
+                      {isFolder ? <Folder className="size-5 text-amber-600" /> : <FileText className="size-5 text-red-600" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                       <span className="text-[13px] font-semibold text-foreground truncate hover:text-primary transition-colors" title={m.name}>{m.name}</span>
-                       <span className="text-[11px] text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
+                      <span className="text-[13px] font-semibold text-foreground truncate hover:text-primary transition-colors" title={m.name}>{m.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
@@ -798,8 +822,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             // Grid Views (Large or Medium)
             if (isFolder) {
               return (
-                <div 
-                  key={m.id} 
+                <div
+                  key={m.id}
                   onClick={(e) => {
                     if (selectedIds.size > 0) toggleSelection(m.id, e);
                     else navigateToFolder(m.id, m.name);
@@ -812,7 +836,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   <button
                     onClick={(e) => toggleSelection(m.id, e)}
                     className={cn(
-                      "absolute top-2 right-2 p-1 rounded-md z-10 transition-opacity", 
+                      "absolute top-2 right-2 p-1 rounded-md z-10 transition-opacity",
                       isSelected ? "text-primary opacity-100" : "text-muted-foreground/50 opacity-0 group-hover:opacity-100"
                     )}
                   >
@@ -829,8 +853,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             }
 
             return (
-              <div 
-                key={m.id} 
+              <div
+                key={m.id}
                 onClick={(e) => {
                   if (selectedIds.size > 0) toggleSelection(m.id, e);
                   else window.open(m.url, '_blank');
@@ -845,7 +869,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   <button
                     onClick={(e) => toggleSelection(m.id, e)}
                     className={cn(
-                      "p-0.5 rounded-md transition-opacity shrink-0", 
+                      "p-0.5 rounded-md transition-opacity shrink-0",
                       isSelected ? "text-primary opacity-100" : "text-muted-foreground/50 opacity-0 group-hover:opacity-100"
                     )}
                   >
@@ -859,17 +883,17 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
                 {/* Preview Body */}
                 <div className="relative aspect-[4/3] bg-muted/20 flex flex-col items-center justify-center overflow-hidden hover:bg-muted/40 transition-colors pointer-events-none">
-                   {renderFileThumbnail(m)}
+                  {renderFileThumbnail(m)}
                 </div>
               </div>
             )
           })}
-          
+
           {filtered.length === 0 && (
-             <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-dashed border-border bg-card/30 mt-4">
-                <Folder className="size-10 text-muted-foreground/30 mb-3" />
-                <h3 className="font-display text-[15px] font-bold text-muted-foreground">โฟลเดอร์ว่างเปล่า หรือไม่พบข้อมูลที่ค้นหา</h3>
-             </div>
+            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-dashed border-border bg-card/30 mt-4">
+              <Folder className="size-10 text-muted-foreground/30 mb-3" />
+              <h3 className="font-display text-[15px] font-bold text-muted-foreground">โฟลเดอร์ว่างเปล่า หรือไม่พบข้อมูลที่ค้นหา</h3>
+            </div>
           )}
         </div>
       )}
@@ -924,7 +948,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 <X className="size-4" />
               </button>
             </div>
-            
+
             <div className="p-4 bg-background">
               {/* Modal Breadcrumbs */}
               <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground overflow-x-auto pb-3 mb-2 border-b border-border/50">
@@ -957,7 +981,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                     <ChevronRight className="size-4 text-muted-foreground/50 ml-auto" />
                   </button>
                 ))}
-                
+
                 {moveFolders.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 gap-2">
                     <Folder className="size-8" />
@@ -995,12 +1019,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
               <div className="flex items-center gap-3">
                 {drillStep > 1 && (
-                  <button 
+                  <button
                     onClick={() => {
                       if (drillStep === 2) setDrillStep(1)
                       if (drillStep === 3) setDrillStep(2)
                       if (drillStep === 4) setDrillStep(3)
-                    }} 
+                    }}
                     className="p-1.5 rounded-md hover:bg-muted text-foreground transition-colors flex items-center gap-1 text-[13px] font-semibold"
                   >
                     <ChevronLeft className="size-4" /> ย้อนกลับ
@@ -1022,7 +1046,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 <X className="size-5" />
               </button>
             </div>
-            
+
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-0 bg-background">
               {isMasterDataLoading ? (
@@ -1072,12 +1096,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
                   {/* Step 2: Symptoms */}
                   {drillStep === 2 && (() => {
-                    const filteredSymptoms = symptoms.filter(s => 
-                      s.symptomTypeId === activeSymType?.id || 
+                    const filteredSymptoms = symptoms.filter(s =>
+                      s.symptomTypeId === activeSymType?.id ||
                       s.symptomTypeId === activeSymType?.name ||
                       (activeSymType?.subcategoryId && s.symptomTypeId === activeSymType?.subcategoryId)
                     );
-                    
+
                     if (filteredSymptoms.length === 0) {
                       return (
                         <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
@@ -1086,7 +1110,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                         </div>
                       )
                     }
-                    
+
                     return filteredSymptoms.map((sym, i) => (
                       <div
                         key={sym.id}
@@ -1113,7 +1137,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   {/* Step 3: Guides */}
                   {drillStep === 3 && (() => {
                     const filteredGuides = guides.filter(g => g.symptomId === activeSym?.id);
-                    
+
                     if (filteredGuides.length === 0) {
                       return (
                         <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
@@ -1165,13 +1189,23 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                           className="w-full rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-[14px] text-muted-foreground outline-none cursor-not-allowed"
                         />
                       </div>
-                      
+
                       <div className="space-y-5">
                         {/* VDO Upload */}
                         <div>
-                          <label className="text-[13px] font-semibold text-foreground flex items-center gap-2 mb-2">
-                            <UploadCloud className="size-4 text-blue-500" />ลิงก์ VDO (ไม่บังคับ)
-                          </label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+                              <UploadCloud className="size-4 text-blue-500" />ลิงก์ VDO (ไม่บังคับ)
+                            </label>
+                            <select
+                              value={videoDestination}
+                              onChange={(e) => setVideoDestination(e.target.value as 'drive' | 'youtube')}
+                              className="text-[11px] font-medium rounded-lg border border-border/50 bg-background px-2 py-1 outline-none text-muted-foreground"
+                            >
+                              <option value="drive">อัปโหลดลง Google Drive</option>
+                              <option value="youtube">อัปโหลดลง YouTube</option>
+                            </select>
+                          </div>
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -1231,7 +1265,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border/50">
                         <button
                           onClick={() => setIsDrilldownModalOpen(false)}

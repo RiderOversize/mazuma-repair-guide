@@ -30,10 +30,8 @@ if (!clientId || !clientSecret) {
 const REDIRECT_URI = 'http://localhost:3000/api/auth/callback/google'; 
 const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
 
+// ONLY Request YouTube scope to prevent scope mixing error
 const SCOPES = [
-  'https://www.googleapis.com/auth/drive.file', 
-  'https://www.googleapis.com/auth/drive',
-  'https://www.googleapis.com/auth/drive.metadata',
   'https://www.googleapis.com/auth/youtube.upload'
 ];
 
@@ -46,7 +44,7 @@ const authUrl = oAuth2Client.generateAuthUrl({
 console.log('====================================================');
 console.log('1. เปิดลิงก์นี้ในเบราว์เซอร์:');
 console.log('\n', authUrl, '\n');
-console.log('2. ล็อกอินด้วยบัญชี Google ที่คุณต้องการใช้งาน (บัญชี 5TB)');
+console.log('2. ล็อกอินด้วยบัญชี Google ที่เป็นเจ้าของช่อง YouTube');
 console.log('3. เมื่อกดยอมรับสิทธิ์ เบราว์เซอร์จะพาไปที่เว็บ localhost (แม้เว็บจะ Error ไม่เป็นไร)');
 console.log('4. ให้ก๊อปปี้ "URL ทั้งหมด" จากช่อง Address Bar มาวางด้านล่างนี้');
 console.log('====================================================\n');
@@ -82,13 +80,13 @@ rl.question('วาง URL ที่ก๊อปปี้มาตรงนี�
   }
 
   try {
-      console.log('\nกำลังขอ Refresh Token...');
+      console.log('\nกำลังขอ YouTube Refresh Token...');
       const { tokens } = await oAuth2Client.getToken(code);
       
       if (tokens.refresh_token) {
-          console.log('\n✅ สำเร็จ! ได้ Refresh Token แล้ว\n');
+          console.log('\n✅ สำเร็จ! ได้ YouTube Refresh Token แล้ว\n');
           console.log('ให้นำโค้ดด้านล่างนี้ไปต่อท้ายไฟล์ .env.local ของคุณ:\n');
-          console.log(`GOOGLE_REFRESH_TOKEN="${tokens.refresh_token}"`);
+          console.log(`YOUTUBE_REFRESH_TOKEN="${tokens.refresh_token}"`);
           console.log('\n----------------------------------------------------\n');
       } else {
           console.log('\n❌ ไม่ได้ Refresh Token กลับมา');
