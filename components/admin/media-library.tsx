@@ -5,7 +5,7 @@ import { AuthUser } from "@/lib/auth"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete, MySwal } from "@/lib/swal"
 import { getSymptomTypes, getSymptoms, getGuides, updateGuide } from "@/lib/data-service"
-import { UploadCloud, Search, Trash2, Loader2, FileText, ChevronDown, LayoutGrid, Grid3X3, List, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, CalendarDays, ArrowDownUp, FolderPlus, Folder, ChevronRight, CheckSquare, Square, FolderUp, X, ChevronLeft, Stethoscope, AlertTriangle, FileDown, Edit } from "lucide-react"
+import { UploadCloud, Search, Trash2, Loader2, FileText, ChevronDown, LayoutGrid, Grid3X3, List, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, CalendarDays, ArrowDownUp, FolderPlus, Folder, ChevronRight, CheckSquare, Square, FolderUp, X, ChevronLeft, Stethoscope, AlertTriangle, FileDown, Edit, HardDrive, PlaySquare, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type MediaType = "pdf" | "image" | "video" | "folder"
@@ -75,6 +75,27 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   const viewMenuRef = useRef<HTMLDivElement>(null)
   const sortMenuRef = useRef<HTMLDivElement>(null)
 
+  const handleApiError = (error: any, defaultMsg: string) => {
+    console.error(error)
+    if (error.message === "QUOTA_EXCEEDED") {
+      MySwal.fire({
+        title: 'โควตา YouTube เต็ม!',
+        text: 'โควตาการใช้งาน YouTube API สำหรับวันนี้เต็มแล้ว กรุณารอวันพรุ่งนี้ (รีเซ็ตเวลา 14:00 น. ตามเวลาไทย) หรือทำการขอขยายโควตากับทาง Google',
+        icon: 'error',
+        confirmButtonText: 'ตกลง',
+        customClass: {
+          popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+          title: "font-display text-xl font-bold text-foreground",
+          htmlContainer: "text-sm text-muted-foreground",
+          confirmButton: "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors",
+        },
+        buttonsStyling: false
+      })
+    } else {
+      showAlert("เกิดข้อผิดพลาด", error.message || defaultMsg, "error")
+    }
+  }
+
   const fetchMedia = async (folderId: string, tab: 'drive' | 'youtube' = activeTab) => {
     setIsLoading(true)
     try {
@@ -89,8 +110,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         throw new Error(data.error || "Failed to load files")
       }
     } catch (error: any) {
-      console.error(error)
-      showAlert("เกิดข้อผิดพลาด", "ไม่สามารถดึงข้อมูลไฟล์ได้", "error")
+      handleApiError(error, "ไม่สามารถดึงข้อมูลไฟล์ได้")
     } finally {
       setIsLoading(false)
     }
@@ -275,8 +295,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       await logActivity(user, "update", "guide", `ผูกไฟล์ ${type.toUpperCase()} กับคู่มือ: ${updatedGuide.title}`)
       fetchMedia(currentFolderId)
     } catch (error: any) {
-      console.error(error)
-      showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถอัปโหลดไฟล์ได้", "error")
+      handleApiError(error, "ไม่สามารถอัปโหลดไฟล์ได้")
     } finally {
       setGuideUploadingState(null)
       e.target.value = "" // Reset input
@@ -341,8 +360,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       }
       fetchMedia(currentFolderId, activeTab)
     } catch (error: any) {
-      console.error(error)
-      showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถอัปโหลดไฟล์ได้", "error")
+      handleApiError(error, "ไม่สามารถอัปโหลดไฟล์ได้")
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -443,8 +461,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           throw new Error(data.error)
         }
       } catch (error: any) {
-        console.error(error)
-        showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถเปลี่ยนชื่อได้", "error")
+        handleApiError(error, "ไม่สามารถเปลี่ยนชื่อได้")
       }
     }
   }
@@ -478,8 +495,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         throw new Error(data.error)
       }
     } catch (error: any) {
-      console.error(error)
-      showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถลบได้", "error")
+      handleApiError(error, "ไม่สามารถลบได้")
     }
   }
 
@@ -1250,18 +1266,38 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       <div className="space-y-5">
                         {/* VDO Upload */}
                         <div>
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-3">
                             <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
-                              <UploadCloud className="size-4 text-blue-500" />ลิงก์ VDO (ไม่บังคับ)
+                              <UploadCloud className="size-4 text-blue-500" />อัปโหลด VDO (ไม่บังคับ)
                             </label>
-                            <select
-                              value={videoDestination}
-                              onChange={(e) => setVideoDestination(e.target.value as 'drive' | 'youtube')}
-                              className="text-[11px] font-medium rounded-lg border border-border/50 bg-background px-2 py-1 outline-none text-muted-foreground"
+                          </div>
+
+                          <div className="flex gap-3 mb-3">
+                            <div 
+                              onClick={() => setVideoDestination('drive')}
+                              className={`flex-1 relative flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'drive' ? 'border-blue-500 bg-blue-500/5' : 'border-border/60 hover:border-border bg-background'}`}
                             >
-                              <option value="drive">อัปโหลดลง Google Drive</option>
-                              <option value="youtube">อัปโหลดลง YouTube</option>
-                            </select>
+                              <div className={`flex size-7 shrink-0 items-center justify-center rounded-md ${videoDestination === 'drive' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                <HardDrive className="size-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-[12px] text-foreground">Google Drive</p>
+                              </div>
+                              {videoDestination === 'drive' && <CheckCircle2 className="size-3.5 text-blue-500 absolute top-1.5 right-1.5" />}
+                            </div>
+
+                            <div 
+                              onClick={() => setVideoDestination('youtube')}
+                              className={`flex-1 relative flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'youtube' ? 'border-red-500 bg-red-500/5' : 'border-border/60 hover:border-border bg-background'}`}
+                            >
+                              <div className={`flex size-7 shrink-0 items-center justify-center rounded-md ${videoDestination === 'youtube' ? 'bg-red-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                <PlaySquare className="size-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-[12px] text-foreground">YouTube</p>
+                              </div>
+                              {videoDestination === 'youtube' && <CheckCircle2 className="size-3.5 text-red-500 absolute top-1.5 right-1.5" />}
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <input

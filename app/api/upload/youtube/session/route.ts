@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
     if (!initRes.ok) {
       const errorText = await initRes.text();
       console.error("YouTube Init Error:", errorText);
+      if (errorText.includes("quotaExceeded")) {
+        throw new Error("QUOTA_EXCEEDED");
+      }
       throw new Error("Failed to initialize YouTube upload session");
     }
 

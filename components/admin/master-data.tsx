@@ -12,7 +12,7 @@ import {
 } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
-import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, Upload } from "lucide-react"
+import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, Upload, HardDrive, PlaySquare, CheckCircle2 } from "lucide-react"
 
 export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobalBack }: { user: AuthUser, initialView?: string, setGlobalBack?: (fn: (() => void) | null) => void }) {
   const [categories, setCategories] = useState<Category[]>([])
@@ -48,6 +48,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
   const [uploadingPdf, setUploadingPdf] = useState(false)
   const [uploadingVdo, setUploadingVdo] = useState(false)
+  const [videoDestination, setVideoDestination] = useState<'drive' | 'youtube'>('drive')
   
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'vdo') => {
     const file = e.target.files?.[0]
@@ -63,27 +64,47 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     }
 
     try {
-      // 1. Get resumable upload session URL from our backend
-      const sessionRes = await fetch('/api/upload/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, mimeType: file.type }),
-      })
-      
-      const sessionData = await sessionRes.json()
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
-      
-      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
-      const uploadRes = await fetch(sessionData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      })
+      let fileUrl = ""
+      if (type === 'vdo' && videoDestination === 'youtube') {
+        const sessionRes = await fetch('/api/upload/youtube/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
+        })
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize YouTube upload')
 
-      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
-      
-      const data = await uploadRes.json()
-      const fileUrl = data.webViewLink
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type, 'Content-Length': file.size.toString() },
+          body: file,
+        })
+        if (!uploadRes.ok) throw new Error('Upload to YouTube failed')
+        const data = await uploadRes.json()
+        fileUrl = `https://www.youtube.com/watch?v=${data.id}`
+      } else {
+        // 1. Get resumable upload session URL from our backend
+        const sessionRes = await fetch('/api/upload/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type }),
+        })
+        
+        const sessionData = await sessionRes.json()
+        if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
+        
+        // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+        const uploadRes = await fetch(sessionData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
+
+        if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+        
+        const data = await uploadRes.json()
+        fileUrl = data.webViewLink
+      }
       
       if (type === 'pdf') {
         setGuideForm(prev => ({ ...prev, pdfUrl: fileUrl }))
@@ -93,7 +114,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         showToast('อัพโหลด VDO สำเร็จ', 'success')
       }
     } catch (err: any) {
-      showToast(err.message || 'เกิดข้อผิดพลาดในการอัพโหลด', 'error')
+      if (err.message === "QUOTA_EXCEEDED") {
+        showToast('โควตา YouTube สำหรับวันนี้เต็มแล้ว', 'error')
+      } else {
+        showToast(err.message || 'เกิดข้อผิดพลาดในการอัพโหลด', 'error')
+      }
     } finally {
       if (type === 'pdf') setUploadingPdf(false)
       else setUploadingVdo(false)
@@ -953,10 +978,39 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                   onKeyDown={e => e.key === 'Enter' && handleSaveGuide()}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Video className="size-4 text-blue-500" /> ลิงค์ VDO (ไม่บังคับ)
+                  <Video className="size-4 text-blue-500" /> อัปโหลด VDO (ไม่บังคับ)
                 </label>
+                
+                <div className="flex gap-3">
+                  <div 
+                    onClick={() => setVideoDestination('drive')}
+                    className={`flex-1 relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'drive' ? 'border-blue-500 bg-blue-500/5' : 'border-border hover:border-border/80 bg-background'}`}
+                  >
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${videoDestination === 'drive' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <HardDrive className="size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[13px] text-foreground">Google Drive</p>
+                    </div>
+                    {videoDestination === 'drive' && <CheckCircle2 className="size-4 text-blue-500 absolute top-2 right-2" />}
+                  </div>
+
+                  <div 
+                    onClick={() => setVideoDestination('youtube')}
+                    className={`flex-1 relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'youtube' ? 'border-red-500 bg-red-500/5' : 'border-border hover:border-border/80 bg-background'}`}
+                  >
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${videoDestination === 'youtube' ? 'bg-red-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <PlaySquare className="size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[13px] text-foreground">YouTube</p>
+                    </div>
+                    {videoDestination === 'youtube' && <CheckCircle2 className="size-4 text-red-500 absolute top-2 right-2" />}
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <input 
                     className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
