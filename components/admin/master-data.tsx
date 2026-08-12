@@ -62,24 +62,34 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       setUploadingVdo(true)
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
-      const res = await fetch('/api/upload', {
+      // 1. Get resumable upload session URL from our backend
+      const sessionRes = await fetch('/api/upload/session', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, mimeType: file.type }),
       })
       
-      const data = await res.json()
+      const sessionData = await sessionRes.json()
+      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
       
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+      const uploadRes = await fetch(sessionData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+
+      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+      
+      const data = await uploadRes.json()
+      const fileUrl = data.webViewLink
       
       if (type === 'pdf') {
-        setGuideForm(prev => ({ ...prev, pdfUrl: data.url }))
+        setGuideForm(prev => ({ ...prev, pdfUrl: fileUrl }))
         showToast('อัพโหลด PDF สำเร็จ', 'success')
       } else {
-        setGuideForm(prev => ({ ...prev, mediaUrl: data.url }))
+        setGuideForm(prev => ({ ...prev, mediaUrl: fileUrl }))
         showToast('อัพโหลด VDO สำเร็จ', 'success')
       }
     } catch (err: any) {

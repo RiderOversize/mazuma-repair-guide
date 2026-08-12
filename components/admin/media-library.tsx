@@ -214,33 +214,39 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       }
     })
     
-    const formData = new FormData()
-    formData.append("file", file)
-    if (currentFolderId !== 'root') {
-      formData.append("folderId", currentFolderId)
-    }
-
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
+      // 1. Get resumable upload session URL from our backend
+      const sessionRes = await fetch('/api/upload/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
       })
-      const data = await res.json()
+      
+      const sessionData = await sessionRes.json()
+      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
+      
+      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+      const uploadRes = await fetch(sessionData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
 
-      if (res.ok) {
-        const updateData = type === 'pdf' ? { pdfUrl: data.url } : { mediaUrl: data.url }
-        const updatedGuide = await updateGuide(activeGuide.id, updateData)
-        
-        // Update local guides state
-        setGuides(prev => prev.map(g => g.id === updatedGuide.id ? updatedGuide : g))
-        setActiveGuide(updatedGuide)
-        
-        showAlert("สำเร็จ", `อัปโหลดและผูก ${type.toUpperCase()} สำเร็จ!`, "success")
-        await logActivity(user, "update", "guide", `ผูกไฟล์ ${type.toUpperCase()} กับคู่มือ: ${updatedGuide.title}`)
-        fetchMedia(currentFolderId)
-      } else {
-        throw new Error(data.error)
-      }
+      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+      
+      const data = await uploadRes.json()
+      const fileUrl = data.webViewLink
+      
+      const updateData = type === 'pdf' ? { pdfUrl: fileUrl } : { mediaUrl: fileUrl }
+      const updatedGuide = await updateGuide(activeGuide.id, updateData)
+      
+      // Update local guides state
+      setGuides(prev => prev.map(g => g.id === updatedGuide.id ? updatedGuide : g))
+      setActiveGuide(updatedGuide)
+      
+      showAlert("สำเร็จ", `อัปโหลดและผูก ${type.toUpperCase()} สำเร็จ!`, "success")
+      await logActivity(user, "update", "guide", `ผูกไฟล์ ${type.toUpperCase()} กับคู่มือ: ${updatedGuide.title}`)
+      fetchMedia(currentFolderId)
     } catch (error: any) {
       console.error(error)
       showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถอัปโหลดไฟล์ได้", "error")
@@ -264,26 +270,29 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       }
     })
     
-    const formData = new FormData()
-    formData.append("file", file)
-    if (currentFolderId !== 'root') {
-      formData.append("folderId", currentFolderId)
-    }
-
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
+      // 1. Get resumable upload session URL from our backend
+      const sessionRes = await fetch('/api/upload/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, mimeType: file.type, folderId: currentFolderId !== 'root' ? currentFolderId : undefined }),
       })
-      const data = await res.json()
+      
+      const sessionData = await sessionRes.json()
+      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
+      
+      // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
+      const uploadRes = await fetch(sessionData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
 
-      if (res.ok) {
-        showAlert("สำเร็จ", "อัปโหลดไฟล์สำเร็จ", "success")
-        await logActivity(user, "create", "system", `อัปโหลดเอกสาร ${file.name}`)
-        fetchMedia(currentFolderId)
-      } else {
-        throw new Error(data.error)
-      }
+      if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
+      
+      showAlert("สำเร็จ", "อัปโหลดไฟล์สำเร็จ", "success")
+      await logActivity(user, "create", "system", `อัปโหลดเอกสาร ${file.name}`)
+      fetchMedia(currentFolderId)
     } catch (error: any) {
       console.error(error)
       showAlert("เกิดข้อผิดพลาด", error.message || "ไม่สามารถอัปโหลดไฟล์ได้", "error")
