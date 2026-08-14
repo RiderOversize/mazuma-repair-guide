@@ -96,8 +96,8 @@ export function GuideForm({
         const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
         const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
         
-        const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
-        const matName = subCategory?.name || category?.name || ""
+        const matCode = subCategory?.index || category?.slug || ""
+        const matName = subCategory?.name || category?.name || model.subcategoryId || model.categoryId || ""
 
         const mappingData = {
           modelCode: model.code,
@@ -119,8 +119,8 @@ export function GuideForm({
           const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
           const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
           
-          const matCode = subCategory?.index || category?.slug || model.subcategoryId || model.categoryId || ""
-          const matName = subCategory?.name || category?.name || ""
+          const matCode = subCategory?.index || category?.slug || ""
+          const matName = subCategory?.name || category?.name || model.subcategoryId || model.categoryId || ""
 
           mappingsToCreate.push({
             modelCode: model.code,

@@ -373,7 +373,10 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                   className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
                 >
                   <option value="">เลือกหมวดหมู่ย่อย</option>
-                  {subCategories.filter(sc => sc.categoryId === formData.categoryId).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                  {subCategories.filter(sc => {
+                    const selectedCat = categories.find(c => c.id === formData.categoryId);
+                    return selectedCat && sc.categoryId === selectedCat.slug;
+                  }).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
                 </select>
               </div>
 
