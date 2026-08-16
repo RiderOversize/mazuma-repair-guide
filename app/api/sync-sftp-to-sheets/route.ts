@@ -74,19 +74,25 @@ export async function GET(request: Request) {
     
     // 7. Load existing rows to perform Upsert
     const rows = await sheet.getRows();
+    const currentTime = new Date().toISOString();
     
     // 8. Create a map of existing products by 'code' (primary key)
+    // And pre-populate rowsToUpdate to update lastSyncAt for ALL rows
     const existingProductsMap = new Map();
+    const rowsToUpdate: any[] = [];
     rows.forEach(row => {
       const code = row.get('code');
       if (code) {
         existingProductsMap.set(code, row);
       }
+      
+      // Update lastSyncAt for EVERY existing row
+      row.assign({ 'lastSyncAt': currentTime });
+      rowsToUpdate.push(row);
     });
     
     // 9. Process incoming data
     const rowsToAdd: any[] = [];
-    const rowsToUpdate: any[] = [];
     let updateCount = 0;
     
     for (const item of dataArray) {
@@ -117,7 +123,6 @@ export async function GET(request: Request) {
       const categoryId = subCatId.split('-')[0];
 
       const existingRow = existingProductsMap.get(code);
-      const currentTime = new Date().toISOString();
       
       if (existingRow) {
         // Update if properties changed
@@ -137,10 +142,10 @@ export async function GET(request: Request) {
         }
         
         if (changed) {
-          existingRow.assign({ 'updatedAt': currentTime, 'lastSyncAt': currentTime });
+          existingRow.assign({ 'updatedAt': currentTime });
           updateCount++;
-          rowsToUpdate.push(existingRow);
         }
+        // Note: lastSyncAt is already updated above, and row is already in rowsToUpdate
         
       } else {
         // Insert new
@@ -159,10 +164,37 @@ export async function GET(request: Request) {
       }
     }
     
-    // Save updates in chunks to avoid rate limits
+    // Save updates in batch using googleapis to avoid rate limits
     if (rowsToUpdate.length > 0) {
-      for (const row of rowsToUpdate) {
-        await row.save();
+      const { google } = require('googleapis');
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        },
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+      
+      const dataRanges = rowsToUpdate.map(row => {
+        const rowArray = sheet.headerValues.map(header => row.get(header) || '');
+        return {
+          range: `Models!A${row.rowNumber}`,
+          values: [rowArray]
+        };
+      });
+
+      // Batch update in chunks of 500 ranges
+      const chunkSize = 500;
+      for (let i = 0; i < dataRanges.length; i += chunkSize) {
+        const batch = dataRanges.slice(i, i + chunkSize);
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: process.env.GOOGLE_SHEETS_ID as string,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: batch
+          }
+        });
       }
     }
     

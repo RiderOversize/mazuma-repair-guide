@@ -5,7 +5,7 @@ import { AuthUser } from "@/lib/auth"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete, MySwal } from "@/lib/swal"
 import { getSymptomTypes, getSymptoms, getGuides, updateGuide } from "@/lib/data-service"
-import { UploadCloud, Search, Trash2, Loader2, FileText, ChevronDown, LayoutGrid, Grid3X3, List, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, CalendarDays, ArrowDownUp, FolderPlus, Folder, ChevronRight, CheckSquare, Square, FolderUp, X, ChevronLeft, Stethoscope, AlertTriangle, FileDown, Edit, HardDrive, PlaySquare, CheckCircle2 } from "lucide-react"
+import { UploadCloud, Search, Trash2, Loader2, FileText, ChevronDown, LayoutGrid, Grid3X3, List, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, CalendarDays, ArrowDownUp, FolderPlus, Folder, ChevronRight, CheckSquare, Square, FolderUp, X, ChevronLeft, Stethoscope, AlertTriangle, FileDown, Edit, HardDrive, PlaySquare, CheckCircle2, Save } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type MediaType = "pdf" | "image" | "video" | "folder"
@@ -70,6 +70,11 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   const [guideUploadingState, setGuideUploadingState] = useState<'pdf' | 'vdo' | null>(null)
   const [videoDestination, setVideoDestination] = useState<'drive' | 'youtube'>('drive')
   const [activeTab, setActiveTab] = useState<'drive' | 'youtube'>('drive')
+  
+  // Edited URLs for manual linking
+  const [editedMediaUrl, setEditedMediaUrl] = useState<string>('')
+  const [editedPdfUrl, setEditedPdfUrl] = useState<string>('')
+  const [preselectedFileForLink, setPreselectedFileForLink] = useState<MediaFile | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const viewMenuRef = useRef<HTMLDivElement>(null)
@@ -119,6 +124,9 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   useEffect(() => {
     fetchMedia(currentFolderId, activeTab)
     setSelectedIds(new Set()) // Clear selection on folder/tab change
+    if (!isMasterDataLoaded) {
+      loadMasterData()
+    }
   }, [currentFolderId, activeTab])
 
   useEffect(() => {
@@ -170,6 +178,43 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   }
 
   const handleUploadClick = () => {
+    setIsDrilldownModalOpen(true)
+    setDrillStep(1)
+    setActiveSymType(null)
+    setActiveSym(null)
+    setActiveGuide(null)
+    setPreselectedFileForLink(null)
+    if (!isMasterDataLoaded) {
+      loadMasterData()
+    }
+  }
+
+  const handleBadgeClick = async (e: React.MouseEvent, m: MediaFile, isLinked: boolean) => {
+    e.stopPropagation()
+    e.preventDefault()
+    
+    if (isLinked) {
+      const isConfirmed = await MySwal.fire({
+        title: 'ยืนยันการแก้ไข',
+        text: 'ไฟล์นี้มีการผูกกับคู่มือไว้แล้ว คุณต้องการเปิดฟอร์มเพื่อแก้ไขการผูกหรือไม่?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'ใช่, แก้ไข',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+          title: "font-display text-xl font-bold text-foreground",
+          htmlContainer: "text-sm text-muted-foreground",
+          confirmButton: "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors",
+          cancelButton: "rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted transition-colors",
+          actions: "gap-2",
+        },
+        buttonsStyling: false,
+      })
+      if (!isConfirmed.isConfirmed) return
+    }
+    
+    setPreselectedFileForLink(m)
     setIsDrilldownModalOpen(true)
     setDrillStep(1)
     setActiveSymType(null)
@@ -299,6 +344,38 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
     } finally {
       setGuideUploadingState(null)
       e.target.value = "" // Reset input
+    }
+  }
+
+  const handleSaveManualUrl = async (type: 'pdf' | 'vdo', url: string) => {
+    if (!activeGuide) return
+    setGuideUploadingState(type)
+    
+    MySwal.fire({
+      title: 'กำลังบันทึกข้อมูล...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        MySwal.showLoading()
+      }
+    })
+
+    try {
+      const updateData = type === 'pdf' ? { pdfUrl: url } : { mediaUrl: url }
+      const updatedGuide = await updateGuide(activeGuide.id, updateData)
+
+      // Update local guides state
+      setGuides(prev => prev.map(g => g.id === updatedGuide.id ? updatedGuide : g))
+      setActiveGuide(updatedGuide)
+      if (type === 'pdf') setEditedPdfUrl(updatedGuide.pdfUrl || '')
+      if (type === 'vdo') setEditedMediaUrl(updatedGuide.mediaUrl || '')
+
+      showAlert("สำเร็จ", "บันทึกการแก้ไขลิงก์สำเร็จ!", "success")
+      await logActivity(user, "update", "guide", `แก้ไขลิงก์ ${type.toUpperCase()} ในคู่มือ: ${updatedGuide.title}`)
+      fetchMedia(currentFolderId)
+    } catch (error: any) {
+      handleApiError(error, "ไม่สามารถบันทึกข้อมูลได้")
+    } finally {
+      setGuideUploadingState(null)
     }
   }
 
@@ -853,6 +930,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           {filtered.map(m => {
             const isFolder = m.type === 'folder';
             const isSelected = selectedIds.has(m.id);
+            const isLinked = guides.some(g => g.mediaUrl === m.url || g.pdfUrl === m.url);
 
             if (viewMode === "list") {
               return (
@@ -886,6 +964,16 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
+                    {!isFolder && (
+                      <button
+                        onClick={(e) => handleBadgeClick(e, m, isLinked)}
+                        className={cn(
+                          "text-[11px] font-semibold px-2 py-0.5 rounded-full hidden sm:inline-flex hover:opacity-80 transition-opacity active:scale-95 cursor-pointer",
+                          isLinked ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        )}>
+                        {isLinked ? "ผูกคู่มือแล้ว" : "ยังไม่ผูก"}
+                      </button>
+                    )}
                     <span className="text-[12px] text-muted-foreground hidden sm:block">{isFolder ? '-' : m.size}</span>
                   </div>
                 </div>
@@ -957,6 +1045,19 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 {/* Preview Body */}
                 <div className="relative aspect-[4/3] bg-muted/20 flex flex-col items-center justify-center overflow-hidden hover:bg-muted/40 transition-colors pointer-events-none">
                   {renderFileThumbnail(m)}
+                  
+                  {/* Link Status Badge */}
+                  <div className="absolute top-2 right-2 z-20 pointer-events-auto">
+                    {isLinked ? (
+                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/90 text-white text-[10px] font-semibold backdrop-blur-sm shadow-sm hover:bg-green-600 transition-colors cursor-pointer" title="คลิกเพื่อแก้ไขการผูก">
+                        <CheckCircle2 className="size-3" /> ผูกแล้ว
+                      </button>
+                    ) : (
+                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background/80 text-muted-foreground text-[10px] font-semibold backdrop-blur-sm border border-border/50 shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all cursor-pointer" title="คลิกเพื่อผูกกับคู่มือ">
+                        <AlertTriangle className="size-3" /> ยังไม่ผูก
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -1105,12 +1206,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 )}
                 <div>
                   <h2 className="font-bold text-[16px] text-foreground flex items-center gap-2">
-                    {drillStep === 1 && "จัดการอาการเสียและวิธีตรวจสอบ"}
+                    {drillStep === 1 && (preselectedFileForLink ? "เลือกคู่มือที่ต้องการผูก" : "จัดการอาการเสียและวิธีตรวจสอบ")}
                     {drillStep === 2 && activeSymType?.name}
                     {drillStep === 3 && activeSym?.title}
                     {drillStep === 4 && "แก้ไขหัวข้อการตรวจสอบ"}
                   </h2>
-                  {drillStep === 1 && <p className="text-[12px] text-muted-foreground mt-0.5">Symptom Group ทั้งหมด</p>}
+                  {drillStep === 1 && <p className="text-[12px] text-muted-foreground mt-0.5">{preselectedFileForLink ? "เลือกกลุ่มอาการที่ต้องการเชื่อมโยง" : "Symptom Group ทั้งหมด"}</p>}
                   {drillStep === 2 && <p className="text-[12px] text-muted-foreground mt-0.5">อาการเสียย่อยและหัวข้อการตรวจสอบที่ผูกกับ Symptom Group นี้</p>}
                   {drillStep === 3 && <p className="text-[12px] text-muted-foreground mt-0.5">หัวข้อการตรวจสอบแก้ไขที่เกี่ยวข้องกับ Issue นี้</p>}
                 </div>
@@ -1225,6 +1326,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                         key={g.id}
                         onClick={() => {
                           setActiveGuide(g)
+                          setEditedMediaUrl(g.mediaUrl || '')
+                          setEditedPdfUrl(g.pdfUrl || '')
                           setDrillStep(4)
                         }}
                         className={`group flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors ${i !== filteredGuides.length - 1 ? 'border-b border-border/40' : ''}`}
@@ -1262,6 +1365,19 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                           className="w-full rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-[14px] text-muted-foreground outline-none cursor-not-allowed"
                         />
                       </div>
+
+                      {preselectedFileForLink && (
+                        <div className="mb-6 bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-3 justify-between">
+                          <div className="flex items-center gap-2 text-[13px] text-primary min-w-0 flex-1">
+                            <FileText className="size-4 shrink-0" />
+                            <span className="truncate">นำไฟล์มาผูก: <strong>{preselectedFileForLink.name}</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                            <button onClick={() => setEditedMediaUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-[12px] font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ VDO</button>
+                            <button onClick={() => setEditedPdfUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-[12px] font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ PDF</button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-5">
                         {/* VDO Upload */}
@@ -1302,27 +1418,38 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                           <div className="flex gap-2">
                             <input
                               type="text"
-                              value={activeGuide.mediaUrl || ''}
-                              readOnly
+                              value={editedMediaUrl}
+                              onChange={(e) => setEditedMediaUrl(e.target.value)}
                               placeholder="https://..."
-                              className="flex-1 rounded-xl border border-border/50 bg-muted/10 px-3 py-2 text-[14px] text-foreground outline-none"
+                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-[14px] text-foreground outline-none transition-colors"
                             />
-                            <div className="relative overflow-hidden inline-block shrink-0">
+                            {editedMediaUrl !== (activeGuide.mediaUrl || '') ? (
                               <button
+                                onClick={() => handleSaveManualUrl('vdo', editedMediaUrl)}
                                 disabled={guideUploadingState !== null}
-                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50 shrink-0"
                               >
-                                {guideUploadingState === 'vdo' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-                                อัปโหลด
+                                {guideUploadingState === 'vdo' ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                                บันทึกลิงก์
                               </button>
-                              <input
-                                type="file"
-                                accept="video/*"
-                                onChange={(e) => handleGuideUpload(e, 'vdo')}
-                                disabled={guideUploadingState !== null}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              />
-                            </div>
+                            ) : (
+                              <div className="relative overflow-hidden inline-block shrink-0">
+                                <button
+                                  disabled={guideUploadingState !== null}
+                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                >
+                                  {guideUploadingState === 'vdo' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+                                  อัปโหลดใหม่
+                                </button>
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  onChange={(e) => handleGuideUpload(e, 'vdo')}
+                                  disabled={guideUploadingState !== null}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1334,27 +1461,38 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                           <div className="flex gap-2">
                             <input
                               type="text"
-                              value={activeGuide.pdfUrl || ''}
-                              readOnly
+                              value={editedPdfUrl}
+                              onChange={(e) => setEditedPdfUrl(e.target.value)}
                               placeholder="https://..."
-                              className="flex-1 rounded-xl border border-border/50 bg-muted/10 px-3 py-2 text-[14px] text-foreground outline-none"
+                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-[14px] text-foreground outline-none transition-colors"
                             />
-                            <div className="relative overflow-hidden inline-block shrink-0">
+                            {editedPdfUrl !== (activeGuide.pdfUrl || '') ? (
                               <button
+                                onClick={() => handleSaveManualUrl('pdf', editedPdfUrl)}
                                 disabled={guideUploadingState !== null}
-                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50 shrink-0"
                               >
-                                {guideUploadingState === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-                                อัปโหลด
+                                {guideUploadingState === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                                บันทึกลิงก์
                               </button>
-                              <input
-                                type="file"
-                                accept=".pdf,application/pdf"
-                                onChange={(e) => handleGuideUpload(e, 'pdf')}
-                                disabled={guideUploadingState !== null}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              />
-                            </div>
+                            ) : (
+                              <div className="relative overflow-hidden inline-block shrink-0">
+                                <button
+                                  disabled={guideUploadingState !== null}
+                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                >
+                                  {guideUploadingState === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+                                  อัปโหลดใหม่
+                                </button>
+                                <input
+                                  type="file"
+                                  accept=".pdf,application/pdf"
+                                  onChange={(e) => handleGuideUpload(e, 'pdf')}
+                                  disabled={guideUploadingState !== null}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
