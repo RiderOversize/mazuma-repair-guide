@@ -801,7 +801,23 @@ export async function getRepairStats() {
 
   const failedCount = total - successCount;
 
-  return { total, successRate, avgStepsSuccess, successCount, failedCount };
+  const feedbacks = rows.map(r => {
+    const obj = mapRowToObject(headers, r);
+    return {
+      id: obj.id || `fb-${Math.random()}`,
+      guideId: obj.guideId,
+      modelId: obj.modelId,
+      userId: obj.userId,
+      userName: obj.userName,
+      isSuccess: obj.isSuccess === "TRUE",
+      stepsViewed: parseInt(obj.stepsViewed || "0"),
+      totalSteps: parseInt(obj.totalSteps || "0"),
+      timestamp: obj.timestamp,
+      note: obj.note
+    } as RepairFeedback
+  });
+
+  return { total, successRate, avgStepsSuccess, successCount, failedCount, feedbacks: feedbacks.reverse() };
 }
 
 export async function logSessionActivity(userId: string, userName: string, action: string) {

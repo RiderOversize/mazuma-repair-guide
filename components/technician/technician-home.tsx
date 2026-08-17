@@ -105,7 +105,7 @@ export function TechnicianHome({
         <div className="mb-6">
           {results.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
-              ไม่พบรุ่นที่ตรงกับ &quot;{query}&quot;
+              ขออภัยไม่พบรุ่นที่ค้นหา หรือ ยังไม่มีคู่มือ
             </p>
           ) : (
             <div className="flex flex-col gap-2">

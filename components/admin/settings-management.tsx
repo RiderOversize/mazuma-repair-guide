@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { 
-  Moon, 
-  Sun, 
-  Monitor, 
-  Database, 
-  Trash2, 
-  RefreshCw, 
-  Globe, 
+import {
+  Moon,
+  Sun,
+  Monitor,
+  Database,
+  Trash2,
+  RefreshCw,
+  Globe,
   ShieldCheck,
   Smartphone,
   ChevronRight,
@@ -79,14 +79,14 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   <p className="text-[13px] text-muted-foreground">ปรับเปลี่ยนโทนสีของแอปพลิเคชัน</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-2 mt-1">
                 <button
                   onClick={() => setTheme("light")}
                   className={cn(
                     "flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all",
-                    theme === "light" 
-                      ? "border-primary bg-primary/5 text-primary" 
+                    theme === "light"
+                      ? "border-primary bg-primary/5 text-primary"
                       : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -97,8 +97,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   onClick={() => setTheme("dark")}
                   className={cn(
                     "flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all",
-                    theme === "dark" 
-                      ? "border-primary bg-primary/5 text-primary" 
+                    theme === "dark"
+                      ? "border-primary bg-primary/5 text-primary"
                       : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -109,8 +109,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   onClick={() => setTheme("system")}
                   className={cn(
                     "flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all",
-                    theme === "system" 
-                      ? "border-primary bg-primary/5 text-primary" 
+                    theme === "system"
+                      ? "border-primary bg-primary/5 text-primary"
                       : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -126,7 +126,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground px-1 uppercase tracking-wider">ระบบและแอปพลิเคชัน</h2>
           <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
-            <button 
+            <button
               onClick={() => setModalMessage("ฟีเจอร์เปลี่ยนภาษากำลังอยู่ในช่วงพัฒนา (Coming Soon)")}
               className="group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors hover:bg-muted/30 active:bg-muted/50 border-b border-border/40"
             >
@@ -141,7 +141,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                 <ChevronRight className="size-5 text-muted-foreground/40" />
               </div>
             </button>
-            <button 
+            <button
               onClick={() => setModalMessage("ฟีเจอร์การแจ้งเตือนกำลังอยู่ในช่วงพัฒนา (Coming Soon)")}
               className="group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors hover:bg-muted/30 active:bg-muted/50 border-b border-border/40"
             >
@@ -153,7 +153,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
               </div>
               <ChevronRight className="size-5 text-muted-foreground/40" />
             </button>
-            <button 
+            <button
               onClick={() => setModalMessage("ฟีเจอร์ความปลอดภัยและสิทธิ์กำลังอยู่ในช่วงพัฒนา (Coming Soon)")}
               className="group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors hover:bg-muted/30 active:bg-muted/50"
             >
@@ -192,8 +192,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                 <RefreshCw className="size-4" />
               </button>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleClearCache}
               disabled={isClearing}
               className="group flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-muted/50"
@@ -217,7 +217,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
             <span className="font-display font-bold text-primary-foreground text-xl">M</span>
           </div>
           <p className="font-medium text-foreground">Mazuma Repair Guide</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">เวอร์ชัน 1.0.0 (Build 2024)</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">เวอร์ชัน 1.0.0 (Build 2026)</p>
         </div>
       </div>
 

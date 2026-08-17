@@ -19,10 +19,11 @@ import {
   ExternalLink,
   X,
   ChevronRight,
-  Smartphone
+  Smartphone,
+  Search
 } from "lucide-react"
-import type { Category, DeviceModel, MasterDataMapping } from "@/lib/types"
-import { preloadAdminData, type ActiveSession } from "@/lib/data-service"
+import type { Category, DeviceModel, MasterDataMapping, Guide, Symptom } from "@/lib/types"
+import { preloadAdminData, type ActiveSession, type RepairFeedback } from "@/lib/data-service"
 import { getActivities, type ActivityLog } from "@/lib/activity-service"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -43,16 +44,24 @@ export function AdminDashboard({
   const [categories, setCategories] = useState<Category[]>([])
   const [mappings, setMappings] = useState<MasterDataMapping[]>([])
   const [models, setModels] = useState<DeviceModel[]>([])
+  const [guides, setGuides] = useState<Guide[]>([])
+  const [symptoms, setSymptoms] = useState<Symptom[]>([])
+  const [users, setUsers] = useState<AuthUser[]>([])
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [totalSymptoms, setTotalSymptoms] = useState(0)
   
-  const [repairStats, setRepairStats] = useState({ total: 0, successRate: 0, avgStepsSuccess: "0", successCount: 0, failedCount: 0 })
+  const [repairStats, setRepairStats] = useState({ total: 0, successRate: 0, avgStepsSuccess: "0", successCount: 0, failedCount: 0, feedbacks: [] as RepairFeedback[] })
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [topModels, setTopModels] = useState<{modelId: string, count: number}[]>([])
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [showAllActiveUsers, setShowAllActiveUsers] = useState(false)
   const [showAllActivities, setShowAllActivities] = useState(false)
   const [showMissingMappingsModal, setShowMissingMappingsModal] = useState(false)
+  const [showRepairStatsModal, setShowRepairStatsModal] = useState(false)
+  const [selectedTopModel, setSelectedTopModel] = useState<string | null>(null)
+  const [missingMappingSearch, setMissingMappingSearch] = useState("")
+  const [repairFilter, setRepairFilter] = useState<"all" | "success" | "failed">("all")
+  const [dateFilter, setDateFilter] = useState<string>("all")
   
   const [loading, setLoading] = useState(true)
 
@@ -67,7 +76,10 @@ export function AdminDashboard({
     setCategories(data.categories)
     setMappings(data.mappings)
     setModels(data.models)
-    setTotalSymptoms(data.symptoms.length)
+    setGuides(data.guides || [])
+    setSymptoms(data.symptoms || [])
+    setTotalSymptoms(data.symptoms?.length || 0)
+    setUsers(data.users || [])
     setActivities(acts)
     setRepairStats(data.repairStats)
     setActiveSessions(data.activeSessions)
@@ -190,7 +202,10 @@ export function AdminDashboard({
       <h2 className="mb-3 font-display text-[16px] font-bold flex items-center gap-2">
         <Target className="size-4 text-emerald-500" /> สถิติการใช้งาน
       </h2>
-      <div className="mb-6 flex flex-col gap-3">
+      <div 
+        className="mb-6 flex flex-col gap-3 cursor-pointer hover:brightness-[1.02] active:scale-[0.99] transition-all"
+        onClick={() => setShowRepairStatsModal(true)}
+      >
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex justify-between items-center">
           <div>
             <p className="text-[13px] font-semibold text-emerald-600">อัตราการซ่อมสำเร็จ</p>
@@ -248,7 +263,11 @@ export function AdminDashboard({
           </div>
           <div className="space-y-3">
             {topModels.map((tm, i) => (
-              <div key={tm.modelId} className="flex items-center gap-3">
+              <div 
+                key={tm.modelId} 
+                className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors"
+                onClick={() => setSelectedTopModel(tm.modelId)}
+              >
                  <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-bold text-muted-foreground">
                    {i + 1}
                  </div>
@@ -301,20 +320,29 @@ export function AdminDashboard({
                 )
               }
 
-              return uniqueUsers.slice(0, 5).map((act) => (
-                <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px]">
-                     {act.userName?.charAt(0) || <User className="size-4" />}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                     <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
-                     <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
-                   </div>
-                   <div className="shrink-0 text-right">
-                     <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
-                   </div>
-                </div>
-              ))
+              return uniqueUsers.slice(0, 5).map((act) => {
+                const user = users.find(u => u.employeeCode === act.userCode)
+                
+                return (
+                  <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px] overflow-hidden">
+                       {user?.avatar ? (
+                         // eslint-disable-next-line @next/next/no-img-element
+                         <img src={user.avatar} alt={act.userName} className="w-full h-full object-cover" />
+                       ) : (
+                         act.userName?.charAt(0) || <User className="size-4" />
+                       )}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
+                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
+                     </div>
+                     <div className="shrink-0 text-right">
+                       <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
+                     </div>
+                  </div>
+                )
+              })
             })()}
           </div>
         </div>
@@ -477,20 +505,29 @@ export function AdminDashboard({
               </button>
             </div>
             <div className="overflow-y-auto pr-2 space-y-4">
-              {uniqueUsers.map((act) => (
-                <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px]">
-                     {act.userName?.charAt(0) || <User className="size-4" />}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                     <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
-                     <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
-                   </div>
-                   <div className="shrink-0 text-right">
-                     <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
-                   </div>
-                </div>
-              ))}
+              {uniqueUsers.map((act) => {
+                const user = users.find(u => u.employeeCode === act.userCode)
+
+                return (
+                  <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px] overflow-hidden">
+                       {user?.avatar ? (
+                         // eslint-disable-next-line @next/next/no-img-element
+                         <img src={user.avatar} alt={act.userName} className="w-full h-full object-cover" />
+                       ) : (
+                         act.userName?.charAt(0) || <User className="size-4" />
+                       )}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
+                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
+                     </div>
+                     <div className="shrink-0 text-right">
+                       <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
+                     </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -551,8 +588,22 @@ export function AdminDashboard({
                 <X className="size-5" />
               </button>
             </div>
+            
+            <div className="mb-4 relative shrink-0">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+               <input 
+                 type="text" 
+                 placeholder="ค้นหารุ่นสินค้า..."
+                 value={missingMappingSearch}
+                 onChange={e => setMissingMappingSearch(e.target.value)}
+                 className="w-full pl-9 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+               />
+            </div>
+            
             <div className="overflow-y-auto pr-2 space-y-3">
-              {modelsWithoutMappings.map(m => (
+              {modelsWithoutMappings
+                .filter(m => !missingMappingSearch || m.name.toLowerCase().includes(missingMappingSearch.toLowerCase()) || m.code.toLowerCase().includes(missingMappingSearch.toLowerCase()))
+                .map(m => (
                 <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[14px] text-foreground truncate">{m.code} - {m.name}</p>
@@ -573,6 +624,233 @@ export function AdminDashboard({
           </div>
         </div>
       )}
+
+      {/* Show Repair Stats Modal */}
+      {showRepairStatsModal && (() => {
+        const dateFilteredFeedbacks = repairStats.feedbacks.filter(fb => {
+          if (dateFilter !== "all") {
+            const fbDate = new Date(fb.timestamp);
+            const now = new Date();
+            
+            if (dateFilter === "today") {
+              if (fbDate.toDateString() !== now.toDateString()) return false;
+            } else if (dateFilter === "7d") {
+              const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              if (fbDate < sevenDaysAgo) return false;
+            } else if (dateFilter === "30d") {
+              const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              if (fbDate < thirtyDaysAgo) return false;
+            }
+          }
+          return true;
+        });
+
+        const successCount = dateFilteredFeedbacks.filter(fb => fb.isSuccess).length;
+        const failedCount = dateFilteredFeedbacks.length - successCount;
+
+        const displayedFeedbacks = dateFilteredFeedbacks.filter(fb => {
+          if (repairFilter === "success" && !fb.isSuccess) return false;
+          if (repairFilter === "failed" && fb.isSuccess) return false;
+          return true;
+        });
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-card w-full max-w-2xl md:max-w-4xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+                  <Target className="size-5 text-emerald-500" /> รายละเอียดการซ่อม ({dateFilteredFeedbacks.length} รายการ)
+                </h2>
+                <button 
+                  onClick={() => setShowRepairStatsModal(false)}
+                  className="p-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-colors"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="flex gap-2 p-1 bg-muted/30 rounded-xl w-fit">
+                  <button
+                    onClick={() => setRepairFilter("all")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "all" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    ทั้งหมด
+                  </button>
+                  <button
+                    onClick={() => setRepairFilter("success")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "success" ? "bg-background shadow text-emerald-600" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    สำเร็จ ({successCount})
+                  </button>
+                  <button
+                    onClick={() => setRepairFilter("failed")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "failed" ? "bg-background shadow text-rose-600" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    ไม่สำเร็จ ({failedCount})
+                  </button>
+                </div>
+
+                <select 
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-background border border-border/50 rounded-xl text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="all">ทุกช่วงเวลา</option>
+                  <option value="today">วันนี้</option>
+                  <option value="7d">7 วันที่ผ่านมา</option>
+                  <option value="30d">30 วันที่ผ่านมา</option>
+                </select>
+              </div>
+
+              <div className="overflow-y-auto pr-2 space-y-3">
+                {displayedFeedbacks.map(fb => {
+                  const model = getModel(fb.modelId || "")
+                  const guide = guides.find(g => g.id === fb.guideId)
+                  const symptom = symptoms.find(s => s.id === guide?.symptomId)
+
+                  return (
+                    <div key={fb.id} className="flex flex-col p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[12px]">
+                          {fb.userName?.substring(0, 2) || "U"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[14px] text-foreground">{fb.userName}</p>
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                            <Clock className="size-3" /> {formatTimeAgo(fb.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={cn("px-2.5 py-1 rounded-full text-[12px] font-bold", fb.isSuccess ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600")}>
+                        {fb.isSuccess ? "ซ่อมสำเร็จ" : "ซ่อมไม่สำเร็จ"}
+                      </div>
+                    </div>
+                    <div className="text-[13px] text-muted-foreground pl-10 space-y-1">
+                      <p><span className="font-medium text-foreground">รุ่นสินค้า:</span> {model ? `${model.code} - ${model.name}` : fb.modelId || "ไม่ระบุ"}</p>
+                      
+                      {fb.isSuccess ? (
+                        <>
+                          <p><span className="font-medium text-foreground">อาการเสีย:</span> {symptom?.title || "ไม่ระบุ"}</p>
+                          <p><span className="font-medium text-foreground">วินิจฉัย/การแก้ไข:</span> {guide?.title || "ไม่ระบุ"}</p>
+                        </>
+                      ) : (
+                        <>
+                          {fb.stepsViewed >= fb.totalSteps ? (
+                            <>
+                              <p><span className="font-medium text-foreground text-emerald-600">ดูครบทุกขั้นตอนแล้ว</span></p>
+                              <p><span className="font-medium text-foreground">หมายเหตุ:</span> {fb.note || "ไม่ระบุ"}</p>
+                            </>
+                          ) : (
+                            <p><span className="font-medium text-foreground">ดูถึงขั้นตอนที่:</span> {fb.stepsViewed} / {fb.totalSteps}</p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+                {displayedFeedbacks.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-[14px]">
+                    ยังไม่มีประวัติการซ่อมในช่วงเวลานี้
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Show Top Model Detail Modal */}
+      {selectedTopModel && (() => {
+        const modelInfo = getModel(selectedTopModel);
+        const fbs = repairStats.feedbacks.filter(f => f.modelId === selectedTopModel);
+        
+        const symptomCounts: Record<string, number> = {};
+        const guideCounts: Record<string, number> = {};
+        fbs.forEach(fb => {
+          const g = guides.find(gd => gd.id === fb.guideId);
+          if (g) {
+            if (g.symptomId) {
+              symptomCounts[g.symptomId] = (symptomCounts[g.symptomId] || 0) + 1;
+            }
+            guideCounts[g.id] = (guideCounts[g.id] || 0) + 1;
+          }
+        });
+
+        let topSymptomId = null;
+        let topSymptomCount = 0;
+        for (const [sId, count] of Object.entries(symptomCounts)) {
+          if (count > topSymptomCount) { topSymptomId = sId; topSymptomCount = count; }
+        }
+
+        let topGuideId = null;
+        let topGuideCount = 0;
+        for (const [gId, count] of Object.entries(guideCounts)) {
+          if (count > topGuideCount) { topGuideId = gId; topGuideCount = count; }
+        }
+
+        const topSymptom = symptoms.find(s => s.id === topSymptomId);
+        const topGuide = guides.find(g => g.id === topGuideId);
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-card w-full max-w-lg md:max-w-xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+                  <TrendingUp className="size-5 text-primary" /> สถิติของรุ่น
+                </h2>
+                <button 
+                  onClick={() => setSelectedTopModel(null)}
+                  className="p-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-colors"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              <div className="mb-4">
+                <p className="font-semibold text-[16px] text-foreground">{modelInfo?.name || selectedTopModel}</p>
+                <p className="text-[13px] text-muted-foreground">{modelInfo?.code || ""}</p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Stethoscope className="size-4 text-amber-500" />
+                    <span className="font-bold text-[14px] text-amber-600">อาการเสียที่พบบ่อยที่สุด</span>
+                  </div>
+                  <div className="flex justify-between items-end pl-6">
+                    <p className="text-[14px] text-foreground font-medium">{topSymptom?.title || "ไม่ระบุ"}</p>
+                    <p className="text-[13px] font-bold text-amber-600">{topSymptomCount > 0 ? `${topSymptomCount} ครั้ง` : "-"}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="size-4 text-emerald-500" />
+                    <span className="font-bold text-[14px] text-emerald-600">สาเหตุ/การวินิจฉัยที่พบบ่อยที่สุด</span>
+                  </div>
+                  <div className="flex justify-between items-end pl-6">
+                    <p className="text-[14px] text-foreground font-medium">{topGuide?.title || "ไม่ระบุ"}</p>
+                    <p className="text-[13px] font-bold text-emerald-600">{topGuideCount > 0 ? `${topGuideCount} ครั้ง` : "-"}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity className="size-4 text-blue-500" />
+                    <span className="font-bold text-[14px] text-blue-600">ประวัติการซ่อมทั้งหมด</span>
+                  </div>
+                  <div className="flex justify-between items-end pl-6">
+                    <p className="text-[14px] text-foreground font-medium">รวมการบันทึกการซ่อม</p>
+                    <p className="text-[13px] font-bold text-blue-600">{fbs.length} ครั้ง</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   )
 }

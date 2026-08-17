@@ -129,11 +129,13 @@ export async function preloadAdminData() {
     `${SHEETS.FEEDBACKS}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
     `${SHEETS.MODELS}!A1:Z`,
+    `${SHEETS.GUIDES}!A1:Z`,
+    `${SHEETS.USERS}!A1:Z`,
   ];
 
   await readMultipleSheets(ranges);
 
-  const [cats, maps, mods, repStats, sessions, top, syms] = await Promise.all([
+  const [cats, maps, mods, repStats, sessions, top, syms, gds, users] = await Promise.all([
     _getCategories(),
     _getMasterDataMappings(),
     _getModels(),
@@ -141,7 +143,9 @@ export async function preloadAdminData() {
     _getActiveSessions(),
     _getTopModels(),
     _getSymptoms(),
+    _getGuides(),
+    _getUsers(),
   ]);
 
-  return { categories: cats, mappings: maps, models: mods, repairStats: repStats, activeSessions: sessions, topModels: top, symptoms: syms };
+  return { categories: cats, mappings: maps, models: mods, repairStats: repStats, activeSessions: sessions, topModels: top, symptoms: syms, guides: gds, users };
 }
