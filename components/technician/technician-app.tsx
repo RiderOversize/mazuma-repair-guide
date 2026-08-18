@@ -8,73 +8,61 @@ import { GuideWizard } from "./guide-wizard"
 import { UserMenu } from "@/components/user-menu"
 import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
-import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom } from "@/lib/types"
+import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom, type MasterDataMapping } from "@/lib/types"
 import { preloadTechnicianData } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import type { AuthUser } from "@/lib/auth"
+import { cn } from "@/lib/utils"
 
 type View = "home" | "subcategories" | "models" | "symptoms" | "guide"
 
 export function TechnicianApp({
   user,
-  onLogout,
-  preview = false,
-  onExitPreview,
+  preview,
   initialCategoryId,
+  onExitPreview,
+  onLogout,
 }: {
   user: AuthUser
-  onLogout?: () => void
   preview?: boolean
-  onExitPreview?: () => void
   initialCategoryId?: string
+  onExitPreview?: () => void
+  onLogout?: () => void
 }) {
-  const [view, setView] = useState<View>(initialCategoryId ? "models" : "home")
-  const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId || null)
+  const [view, setView] = useState<View>("home")
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const [subCategoryId, setSubCategoryId] = useState<string | null>(null)
+  const [subCategory, setSubCategory] = useState<SubCategory | null>(null)
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [guide, setGuide] = useState<Guide | null>(null)
 
+  // Preloaded data
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [models, setModels] = useState<DeviceModel[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
+  const [mappings, setMappings] = useState<MasterDataMapping[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       try {
         const data = await preloadTechnicianData()
-        
-        // Build unique models from MasterData mappings
-        const uniqueModelsMap = new Map<string, DeviceModel>()
-        data.mappings.forEach(m => {
-          if (!uniqueModelsMap.has(m.modelCode)) {
-             const categoryId = (m.matCategoryCode || "").substring(0, 2)
-             uniqueModelsMap.set(m.modelCode, {
-                id: m.modelCode, 
-                code: m.modelCode,
-                name: m.modelName,
-                categoryId: categoryId,
-                subcategoryId: m.matCategoryCode,
-                symptomTypeId: m.symptomTypeCode,
-                status: "active"
-             })
-          }
-        })
-        const mappedModels = Array.from(uniqueModelsMap.values())
-        
         setCategories(data.categories)
-        setModels(mappedModels)
-        setGuides(data.guides)
         setSubCategories(data.subCategories)
+        setModels(data.models)
+        setGuides(data.guides)
         setSymptomTypes(data.symptomTypes)
         setSymptoms(data.symptoms)
+        setMappings(data.mappings || [])
 
-        // Handle initial routing if category is passed
-        if (initialCategoryId && data.categories.some(c => c.id === initialCategoryId)) {
-          const category = data.categories.find(c => c.id === initialCategoryId)
+        // If an initial category was requested, jump to it
+        if (initialCategoryId) {
+          setCategoryId(initialCategoryId)
+          // If category has subcategories, go to subcategories view, else models
+          const category = data.categories.find(c => c.id === initialCategoryId || c.slug === initialCategoryId)
           const hasSubCats = data.subCategories.some(sc => sc.categoryId === initialCategoryId || (category && sc.categoryId === category.slug))
           if (hasSubCats) {
             setView("subcategories")
@@ -82,8 +70,8 @@ export function TechnicianApp({
             setView("models")
           }
         }
-      } catch (error) {
-        console.error("Failed to load technician data:", error)
+      } catch (err) {
+        console.error("Failed to load technician data", err)
       } finally {
         setLoading(false)
       }
@@ -102,6 +90,19 @@ export function TechnicianApp({
     }
   }, [preview, user])
 
+  const handleSelectModel = (m: DeviceModel) => {
+    try {
+      const saved = localStorage.getItem("mazuma_tech_recents")
+      const current = saved ? JSON.parse(saved) : []
+      const next = [m.id, ...current.filter((id: string) => id !== m.id)].slice(0, 15)
+      localStorage.setItem("mazuma_tech_recents", JSON.stringify(next))
+    } catch (e) {}
+    setModel(m)
+    setCategoryId(m.categoryId)
+    setSubCategoryId(m.subcategoryId || null)
+    setView("symptoms")
+  }
+
   const handleBack = () => {
     if (view === "subcategories") setView("home")
     else if (view === "models") {
@@ -118,7 +119,19 @@ export function TechnicianApp({
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 mx-auto w-full max-w-[480px] shadow-2xl sm:border-x border-border/40 relative">
+    <div className="min-h-screen bg-background/50 pb-20 mx-auto w-full max-w-[480px] shadow-2xl sm:border-x border-border/40 relative">
+      {/* Premium Decorative Ambient Background */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none flex justify-center overflow-hidden">
+        <div className="w-full max-w-[480px] h-[100dvh] relative">
+          {/* Glowing Orbs with refined luxury hues */}
+          <div className="absolute top-[-5%] left-[-15%] w-[420px] h-[420px] rounded-full bg-gradient-to-br from-primary/20 to-blue-500/10 blur-[110px]" />
+          <div className="absolute top-[30%] right-[-25%] w-[380px] h-[380px] rounded-full bg-gradient-to-bl from-sky-400/15 via-indigo-500/10 to-transparent blur-[95px]" />
+          <div className="absolute bottom-[-5%] left-[5%] w-[480px] h-[480px] rounded-full bg-gradient-to-tr from-purple-600/15 to-primary/10 blur-[120px]" />
+          
+          {/* Subtle Dynamic Dot Pattern Overlay */}
+          <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] dark:bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.07] dark:opacity-[0.12] [mask-image:radial-gradient(ellipse_90%_90%_at_50%_0%,#000_70%,transparent_100%)]" />
+        </div>
+      </div>
       {/* Top-right account control (hidden in admin preview) */}
       {preview ? (
         <div className="fixed inset-x-0 top-0 z-[70] flex items-center justify-between gap-3 border-b border-border bg-primary px-4 py-2.5 text-primary-foreground">
@@ -151,25 +164,22 @@ export function TechnicianApp({
             <TechnicianHome
               categories={categories}
               models={models}
+              preview={preview}
               onSelectCategory={(id) => {
                 setCategoryId(id)
                 setModel(null)
                 setSubCategoryId(null)
+                setSubCategory(null)
                 // Check if category has subcategories
                 const category = categories.find(c => c.id === id)
-              const hasSubCats = subCategories.some(sc => sc.categoryId === id || (category && sc.categoryId === category.slug))
+                const hasSubCats = subCategories.some(sc => sc.categoryId === id || (category && sc.categoryId === category.slug))
                 if (hasSubCats) {
                   setView("subcategories")
                 } else {
                   setView("models")
                 }
               }}
-              onSelectModel={(m) => {
-                setModel(m)
-                setCategoryId(m.categoryId)
-                setSubCategoryId(m.subcategoryId || null)
-                setView("symptoms")
-              }}
+              onSelectModel={handleSelectModel}
             />
           )}
 
@@ -178,32 +188,29 @@ export function TechnicianApp({
               category={category}
               subCategories={subCategories}
               models={models}
+              preview={preview}
               onBack={() => setView("home")}
               onSelectSubCategory={(sc) => {
+                setSubCategory(sc)
                 setSubCategoryId(sc.index || sc.id)
                 setView("models")
               }}
-              onSelectModel={(m) => {
-                setModel(m)
-                setSubCategoryId(m.subcategoryId || null)
-                setView("symptoms")
-              }}
+              onSelectModel={handleSelectModel}
             />
           )}
 
           {view === "models" && category && (
             <ModelList 
               category={category}
+              subCategory={subCategory}
               subCategoryId={subCategoryId}
               models={models}
+              preview={preview}
               onBack={() => {
                 const hasSubCats = subCategories.some(sc => sc.categoryId === category.id)
                 setView(hasSubCats ? "subcategories" : "home")
               }}
-              onSelectModel={(m) => {
-                setModel(m)
-                setView("symptoms")
-              }}
+              onSelectModel={handleSelectModel}
             />
           )}
 
@@ -214,6 +221,8 @@ export function TechnicianApp({
               guides={guides}
               symptomTypes={symptomTypes}
               symptoms={symptoms}
+              mappings={mappings}
+              preview={preview}
               onBack={() => setView(model ? "models" : "home")}
               onSelectGuide={(g) => {
                 setGuide(g)
@@ -241,27 +250,33 @@ export function TechnicianApp({
 
       {/* Bottom Navigation for Mobile */}
       {view !== "guide" && (
-        <div className="fixed bottom-0 inset-x-0 z-50 border-t border-border/40 bg-background/70 backdrop-blur-2xl pb-safe">
-          <div className="flex items-center justify-around px-2 py-1 max-w-[480px] mx-auto h-14">
+        <div className="fixed bottom-0 inset-x-0 z-50 border-t border-border/40 bg-card/85 backdrop-blur-2xl pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center justify-around px-3 py-1.5 max-w-[480px] mx-auto h-15">
             <button
               onClick={() => setView("home")}
-              className={`flex flex-col items-center justify-center gap-1 w-20 h-full transition-colors ${view === "home" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-1 px-4 py-1 rounded-2xl transition-all duration-300",
+                view === "home" 
+                  ? "text-primary font-semibold" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+              )}
             >
-              <Home className={`size-6 ${view === "home" ? "fill-primary/20" : ""}`} strokeWidth={view === "home" ? 2.5 : 2} />
-              <span className="text-[10px] font-medium tracking-wide">หน้าแรก</span>
+              {view === "home" && (
+                <span className="absolute -top-1.5 size-1 rounded-full bg-primary animate-pulse" />
+              )}
+              <Home className={cn("size-5.5 transition-transform", view === "home" ? "scale-110" : "")} strokeWidth={view === "home" ? 2.5 : 1.8} />
+              <span className="text-[10.5px] tracking-wide">หน้าแรก</span>
             </button>
             
             {view !== "home" && (
               <button
                 onClick={handleBack}
-                className="flex flex-col items-center justify-center gap-1 w-20 h-full text-muted-foreground hover:text-foreground transition-colors"
+                className="flex flex-col items-center justify-center gap-1 px-4 py-1 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
               >
-                <ChevronLeft className="size-6" strokeWidth={2} />
-                <span className="text-[10px] font-medium tracking-wide">ย้อนกลับ</span>
+                <ChevronLeft className="size-5.5" strokeWidth={1.8} />
+                <span className="text-[10.5px] font-medium tracking-wide">ย้อนกลับ</span>
               </button>
             )}
-            
-            {/* Can add more tabs here if needed, like Settings or Profile */}
           </div>
         </div>
       )}

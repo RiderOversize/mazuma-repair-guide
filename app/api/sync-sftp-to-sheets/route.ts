@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Client from 'ssh2-sftp-client';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import { clearCache } from '@/lib/google-sheets';
+import { clearCache, SHEETS } from '@/lib/google-sheets';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -58,17 +58,51 @@ export async function GET(request: Request) {
       throw new Error("Sheet 'Models' not found in the Google Spreadsheet.");
     }
     
-    // Fetch SubCategories map to translate Thai names to IDs
+    // 5. Load ProductGroup & ProductCategory mapping
+    const groupSheet = doc.sheetsByTitle['ProductGroup'];
+    const groupMap = new Map<string, string>(); // Index (e.g. F1) -> ID (e.g. 1)
+    if (groupSheet) {
+      const groupRows = await groupSheet.getRows();
+      groupRows.forEach(r => {
+        const id = r.get('ID') || r.get('id');
+        const index = r.get('Index') || r.get('index');
+        if (id && index) groupMap.set(index.trim(), id.trim());
+      });
+    }
+
     const subCatSheet = doc.sheetsByTitle['ProductCategory'];
-    const subCatMap = new Map();
+    interface SubCatInfo {
+      id: string;
+      index: string; // e.g. F1, F2, F3
+      matCode: string; // e.g. F1-01-00
+      name: string; // e.g. เครื่องทำน้ำอุ่น
+    }
+    const subCatMap = new Map<string, SubCatInfo>();
     if (subCatSheet) {
       const subCatRows = await subCatSheet.getRows();
       subCatRows.forEach(r => {
-        const name = r.get('Description') || r.get('name');
-        const id = r.get('ID') || r.get('id');
-        if (name && id) {
-          subCatMap.set(name.trim(), id);
-        }
+        const name = (r.get('Description') || r.get('name') || '').trim();
+        const id = (r.get('ID') || r.get('id') || '').trim();
+        const index = (r.get('Index') || r.get('index') || '').trim();
+        const matCode = (r.get('MAT Category Code') || r.get('MATCategoryCode') || '').trim();
+        
+        const info: SubCatInfo = { id, index, matCode, name };
+        if (name) subCatMap.set(name, info);
+        if (matCode) subCatMap.set(matCode, info);
+        if (id) subCatMap.set(id, info);
+      });
+    }
+
+    // 6.2 Load MasterData mappings
+    const masterDataMap = new Map<string, string>();
+    if (doc.sheetsByTitle[SHEETS.MASTERDATA]) {
+      const mdRows = await doc.sheetsByTitle[SHEETS.MASTERDATA].getRows();
+      mdRows.forEach((r: any) => {
+        const code = (r.get('รหัสสินค้า') || r.get('modelCode') || '').trim();
+        const name = (r.get('ชื่อสินค้า') || r.get('modelName') || '').trim();
+        const symType = (r.get('รหัสประเภทอาการ') || r.get('symptomTypeCode') || '').trim();
+        if (code && symType) masterDataMap.set(code, symType);
+        if (name && symType) masterDataMap.set(name, symType);
       });
     }
     
@@ -101,28 +135,30 @@ export async function GET(request: Request) {
       if (!code) continue; 
       
       const itemName = item.MAT || item.productName || item.name || item.PRODUCT_NAME || item.itemName || '';
-      const rawCat = item.MATCategoryUSERID_Full || item.categoryCode || item.categoryId || item.subCategoryId || '';
+      const rawCat = (item.MATCategoryUSERID_Full || item.categoryCode || item.categoryId || item.subCategoryId || '').trim();
       
-      let subCatId = subCatMap.get(rawCat.trim());
-      if (!subCatId) {
+      let matchedInfo = subCatMap.get(rawCat);
+      if (!matchedInfo) {
         // Try partial match
         for (const [key, value] of subCatMap.entries()) {
-          if (key.includes(rawCat.trim()) || rawCat.trim().includes(key)) {
-            subCatId = value;
+          if (key && (key.includes(rawCat) || rawCat.includes(key))) {
+            matchedInfo = value;
             break;
           }
         }
       }
 
-      if (!subCatId) {
+      if (!matchedInfo) {
          // Skip if subcategory is not found in the DB (avoids junk categories)
          continue;
       }
       
-      // Derive categoryId from the first segment of subCatId (e.g., F1 from F1-01-00)
-      const categoryId = subCatId.split('-')[0];
+      // Correct categoryId (Index like F1, F2, F3) and subcategoryId (ID like 1, 2, 27)
+      const categoryId = matchedInfo.index || (matchedInfo.matCode ? matchedInfo.matCode.split('-')[0] : '');
+      const subCatId = matchedInfo.id || rawCat;
 
       const existingRow = existingProductsMap.get(code);
+      const targetSymType = (existingRow ? existingRow.get('symptomTypeId') : '') || masterDataMap.get(code) || masterDataMap.get(itemName) || '';
       
       if (existingRow) {
         // Update if properties changed
@@ -140,6 +176,10 @@ export async function GET(request: Request) {
            existingRow.assign({ 'categoryId': categoryId });
            changed = true;
         }
+        if (targetSymType && existingRow.get('symptomTypeId') !== targetSymType) {
+           existingRow.assign({ 'symptomTypeId': targetSymType });
+           changed = true;
+        }
         
         if (changed) {
           existingRow.assign({ 'updatedAt': currentTime });
@@ -155,6 +195,7 @@ export async function GET(request: Request) {
           'name': itemName,
           'categoryId': categoryId,
           'subcategoryId': subCatId,
+          'symptomTypeId': targetSymType,
           'status': 'active', 
           'createdAt': currentTime,
           'updatedAt': currentTime,

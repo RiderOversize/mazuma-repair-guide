@@ -110,16 +110,33 @@ export async function preloadTechnicianData() {
   await readMultipleSheets(ranges);
 
   // Now these calls will all hit cache (instant)
-  const [cats, gds, subCats, symTypes, syms, mappings] = await Promise.all([
+  const [cats, gds, subCats, symTypes, syms, mappings, rawMods] = await Promise.all([
     _getCategories(),
     _getGuides(),
     _getSubCategories(),
     _getSymptomTypes(),
     _getSymptoms(),
     _getMasterDataMappings(),
+    _getModels(),
   ]);
 
-  return { categories: cats, guides: gds, subCategories: subCats, symptomTypes: symTypes, symptoms: syms, mappings };
+  const mapByCode = new Map<string, string>();
+  const mapByName = new Map<string, string>();
+  mappings.forEach((m) => {
+    if (m.modelCode && m.symptomTypeCode) mapByCode.set(m.modelCode.trim(), m.symptomTypeCode.trim());
+    if (m.modelName && m.symptomTypeCode) mapByName.set(m.modelName.trim(), m.symptomTypeCode.trim());
+  });
+
+  const mods = rawMods.map((m) => {
+    const symType =
+      m.symptomTypeId ||
+      mapByCode.get(m.code?.trim()) ||
+      mapByName.get(m.name?.trim()) ||
+      "";
+    return { ...m, symptomTypeId: symType };
+  });
+
+  return { categories: cats, guides: gds, subCategories: subCats, symptomTypes: symTypes, symptoms: syms, mappings, models: mods };
 }
 
 export async function preloadAdminData() {

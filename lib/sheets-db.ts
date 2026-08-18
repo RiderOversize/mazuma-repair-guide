@@ -899,6 +899,20 @@ export async function createMasterDataMapping(data: Partial<MasterDataMapping>):
   };
   
   await appendRow(`${SHEETS.MASTERDATA}!A2:Z`, mapObjectToRow(headers, objToSave));
+
+  // Auto-sync symptomTypeId to Models sheet
+  if (data.modelCode && data.symptomTypeCode) {
+    try {
+      const models = await getModels();
+      const matched = models.find(m => m.code?.trim() === data.modelCode?.trim() || m.name?.trim() === data.modelName?.trim());
+      if (matched) {
+        await updateModel(matched.id, { symptomTypeId: data.symptomTypeCode });
+      }
+    } catch (e) {
+      console.warn("Failed to auto-update model symptomTypeId:", e);
+    }
+  }
+
   return { ...data, id: nextId } as any;
 }
 export async function bulkCreateMasterDataMappings(mappings: Partial<MasterDataMapping>[]): Promise<MasterDataMapping[]> {
@@ -931,6 +945,22 @@ export async function bulkCreateMasterDataMappings(mappings: Partial<MasterDataM
   
   const { appendRows } = require('./google-sheets');
   await appendRows(`${SHEETS.MASTERDATA}!A2:Z`, rowsToAppend);
+
+  // Auto-sync symptomTypeId to Models
+  try {
+    const models = await getModels();
+    for (const mData of mappings) {
+      if (mData.modelCode && mData.symptomTypeCode) {
+        const matched = models.find(m => m.code?.trim() === mData.modelCode?.trim());
+        if (matched) {
+          await updateModel(matched.id, { symptomTypeId: mData.symptomTypeCode });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to auto-sync bulk models symptomTypeId:", e);
+  }
+
   return createdMappings;
 }
 export async function updateMasterDataMapping(id: string, data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
@@ -952,8 +982,38 @@ export async function updateMasterDataMapping(id: string, data: Partial<MasterDa
   };
   
   await updateRowById(SHEETS.MASTERDATA, id, mapObjectToRow(headers, objToSave));
+
+  // Auto-sync symptomTypeId to Models
+  if (merged.modelCode && merged.symptomTypeCode) {
+    try {
+      const models = await getModels();
+      const matched = models.find(m => m.code?.trim() === merged.modelCode?.trim());
+      if (matched) {
+        await updateModel(matched.id, { symptomTypeId: merged.symptomTypeCode });
+      }
+    } catch (e) {
+      console.warn("Failed to update model symptomTypeId:", e);
+    }
+  }
+
   return merged as any;
 }
 export async function deleteMasterDataMapping(id: string): Promise<void> {
+  const all = await getMasterDataMappings();
+  const existing = all.find(x => x.id === id);
+
   await deleteRowById(SHEETS.MASTERDATA, id);
+
+  // Clear symptomTypeId on matched Model
+  if (existing?.modelCode) {
+    try {
+      const models = await getModels();
+      const matched = models.find(m => m.code?.trim() === existing.modelCode?.trim());
+      if (matched && matched.symptomTypeId === existing.symptomTypeCode) {
+        await updateModel(matched.id, { symptomTypeId: "" });
+      }
+    } catch (e) {
+      console.warn("Failed to clear model symptomTypeId:", e);
+    }
+  }
 }

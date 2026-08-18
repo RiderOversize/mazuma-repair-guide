@@ -44,22 +44,43 @@ async function main() {
     const subcatDescIdx = subcatHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'description');
     const subcatIndexIdx = subcatHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'index');
     
-    // Map Description -> { subcategoryId, categoryId }
+    // Map Description / MAT Code / ID -> { subcatId, categoryId }
     const subcatMap = new Map<string, { subcatId: string, catId: string }>();
     for (const row of subcatDataRows) {
       const id = row[subcatIdIdx]?.trim();
       const desc = row[subcatDescIdx]?.trim();
       const idx = row[subcatIndexIdx]?.trim();
       if (id && desc) {
-        const catId = idx ? (groupMap.get(idx) || "") : "";
+        const catId = idx || ""; // Category Slug/Index (e.g. F1, F2, F3, F4, F6, FA)
         subcatMap.set(desc, { subcatId: id, catId });
+        if (id) subcatMap.set(id, { subcatId: id, catId });
       }
     }
     console.log('  Loaded ' + subcatMap.size + ' subcategories');
 
-    // Step 2: Load existing Models
-    console.log("Fetching existing Models...");
-    const modelsRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Models!A1:Z' });
+    // Step 2: Load existing Models & MasterData
+    console.log("Fetching existing Models & MasterData...");
+    const [modelsRes, mdRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId, range: 'Models!A1:Z' }),
+      sheets.spreadsheets.values.get({ spreadsheetId, range: 'MasterData!A1:Z' }),
+    ]);
+
+    const mdRows = mdRes.data.values || [];
+    const mdHeaders = mdRows[0] || [];
+    const mdCodeIdx = mdHeaders.findIndex((h: string) => h.includes('รหัสสินค้า') || h.toLowerCase().includes('code'));
+    const mdNameIdx = mdHeaders.findIndex((h: string) => h.includes('ชื่อสินค้า') || h.toLowerCase().includes('name'));
+    const mdSymTypeIdx = mdHeaders.findIndex((h: string) => h.includes('รหัสประเภทอาการ') || h.toLowerCase().includes('symptomtype'));
+
+    const masterDataMap = new Map<string, string>();
+    mdRows.slice(1).forEach(r => {
+      const code = r[mdCodeIdx]?.trim();
+      const name = r[mdNameIdx]?.trim();
+      const symType = r[mdSymTypeIdx]?.trim();
+      if (code && symType) masterDataMap.set(code, symType);
+      if (name && symType) masterDataMap.set(name, symType);
+    });
+    console.log('  Loaded ' + masterDataMap.size + ' mappings from MasterData');
+
     const modelsAllRows = modelsRes.data.values || [];
     const modelsHeaders = modelsAllRows[0] || [];
     const modelsDataRows = modelsAllRows.slice(1);
@@ -67,6 +88,7 @@ async function main() {
     const mIdIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'id');
     const mCatIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'categoryid');
     const mSubcatIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'subcategoryid');
+    const mSymTypeIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'symptomtypeid');
     const mNameIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'name');
     const mCodeIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'code');
     const mStatusIdx = modelsHeaders.findIndex((h: string) => h.trim().toLowerCase() === 'status');
@@ -117,6 +139,7 @@ async function main() {
       
       const mapped = subcatMap.get(sftpCatName) || { subcatId: sftpCatName, catId: "" };
       const existing = existingByCode.get(code);
+      const targetSymType = (existing && mSymTypeIdx !== -1 ? existing[mSymTypeIdx] : '') || masterDataMap.get(code) || masterDataMap.get(name) || '';
 
       if (existing) {
         const row = new Array(modelsHeaders.length).fill("");
@@ -126,6 +149,7 @@ async function main() {
         row[mIdIdx] = isValidUUID ? existingId : crypto.randomUUID();
         if (mCatIdx !== -1) row[mCatIdx] = mapped.catId;
         if (mSubcatIdx !== -1) row[mSubcatIdx] = mapped.subcatId;
+        if (mSymTypeIdx !== -1) row[mSymTypeIdx] = targetSymType;
         row[mNameIdx] = name || existing[mNameIdx] || "";
         row[mCodeIdx] = code;
         row[mStatusIdx] = existing[mStatusIdx] || "active";
@@ -142,6 +166,7 @@ async function main() {
         row[mIdIdx] = crypto.randomUUID();
         if (mCatIdx !== -1) row[mCatIdx] = mapped.catId;
         if (mSubcatIdx !== -1) row[mSubcatIdx] = mapped.subcatId;
+        if (mSymTypeIdx !== -1) row[mSymTypeIdx] = targetSymType;
         row[mNameIdx] = name;
         row[mCodeIdx] = code;
         row[mStatusIdx] = "active";
