@@ -6,13 +6,16 @@ import {
   LayoutDashboard,
   FilePlus2,
   BookOpen,
-  Boxes,
+  Database,
   Smartphone,
   Menu,
   X,
   LogOut,
   Users,
   ChevronLeft,
+  Settings,
+  Image as ImageIcon,
+  MonitorSmartphone,
 } from "lucide-react"
 
 export type AdminView = 
@@ -41,16 +44,16 @@ import type { AuthUser } from "@/lib/auth"
 const topNavItems = [
   { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
   { id: "guides", label: "คู่มือ", icon: BookOpen },
-  { id: "master-data", label: "จัดการข้อมูล", icon: Boxes },
+  { id: "master-data", label: "จัดการข้อมูล", icon: Database },
   { id: "more", label: "เพิ่มเติม", icon: Menu },
 ]
 
 const moreItems = [
   { id: "models", label: "จัดการรุ่นสินค้า", icon: Smartphone, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { id: "media", label: "คลังสื่อ (Media)", icon: LayoutDashboard, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { id: "media", label: "คลังสื่อ (Media)", icon: ImageIcon, color: "text-purple-500", bg: "bg-purple-500/10" },
   { id: "users", label: "ผู้ใช้งานและสิทธิ์", icon: Users, color: "text-orange-500", bg: "bg-orange-500/10" },
-  { id: "settings", label: "ตั้งค่าระบบ", icon: Menu, color: "text-gray-500", bg: "bg-gray-500/10" },
-  { id: "preview", label: "ดูหน้าแอปช่าง", icon: Smartphone, color: "text-pink-500", bg: "bg-pink-500/10" },
+  { id: "settings", label: "ตั้งค่าระบบ", icon: Settings, color: "text-gray-500", bg: "bg-gray-500/10" },
+  { id: "preview", label: "ดูหน้าแอปช่าง", icon: MonitorSmartphone, color: "text-pink-500", bg: "bg-pink-500/10" },
 ]
 
 export function AdminApp({
@@ -208,15 +211,15 @@ export function AdminApp({
       <div className="w-full md:max-w-none max-w-[480px] bg-background h-[100dvh] relative md:shadow-none shadow-2xl md:border-none sm:border-x border-border/40 flex flex-col md:flex-row">
         
         {/* Sidebar for PC/Tablet */}
-        <div className="hidden md:flex flex-col w-64 border-r border-border/40 bg-card z-50 shrink-0">
-          <div className="flex items-center gap-3 p-4 border-b border-border/40 h-16 shrink-0">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground shadow-sm">
+        <div className="hidden md:flex flex-col md:w-[80px] lg:w-64 border-r border-border/40 bg-card z-50 shrink-0 transition-all duration-300">
+          <div className="flex items-center gap-3 p-4 border-b border-border/40 h-16 shrink-0 justify-center lg:justify-start">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground shadow-sm">
               M
             </div>
-            <span className="font-display font-semibold text-foreground">Mazuma Admin</span>
+            <span className="font-display font-semibold text-foreground hidden lg:block whitespace-nowrap">Mazuma Admin</span>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-2 custom-scrollbar">
             {(() => {
               const allItems = [
                 ...topNavItems.filter(item => item.id !== "more" && hasAccess(item.id)),
@@ -229,33 +232,32 @@ export function AdminApp({
                   <button
                     key={item.id}
                     onClick={() => go(item.id as AdminView)}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                    title={item.label}
+                    className={`group flex items-center w-full rounded-xl transition-all ${isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'} justify-center h-12 px-0 lg:justify-start lg:h-auto lg:py-2.5 lg:px-3 lg:gap-3`}
                   >
-                    <Icon className="size-5" />
-                    <span className="font-medium text-[14px]">{item.label}</span>
+                    <Icon className="size-5 shrink-0" />
+                    <span className="font-medium text-[14px] hidden lg:block whitespace-nowrap">{item.label}</span>
                   </button>
                 )
               });
             })()}
           </div>
           
-          <div className="p-4 border-t border-border/40 shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
-                <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="40px" />
-              </span>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-bold text-foreground">{user.name}</p>
-                <p className="truncate text-xs text-muted-foreground">{user.title}</p>
-              </div>
-              <button
-                onClick={onLogout}
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                title="ออกจากระบบ"
-              >
-                <LogOut className="size-4" />
-              </button>
+          <div className="border-t border-border/40 p-3 lg:p-4 shrink-0 flex flex-col lg:flex-row items-center gap-4 lg:gap-3">
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
+              <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="40px" />
+            </span>
+            <div className="min-w-0 flex-1 text-left hidden lg:block">
+              <p className="truncate text-sm font-bold text-foreground">{user.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.title}</p>
             </div>
+            <button
+              onClick={onLogout}
+              className="flex size-10 lg:size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+              title="ออกจากระบบ"
+            >
+              <LogOut className="size-5 lg:size-4" />
+            </button>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Prompt, Sarabun } from 'next/font/google'
+import { Prompt, Sarabun, Kanit, Noto_Sans_Thai } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 
@@ -14,6 +14,18 @@ const sarabun = Sarabun({
   subsets: ['latin', 'thai'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-sarabun',
+})
+
+const kanit = Kanit({
+  subsets: ['latin', 'thai'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-kanit',
+})
+
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ['latin', 'thai'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-noto-sans-thai',
 })
 
 export const metadata: Metadata = {
@@ -43,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="th" suppressHydrationWarning className={`${prompt.variable} ${sarabun.variable} bg-background`}>
+    <html lang="th" suppressHydrationWarning className={`${prompt.variable} ${sarabun.variable} ${kanit.variable} ${notoSansThai.variable} bg-background`}>
       <body className="font-sans antialiased bg-muted/20 text-foreground selection:bg-primary/20">
         <div className="mx-auto flex min-h-screen flex-col bg-background relative overflow-x-hidden w-full">
           <Providers>

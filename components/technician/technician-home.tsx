@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes, Moon, Sun } from "lucide-react"
+import { useAppSettings } from "@/components/settings-provider"
+import { cn } from "@/lib/utils"
+import { Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes, Moon, Sun, Settings, Type, TextSelect, ShowerHead, Filter, Factory, GlassWater, Fan, Wind, Cpu } from "lucide-react"
 import {
   type Category,
   type DeviceModel,
@@ -11,14 +13,23 @@ import {
 const iconFor = (slug: Category["slug"]) => {
   switch (slug) {
     case "F1":
-      return Flame
+      return ShowerHead
     case "F2":
     case "F3":
     case "F4":
+      return Filter
     case "F6":
-      return Droplets
+      return Factory
+    case "FA":
+      return GlassWater
+    case "FB":
+      return Fan
+    case "FC":
+      return Wind
     case "FD":
       return Gauge
+    case "FF":
+      return Cpu
     default:
       return Boxes
   }
@@ -37,7 +48,9 @@ export function TechnicianHome({
 }) {
   const [query, setQuery] = useState("")
   const { theme, setTheme, systemTheme } = useTheme()
+  const { fontSize, setFontSize, fontFamily, setFontFamily } = useAppSettings()
   const [mounted, setMounted] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -68,11 +81,11 @@ export function TechnicianHome({
           
           {mounted && (
             <button
-              onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
+              onClick={() => setShowSettings(true)}
               className="flex size-9 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="สลับโหมดหน้าจอ"
+              aria-label="ตั้งค่าแอป"
             >
-              {currentTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              <Settings className="size-4.5" />
             </button>
           )}
         </div>
@@ -165,6 +178,115 @@ export function TechnicianHome({
           )
         })}
       </div>
+
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-card border shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh] overflow-hidden">
+            <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 flex items-center justify-between p-4 border-b border-border/40">
+              <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+                <Settings className="size-5 text-primary" /> ตั้งค่าแอป
+              </h2>
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="p-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-colors"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar pb-6">
+              {/* Theme */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  {theme === 'dark' ? <Moon className="size-4" /> : <Sun className="size-4" />} โหมดหน้าจอ
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setTheme("light")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", theme === "light" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium">สว่าง</span>
+                  </button>
+                  <button
+                    onClick={() => setTheme("dark")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", theme === "dark" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium">มืด</span>
+                  </button>
+                  <button
+                    onClick={() => setTheme("system")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", theme === "system" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium">ตามระบบ</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Font */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Type className="size-4" /> รูปแบบตัวอักษร
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setFontFamily("sarabun")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", fontFamily === "sarabun" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium font-sans">สารบรรณ</span>
+                  </button>
+                  <button
+                    onClick={() => setFontFamily("prompt")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", fontFamily === "prompt" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium" style={{ fontFamily: 'var(--font-prompt)' }}>พร้อม</span>
+                  </button>
+                  <button
+                    onClick={() => setFontFamily("kanit")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", fontFamily === "kanit" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium" style={{ fontFamily: 'var(--font-kanit)' }}>คณิต</span>
+                  </button>
+                  <button
+                    onClick={() => setFontFamily("noto-sans-thai")}
+                    className={cn("flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all", fontFamily === "noto-sans-thai" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground")}
+                  >
+                    <span className="text-[13px] font-medium" style={{ fontFamily: 'var(--font-noto-sans-thai)' }}>โนโต</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Font Size */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <TextSelect className="size-4" /> ขนาดตัวอักษร
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: "sm", label: "เล็ก", size: "text-[12px]" },
+                    { id: "base", label: "ปกติ", size: "text-[14px]" },
+                    { id: "lg", label: "ใหญ่", size: "text-[18px]" },
+                    { id: "xl", label: "ใหญ่มาก", size: "text-[22px]" },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setFontSize(s.id as any)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2 transition-all",
+                        fontSize === s.id
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border/40 bg-card hover:bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      <span className={`font-medium ${s.size} leading-none`}>A</span>
+                      <span className="text-[11px]">{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -160,4 +160,26 @@
     width: 0;
     height: 0;
   }
+
+  /* Dynamic Font Family and Size overrides via html data attributes */
+  :root[data-font-family="kanit"] {
+    --font-sans: var(--font-kanit), ui-sans-serif, system-ui, sans-serif;
+    --font-display: var(--font-kanit), ui-sans-serif, system-ui, sans-serif;
+  }
+  :root[data-font-family="noto-sans-thai"] {
+    --font-sans: var(--font-noto-sans-thai), ui-sans-serif, system-ui, sans-serif;
+    --font-display: var(--font-noto-sans-thai), ui-sans-serif, system-ui, sans-serif;
+  }
+  :root[data-font-family="prompt"] {
+    --font-sans: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  }
+  :root[data-font-family="sarabun"] {
+    --font-sans: var(--font-sarabun), ui-sans-serif, system-ui, sans-serif;
+    --font-display: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  html[data-font-size="sm"] { font-size: 14px; }
+  html[data-font-size="base"] { font-size: 16px; }
+  html[data-font-size="lg"] { font-size: 18px; }
+  html[data-font-size="xl"] { font-size: 20px; }
 }

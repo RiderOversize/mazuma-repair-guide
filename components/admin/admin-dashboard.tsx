@@ -708,14 +708,21 @@ export function AdminDashboard({
                   const model = getModel(fb.modelId || "")
                   const guide = guides.find(g => g.id === fb.guideId)
                   const symptom = symptoms.find(s => s.id === guide?.symptomId)
+                  const fbUser = users.find(u => u.employeeCode === fb.userId)
 
                   return (
                     <div key={fb.id} className="flex flex-col p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[12px]">
-                          {fb.userName?.substring(0, 2) || "U"}
-                        </div>
+                        {fbUser?.avatar ? (
+                          <div className="size-8 rounded-full overflow-hidden shrink-0 border border-border/50">
+                            <img src={fbUser.avatar} alt={fb.userName} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[12px]">
+                            {fb.userName?.substring(0, 2) || "U"}
+                          </div>
+                        )}
                         <div>
                           <p className="font-semibold text-[14px] text-foreground">{fb.userName}</p>
                           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
