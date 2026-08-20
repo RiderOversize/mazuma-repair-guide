@@ -115,7 +115,9 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       }
     } catch (err: any) {
       if (err.message === "QUOTA_EXCEEDED") {
-        showToast('โควตา YouTube สำหรับวันนี้เต็มแล้ว', 'error')
+        showToast('โควตา YouTube API เต็มสำหรับวันนี้', 'error')
+      } else if (err.message === "UPLOAD_LIMIT_EXCEEDED" || err.message?.includes("exceeded the number of videos")) {
+        showToast('ช่อง YouTube อัพโหลดครบขีดจำกัดประจำวันแล้ว แนะนำให้เลือกอัพโหลดเข้า Google Drive แทน', 'error')
       } else {
         showToast(err.message || 'เกิดข้อผิดพลาดในการอัพโหลด', 'error')
       }

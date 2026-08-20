@@ -51,6 +51,19 @@ export async function POST(request: NextRequest) {
       if (errorText.includes("quotaExceeded")) {
         throw new Error("QUOTA_EXCEEDED");
       }
+      if (errorText.includes("uploadLimitExceeded") || errorText.includes("exceeded the number of videos")) {
+        throw new Error("UPLOAD_LIMIT_EXCEEDED");
+      }
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          throw new Error(errorJson.error.message);
+        }
+      } catch (e: any) {
+        if (e.message !== "Failed to initialize YouTube upload session" && e.message !== "Unexpected end of JSON input" && !e.message.startsWith("Unexpected token")) {
+          throw e;
+        }
+      }
       throw new Error("Failed to initialize YouTube upload session");
     }
 

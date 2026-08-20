@@ -96,6 +96,34 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         },
         buttonsStyling: false
       })
+    } else if (error.message === "UPLOAD_LIMIT_EXCEEDED" || error.message?.includes("exceeded the number of videos")) {
+      MySwal.fire({
+        title: 'เกินขีดจำกัดการอัปโหลด YouTube วันนี้!',
+        html: '<div class="text-left text-sm space-y-2 text-muted-foreground"><p>ช่อง YouTube นี้อัปโหลดวิดีโอครบโควตาประจำวันแล้ว (Daily Upload Limit)</p><p class="font-medium text-foreground">ทางเลือกในการใช้งาน:</p><ul class="list-disc pl-4 space-y-1"><li><b>สลับไปอัปโหลดเข้า Google Drive</b> แทน (ไม่มีข้อจำกัดจำนวนคลิปต่อวัน)</li><li>รอประมาณ 24 ชั่วโมงเพื่อให้ YouTube รีเซ็ตโควตาประจำวัน</li><li>ยืนยันตัวตนขั้นสูงใน YouTube Studio เพื่อเพิ่มสิทธิ์การอัปโหลดต่อวัน</li></ul></div>',
+        icon: 'warning',
+        confirmButtonText: 'ตกลง',
+        customClass: {
+          popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+          title: "font-display text-xl font-bold text-foreground",
+          htmlContainer: "text-sm text-muted-foreground",
+          confirmButton: "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors",
+        },
+        buttonsStyling: false
+      })
+    } else if (error.message?.includes("invalid_grant")) {
+      MySwal.fire({
+        title: 'Google OAuth Token หมดอายุ',
+        html: '<div class="text-left text-sm space-y-2 text-muted-foreground"><p>Google Refresh Token หมดอายุหรือไม่ถูกต้อง (invalid_grant)</p><p class="font-medium text-foreground">วิธีแก้ไข:</p><ol class="list-decimal pl-4 space-y-1"><li>รันสคริปต์ขอ Token ใหม่: <code class="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">node scripts/get-drive-token.mjs</code> (หรือ <code class="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">get-youtube-token.mjs</code>)</li><li>นำ Token ที่ได้ไปอัปเดตในไฟล์ <code class="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">.env.local</code></li><li>รีสตาร์ทเซิร์ฟเวอร์ (<code class="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">npm run dev</code>)</li></ol></div>',
+        icon: 'warning',
+        confirmButtonText: 'รับทราบ',
+        customClass: {
+          popup: "rounded-2xl border border-border bg-card text-foreground shadow-xl",
+          title: "font-display text-xl font-bold text-foreground",
+          htmlContainer: "text-sm text-muted-foreground",
+          confirmButton: "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors",
+        },
+        buttonsStyling: false
+      })
     } else {
       showAlert("เกิดข้อผิดพลาด", error.message || defaultMsg, "error")
     }
