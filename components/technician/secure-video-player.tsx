@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Play, Lock, FileText, Video, Maximize2, X, Eye, ChevronLeft } from "lucide-react"
+import { Play, Lock, FileText, Video, Maximize2, X, Eye, ChevronLeft, ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { CustomYouTubePlayer } from "./custom-youtube-player"
 
 /**
  * Secure video & PDF player.
  * - In-App PDF embedded preview and Fullscreen Modal
  * - Transparent overlay over top bar blocks Google Drive's 'Pop-out', 'Share' and 'Download' buttons
- * - Allows full scrolling and zooming inside the document body
+ * - Mobile Zoom Controls (Zoom In, Out, Pinch-to-zoom) & Pan/Scroll support
  */
 export function SecureVideoPlayer({
   stepNum,
@@ -23,21 +23,61 @@ export function SecureVideoPlayer({
 }) {
   const [activeTab, setActiveTab] = useState<"video" | "pdf">("video")
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [touchDistance, setTouchDistance] = useState<number | null>(null)
   
   const isRealVideo = mediaUrl && mediaUrl.startsWith("http");
   const isRealPdf = pdfUrl && pdfUrl.startsWith("http");
+
+  const handleZoomIn = () => setZoom(prev => Math.min(Number((prev + 0.25).toFixed(2)), 3.0))
+  const handleZoomOut = () => setZoom(prev => Math.max(Number((prev - 0.25).toFixed(2)), 1.0))
+  const handleResetZoom = () => setZoom(1.0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      setTouchDistance(dist)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchDistance !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      const factor = dist / touchDistance
+      setZoom(prev => {
+        const next = prev * factor
+        return Math.min(Math.max(Number(next.toFixed(2)), 1.0), 3.0)
+      })
+      setTouchDistance(dist)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setTouchDistance(null)
+  }
 
   useEffect(() => {
     if (isPdfModalOpen) {
       document.body.style.overflow = "hidden"
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setIsPdfModalOpen(false)
+        if (e.key === "Escape") {
+          setIsPdfModalOpen(false)
+          setZoom(1)
+        }
       }
       window.addEventListener("keydown", handleKeyDown)
       return () => {
         document.body.style.overflow = ""
         window.removeEventListener("keydown", handleKeyDown)
       }
+    } else {
+      setZoom(1)
     }
   }, [isPdfModalOpen])
 
@@ -263,30 +303,91 @@ export function SecureVideoPlayer({
           </div>
 
           {/* Modal PDF Frame */}
-          <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
-            <iframe
-              className="w-full h-full border-0 bg-white"
-              src={getDriveEmbedUrl(pdfUrl)}
-              allow="autoplay"
-              sandbox="allow-scripts allow-same-origin allow-presentation"
-            ></iframe>
-            {/* Invisible overlay over Google's top-right bar to block 'Pop-out', 'Share', and 'Download' */}
+          <div 
+            className="relative flex-1 w-full bg-slate-900 overflow-auto"
+            style={{ WebkitOverflowScrolling: "touch" }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <div 
-              className="absolute top-0 right-0 w-48 h-16 bg-transparent z-30 pointer-events-auto" 
-              title="เนื้อหามีลิขสิทธิ์" 
-              onContextMenu={e => e.preventDefault()} 
-            />
-
-            {/* Floating Back Button at bottom for mobile convenience */}
-            <button
-              type="button"
-              onClick={() => setIsPdfModalOpen(false)}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-slate-900/90 border border-white/20 px-5 py-2.5 text-xs font-bold text-white shadow-2xl backdrop-blur-md hover:bg-slate-800 transition-all active:scale-95"
+              className="min-w-full min-h-full transition-all duration-100 ease-out origin-top-left flex items-center justify-center"
+              style={{ 
+                width: zoom > 1 ? `${zoom * 100}%` : "100%", 
+                height: zoom > 1 ? `${zoom * 100}%` : "100%",
+              }}
             >
-              <ChevronLeft className="size-4 text-primary" />
-              <span>ย้อนกลับไปหน้าคู่มือ</span>
-              <X className="size-3.5 opacity-60 ml-1" />
-            </button>
+              <div className="relative w-full h-full min-h-[85vh]">
+                <iframe
+                  className="w-full h-full border-0 bg-white min-h-[85vh]"
+                  src={getDriveEmbedUrl(pdfUrl)}
+                  allow="autoplay"
+                  sandbox="allow-scripts allow-same-origin allow-presentation"
+                ></iframe>
+                {/* Invisible overlay over Google's top-right bar to block 'Pop-out', 'Share', and 'Download' */}
+                <div 
+                  className="absolute top-0 right-0 w-48 h-16 bg-transparent z-30 pointer-events-auto" 
+                  title="เนื้อหามีลิขสิทธิ์" 
+                  onContextMenu={e => e.preventDefault()} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Floating Bottom Control Bar: Zoom Controls + Quick Back */}
+          <div className="absolute bottom-5 inset-x-0 z-40 flex items-center justify-center pointer-events-none px-4">
+            <div className="flex items-center gap-1.5 rounded-full bg-slate-900/90 border border-white/20 px-3 py-1.5 shadow-2xl backdrop-blur-md pointer-events-auto text-white">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoom <= 1}
+                className="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                title="ซูมออก"
+              >
+                <ZoomOut className="size-4" />
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-2 py-1 text-xs font-bold font-mono rounded-lg hover:bg-white/10 transition-colors"
+                title="รีเซ็ตขนาด"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoom >= 3}
+                className="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                title="ซูมเข้า"
+              >
+                <ZoomIn className="size-4" />
+              </button>
+
+              {zoom > 1 && (
+                <button
+                  type="button"
+                  onClick={handleResetZoom}
+                  className="flex size-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 active:scale-95 transition-all"
+                  title="รีเซ็ตเป็น 100%"
+                >
+                  <RotateCcw className="size-3.5" />
+                </button>
+              )}
+
+              <div className="h-5 w-px bg-white/20 mx-1" />
+
+              <button
+                type="button"
+                onClick={() => { setIsPdfModalOpen(false); setZoom(1); }}
+                className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
+              >
+                <ChevronLeft className="size-3.5" />
+                <span>กลับ</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
