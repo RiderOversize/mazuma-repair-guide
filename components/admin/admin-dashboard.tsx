@@ -125,13 +125,44 @@ export function AdminDashboard({
     return !mappings.some(map => map.modelCode === m.code)
   })
 
+  // Set of symptomTypeIds that have at least 1 guide in Guides sheet
+  const symptomTypeIdsWithGuides = new Set(
+    guides
+      .map((g) => {
+        if (g.symptomTypeId) return g.symptomTypeId.trim();
+        const sym = symptoms.find((s) => s.id === g.symptomId);
+        return (sym?.symptomTypeId || "").trim();
+      })
+      .filter(Boolean)
+  );
+
+  const modelIdsWithDirectGuides = new Set(
+    guides.flatMap((g) => (g.modelIds || []).map((id) => id.trim().toLowerCase()))
+  );
+
+  const isMappingBoundToGuide = (m: MasterDataMapping) => {
+    const symCode = (m.symptomTypeCode || "").trim();
+    if (symCode && symptomTypeIdsWithGuides.has(symCode)) return true;
+    const mCode = (m.modelCode || "").trim().toLowerCase();
+    if (mCode && modelIdsWithDirectGuides.has(mCode)) return true;
+    return false;
+  };
+
   const categoriesWithCount = categories.map(cat => {
     const uniqueMappedModels = new Set(
       mappings
         .filter(m => {
-          if (cat.slug && m.matCategoryCode && m.matCategoryCode.startsWith(cat.slug)) return true;
-          const model = models.find(mod => mod.code === m.modelCode)
-          return model?.categoryId === cat.id || model?.categoryId === cat.slug;
+          const matchCat = (() => {
+            if (cat.slug && m.matCategoryCode) {
+              return m.matCategoryCode.startsWith(cat.slug);
+            }
+            const model = models.find(mod => mod.code === m.modelCode);
+            return model?.categoryId === cat.id || model?.categoryId === cat.slug;
+          })();
+          if (!matchCat) return false;
+
+          // Must actually have a repair guide in Guides sheet
+          return isMappingBoundToGuide(m);
         })
         .map(m => m.modelCode)
     )

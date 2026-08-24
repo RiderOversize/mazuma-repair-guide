@@ -129,8 +129,31 @@ export async function preloadTechnicianData() {
     if (m.name && m.thumbnail) thumbByName.set(m.name.trim().toLowerCase(), m.thumbnail);
   });
 
-  // สร้างรายการรุ่นสินค้าสำหรับแอปช่างโดยตรงจากชีต MasterData (ไม่เอาจากชีต Models)
-  const masterDataModels: DeviceModel[] = mappings.map((m, index) => {
+  // หาชุดของ symptomTypeId และ modelIds ที่มีคู่มือ published จริง
+  const symptomTypeIdsWithGuides = new Set(
+    gds
+      .filter((g) => g.status === "published" || !g.status)
+      .map((g) => {
+        if (g.symptomTypeId) return g.symptomTypeId.trim();
+        const sym = syms.find((s) => s.id === g.symptomId);
+        return (sym?.symptomTypeId || "").trim();
+      })
+      .filter(Boolean)
+  );
+  const modelIdsWithDirectGuides = new Set(
+    gds.flatMap((g) => (g.modelIds || []).map((id) => id.trim().toLowerCase()))
+  );
+
+  // สร้างรายการรุ่นสินค้าสำหรับแอปช่างโดยตรงจากชีต MasterData เฉพาะรุ่นที่มีคู่มือจริงในชีต Guides
+  const validMappings = mappings.filter((m) => {
+    const symCode = (m.symptomTypeCode || "").trim();
+    if (symCode && symptomTypeIdsWithGuides.has(symCode)) return true;
+    const mCode = (m.modelCode || "").trim().toLowerCase();
+    if (mCode && modelIdsWithDirectGuides.has(mCode)) return true;
+    return false;
+  });
+
+  const masterDataModels: DeviceModel[] = validMappings.map((m, index) => {
     const code = (m.modelCode || "").trim();
     const name = (m.modelName || "").trim();
     const matCatCode = (m.matCategoryCode || "").trim();
