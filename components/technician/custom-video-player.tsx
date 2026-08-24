@@ -22,11 +22,28 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
   const [playbackRate, setPlaybackRate] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [isScrubbing, setIsScrubbing] = useState(false)
   const [hasError, setHasError] = useState(false)
   
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Reset all playback states whenever the video URL changes
+  useEffect(() => {
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setShowControls(true)
+    setIsLoading(false)
+    setIsScrubbing(false)
+    setHasError(false)
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current)
+    }
+    if (videoRef.current) {
+      videoRef.current.pause()
+      videoRef.current.currentTime = 0
+    }
+  }, [videoUrl])
 
   // Auto-hide controls timer
   const resetControlsTimer = useCallback(() => {
@@ -63,8 +80,13 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
     if (!videoRef.current) return
     if (isPlaying) {
       videoRef.current.pause()
+      setIsPlaying(false)
     } else {
-      videoRef.current.play()
+      videoRef.current.play().then(() => {
+        setIsPlaying(true)
+      }).catch(err => {
+        console.warn("Play error:", err)
+      })
     }
     resetControlsTimer()
   }
@@ -83,9 +105,6 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value)
     setCurrentTime(newTime)
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime
-    }
   }
 
   const handleSeekStart = () => {
@@ -93,22 +112,27 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
     setShowControls(true)
   }
 
-  const handleSeekEnd = () => {
+  const handleSeekEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
     setIsScrubbing(false)
+    if (videoRef.current) {
+      const newTime = parseFloat((e.target as HTMLInputElement).value)
+      videoRef.current.currentTime = newTime
+    }
     resetControlsTimer()
   }
 
   const skipSeconds = (seconds: number) => {
     if (!videoRef.current) return
-    videoRef.current.currentTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + seconds))
+    const newTime = Math.max(0, Math.min(duration, currentTime + seconds))
+    videoRef.current.currentTime = newTime
+    setCurrentTime(newTime)
     resetControlsTimer()
   }
 
   const toggleMute = () => {
     if (!videoRef.current) return
-    const nextMuted = !isMuted
-    videoRef.current.muted = nextMuted
-    setIsMuted(nextMuted)
+    videoRef.current.muted = !isMuted
+    setIsMuted(!isMuted)
     resetControlsTimer()
   }
 
@@ -125,14 +149,10 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
   const toggleFullscreen = () => {
     if (!containerRef.current) return
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(err => {
-        console.warn("Error requesting fullscreen:", err)
-      })
+      containerRef.current.requestFullscreen().catch(console.warn)
       setIsFullscreen(true)
     } else {
-      document.exitFullscreen().catch(err => {
-        console.warn("Error exiting fullscreen:", err)
-      })
+      document.exitFullscreen().catch(console.warn)
       setIsFullscreen(false)
     }
     resetControlsTimer()
@@ -145,6 +165,7 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
     return `${m}:${s.toString().padStart(2, "0")}`
   }
 
+  // Fallback to Drive iframe if streaming fails
   if (hasError && fallbackDriveUrl) {
     return (
       <iframe
@@ -159,22 +180,27 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-black select-none overflow-hidden group"
+      className="relative w-full h-full bg-black group select-none overflow-hidden"
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
       onClick={resetControlsTimer}
-      onContextMenu={e => e.preventDefault()}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <video
         ref={videoRef}
+        key={videoUrl}
         src={videoUrl}
-        className="w-full h-full object-contain cursor-pointer"
+        className="w-full h-full object-contain"
         playsInline
         preload="metadata"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false)
+          setShowControls(true)
+        }}
         onWaiting={() => setIsLoading(true)}
         onPlaying={() => setIsLoading(false)}
         onError={() => setHasError(true)}
@@ -190,27 +216,22 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
         </div>
       )}
 
-      {/* Big Center Play/Pause button on Tap / Pause */}
-      <div 
-        className={cn(
-          "absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300",
-          !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
-        )}
-      >
-        {!isPlaying && (
+      {/* Big Center Play Button (Always visible when not playing) */}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
               togglePlay()
             }}
-            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
+            className="pointer-events-auto flex size-15 items-center justify-center rounded-full bg-primary/95 text-primary-foreground shadow-2xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
             aria-label="เล่นวิดีโอ"
           >
-            <Play className="size-6.5 translate-x-0.5 fill-current" />
+            <Play className="size-7 translate-x-0.5 fill-current" />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Control Overlay Bar (Auto-hides when playing) */}
       <div
@@ -247,7 +268,7 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
         {/* Action Controls Row */}
         <div className="flex items-center justify-between gap-2 text-white">
           <div className="flex items-center gap-2">
-            {/* Play/Pause Button */}
+            {/* Play/Pause toggle */}
             <button
               type="button"
               onClick={togglePlay}
@@ -281,7 +302,7 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
               <RotateCw className="size-3.5" />
             </button>
 
-            {/* Current Time / Duration */}
+            {/* Time Indicator */}
             <div className="text-[11.5px] font-mono font-medium tracking-wide text-white/90 ml-1 select-none">
               <span>{formatTime(currentTime)}</span>
               <span className="text-white/40 mx-1">/</span>
@@ -290,7 +311,7 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Playback Speed */}
+            {/* Playback speed */}
             <button
               type="button"
               onClick={changePlaybackRate}
@@ -310,7 +331,7 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
               {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
 
-            {/* Fullscreen Toggle */}
+            {/* Fullscreen */}
             <button
               type="button"
               onClick={toggleFullscreen}

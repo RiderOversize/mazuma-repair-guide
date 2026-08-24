@@ -257,15 +257,17 @@ export function SecureVideoPlayer({
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
               {isRealVideo ? (
                 mediaUrl?.includes("youtube.com") || mediaUrl?.includes("youtu.be") ? (
-                  <CustomYouTubePlayer videoUrl={mediaUrl} />
+                  <CustomYouTubePlayer key={`yt-${mediaUrl}`} videoUrl={mediaUrl} />
                 ) : driveFileId ? (
                   <CustomVideoPlayer
+                    key={`drive-${driveFileId}`}
                     videoUrl={`/api/media/stream?fileId=${driveFileId}`}
                     fallbackDriveUrl={getDriveEmbedUrl(mediaUrl)}
                     label={label}
                   />
                 ) : (
                   <CustomVideoPlayer
+                    key={`vid-${mediaUrl}`}
                     videoUrl={mediaUrl!}
                     label={label}
                   />

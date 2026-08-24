@@ -292,6 +292,7 @@ export function GuideWizard({
           )}
 
           <SecureVideoPlayer 
+            key={`guide-step-${currentIndex}-${currentGuide.id || currentIndex}-${currentGuide.mediaUrl || ''}-${currentGuide.pdfUrl || ''}`}
             stepNum={currentIndex + 1} 
             label={currentGuide.title} 
             mediaUrl={currentGuide.mediaUrl}

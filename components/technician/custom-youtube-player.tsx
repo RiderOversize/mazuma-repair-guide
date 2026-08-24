@@ -46,6 +46,18 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     // Ignore invalid URL
   }
 
+  // Reset state on video change
+  useEffect(() => {
+    setIsPlaying(false)
+    setIsReady(false)
+    setCurrentTime(0)
+    setShowControls(true)
+    setIsScrubbing(false)
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current)
+    }
+  }, [videoId])
+
   // Auto-hide controls timer
   const resetControlsTimer = useCallback(() => {
     setShowControls(true)
@@ -80,8 +92,18 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
   useEffect(() => {
     if (!videoId) return
 
+    let isMounted = true
+
     const loadPlayer = () => {
-      if (!containerRef.current) return
+      if (!containerRef.current || !isMounted) return
+
+      // Destroy old instance if exists
+      if (playerRef.current) {
+        try {
+          playerRef.current.destroy()
+        } catch (e) {}
+      }
+
       playerRef.current = new window.YT.Player(containerRef.current, {
         videoId: videoId,
         width: "100%",
@@ -97,10 +119,12 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
         },
         events: {
           onReady: (e: any) => {
+            if (!isMounted) return
             setIsReady(true)
             setDuration(e.target.getDuration())
           },
           onStateChange: (e: any) => {
+            if (!isMounted) return
             if (e.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true)
             } else if (
@@ -128,6 +152,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     }
 
     return () => {
+      isMounted = false
       if (playerRef.current) {
         try {
           playerRef.current.destroy()
@@ -156,11 +181,17 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
   }
 
   const togglePlay = () => {
-    if (!playerRef.current || !isReady) return
+    if (!playerRef.current) return
     if (isPlaying) {
-      playerRef.current.pauseVideo()
+      try {
+        playerRef.current.pauseVideo()
+      } catch (e) {}
+      setIsPlaying(false)
     } else {
-      playerRef.current.playVideo()
+      try {
+        playerRef.current.playVideo()
+        setIsPlaying(true)
+      } catch (e) {}
     }
     resetControlsTimer()
   }
@@ -177,7 +208,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
 
   const handleSeekEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
     setIsScrubbing(false)
-    if (playerRef.current) {
+    if (playerRef.current && typeof playerRef.current.seekTo === "function") {
       const newTime = parseFloat((e.target as HTMLInputElement).value)
       playerRef.current.seekTo(newTime, true)
     }
@@ -188,17 +219,19 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     if (!playerRef.current) return
     const newTime = Math.max(0, Math.min(duration, currentTime + seconds))
     setCurrentTime(newTime)
-    playerRef.current.seekTo(newTime, true)
+    if (typeof playerRef.current.seekTo === "function") {
+      playerRef.current.seekTo(newTime, true)
+    }
     resetControlsTimer()
   }
 
   const toggleMute = () => {
     if (!playerRef.current) return
     if (isMuted) {
-      playerRef.current.unMute()
+      if (typeof playerRef.current.unMute === "function") playerRef.current.unMute()
       setIsMuted(false)
     } else {
-      playerRef.current.mute()
+      if (typeof playerRef.current.mute === "function") playerRef.current.mute()
       setIsMuted(true)
     }
     resetControlsTimer()
@@ -209,7 +242,9 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     const rates = [1, 1.25, 1.5, 2, 0.75]
     const nextIndex = (rates.indexOf(playbackRate) + 1) % rates.length
     const nextRate = rates[nextIndex]
-    playerRef.current.setPlaybackRate(nextRate)
+    if (typeof playerRef.current.setPlaybackRate === "function") {
+      playerRef.current.setPlaybackRate(nextRate)
+    }
     setPlaybackRate(nextRate)
     resetControlsTimer()
   }
@@ -237,6 +272,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
 
   return (
     <div
+      key={videoId}
       className="relative w-full h-full bg-black group select-none overflow-hidden"
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
@@ -260,27 +296,22 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
           </div>
         )}
 
-        {/* Center Play Button on Pause */}
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300",
-            !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
-          )}
-        >
-          {isReady && !isPlaying && (
+        {/* Center Play Button on Pause / Stopped (Always visible when !isPlaying) */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 togglePlay()
               }}
-              className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
+              className="pointer-events-auto flex size-15 items-center justify-center rounded-full bg-primary/95 text-primary-foreground shadow-2xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
               aria-label="เล่นวิดีโอ"
             >
-              <Play className="size-6.5 translate-x-0.5 fill-current" />
+              <Play className="size-7 translate-x-0.5 fill-current" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Auto-Hiding Bottom Control Bar */}
