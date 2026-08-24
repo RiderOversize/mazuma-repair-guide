@@ -154,73 +154,89 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
   return (
     <div className="mx-auto w-full px-4 pb-8">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">จัดการรุ่นสินค้า</h1>
-          <p className="text-[13px] text-muted-foreground mt-1">ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ</p>
-        </div>
-        {lastSyncTime && (
-          <div className="bg-chart-4/10 border border-chart-4/20 text-chart-4 px-3 py-1.5 rounded-lg flex items-center gap-2 self-start">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-chart-4 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-4"></span>
-            </span>
-            <div className="text-xs">
-              <span className="font-semibold block">ดึงข้อมูล SFTP ล่าสุด</span>
-              <span className="opacity-90">{new Date(lastSyncTime).toLocaleString("th-TH")}</span>
-            </div>
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 md:top-16 z-20 bg-background/95 backdrop-blur-md pb-3.5 pt-2 -mx-4 px-4 border-b border-border/40 mb-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">จัดการรุ่นสินค้า</h1>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ ({filteredModels.length} รุ่น)
+            </p>
           </div>
-        )}
-      </div>
-
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm"
-        >
-          <Plus className="size-4" />
-          เพิ่มรุ่นใหม่
-        </button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="mb-6 flex flex-col md:flex-row gap-3">
-        <div className="relative w-full md:flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อรุ่น หรือ รหัสสินค้า..."
-            value={searchQuery}
-            onChange={e => {
-              setSearchQuery(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="h-11 w-full rounded-2xl border border-input bg-card pl-9 pr-4 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
-          />
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            {lastSyncTime && (
+              <div className="bg-chart-4/10 border border-chart-4/20 text-chart-4 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-chart-4 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-4"></span>
+                </span>
+                <div className="text-[11px] leading-tight">
+                  <span className="font-semibold block">SFTP ล่าสุด</span>
+                  <span className="opacity-90">{new Date(lastSyncTime).toLocaleDateString("th-TH")} {new Date(lastSyncTime).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+            >
+              <Plus className="size-4" />
+              เพิ่มรุ่นใหม่
+            </button>
+          </div>
         </div>
-        <div className="relative w-full md:flex-1">
-          <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <select
-            value={filterSubCategory}
-            onChange={e => {
-              setFilterSubCategory(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="h-11 w-full appearance-none rounded-2xl border border-input bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
-          >
-            <option value="">ทุกหมวดหมู่ย่อย</option>
-            {categories.map(cat => {
-              const subCatsForCat = subCategories.filter(sc => sc.categoryId === cat.id || sc.categoryId === cat.slug);
-              if (subCatsForCat.length === 0) return null;
-              return (
-                <optgroup key={cat.id} label={`หมวดหมู่: ${cat.name}`}>
-                  {subCatsForCat.map(sc => (
-                    <option key={sc.id} value={sc.id}>{sc.name}</option>
-                  ))}
-                </optgroup>
-              );
-            })}
-          </select>
+
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อรุ่น หรือ รหัสสินค้า..."
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="h-10 w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("")
+                  setCurrentPage(1)
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="relative sm:w-64 shrink-0">
+            <Filter className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <select
+              value={filterSubCategory}
+              onChange={e => {
+                setFilterSubCategory(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[13px] outline-none transition-all focus:border-primary shadow-sm text-foreground"
+            >
+              <option value="">ทุกหมวดหมู่ย่อย</option>
+              {categories.map(cat => {
+                const subCatsForCat = subCategories.filter(sc => sc.categoryId === cat.id || sc.categoryId === cat.slug);
+                if (subCatsForCat.length === 0) return null;
+                return (
+                  <optgroup key={cat.id} label={`หมวดหมู่: ${cat.name}`}>
+                    {subCatsForCat.map(sc => (
+                      <option key={sc.id} value={sc.id}>{sc.name}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </div>
         </div>
       </div>
 

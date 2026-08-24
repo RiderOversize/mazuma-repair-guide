@@ -752,201 +752,220 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
   return (
     <div className="mx-auto w-full px-4 pb-24">
-      <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground mb-2">คลังสื่อ (PDF/Video)</h1>
-          
-          {/* Tabs */}
-          <div className="flex items-center gap-2 mb-4 bg-muted/50 p-1 rounded-xl w-fit">
-            <button
-              onClick={() => setActiveTab('drive')}
-              className={cn("px-4 py-2 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'drive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            >
-              Google Drive
-            </button>
-            <button
-              onClick={() => setActiveTab('youtube')}
-              className={cn("px-4 py-2 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'youtube' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            >
-              YouTube
-            </button>
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 md:top-16 z-20 bg-background/95 backdrop-blur-md pb-3.5 pt-2 -mx-4 px-4 border-b border-border/40 mb-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">คลังสื่อ (PDF/Video)</h1>
+            
+            {/* Tabs */}
+            <div className="flex items-center gap-1.5 mt-1.5 bg-muted/60 p-1 rounded-xl w-fit">
+              <button
+                onClick={() => {
+                  setActiveTab('drive')
+                  setSelectedIds(new Set())
+                }}
+                className={cn("px-3.5 py-1.5 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'drive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                Google Drive
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('youtube')
+                  setSelectedIds(new Set())
+                }}
+                className={cn("px-3.5 py-1.5 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'youtube' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                YouTube
+              </button>
+            </div>
           </div>
 
-          {/* Breadcrumbs */}
-          {activeTab === 'drive' && (
-            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground overflow-x-auto pb-1">
-              {breadcrumbs.map((crumb, index) => (
-                <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
-                  {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
+          <div className="flex items-center gap-2">
+            {activeTab === 'drive' && (
+              <button
+                type="button"
+                onClick={handleCreateFolder}
+                disabled={isCreatingFolder}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isCreatingFolder ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />}
+                สร้างโฟลเดอร์
+              </button>
+            )}
+            {activeTab === 'drive' ? (
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+              >
+                <UploadCloud className="size-4" />
+                อัปโหลดเอกสาร
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
+              >
+                <UploadCloud className="size-4" />
+                อัปโหลดวิดีโอผูกกับคู่มือ
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Breadcrumbs */}
+        {activeTab === 'drive' && breadcrumbs.length > 1 && (
+          <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground overflow-x-auto py-0.5">
+            {breadcrumbs.map((crumb, index) => (
+              <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
+                {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
+                <button
+                  onClick={() => navigateToBreadcrumb(index)}
+                  className={cn(
+                    "hover:text-primary transition-colors hover:underline",
+                    index === breadcrumbs.length - 1 && "font-semibold text-foreground pointer-events-none"
+                  )}
+                >
+                  {crumb.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Search Bar & View/Sort Actions */}
+        <div className="flex flex-col sm:flex-row gap-2.5 items-center">
+          <div className="relative w-full sm:w-auto flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อเอกสารหรือโฟลเดอร์..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 py-2 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex w-full sm:w-auto gap-2 shrink-0">
+            <button
+              onClick={selectAll}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+            >
+              {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                <><CheckSquare className="size-4 text-primary" /> ยกเลิก</>
+              ) : (
+                <><Square className="size-4 text-muted-foreground" /> เลือกทั้งหมด</>
+              )}
+            </button>
+
+            {/* Sort Options Dropdown */}
+            <div className="relative flex-1 sm:flex-initial" ref={sortMenuRef}>
+              <button
+                onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <ArrowDownUp className="size-4 text-muted-foreground" />
+                  จัดเรียง
+                </span>
+                <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", isSortMenuOpen && "rotate-180")} />
+              </button>
+
+              {isSortMenuOpen && (
+                <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
                   <button
-                    onClick={() => navigateToBreadcrumb(index)}
-                    className={cn(
-                      "hover:text-primary transition-colors hover:underline",
-                      index === breadcrumbs.length - 1 && "font-semibold text-foreground pointer-events-none"
-                    )}
+                    onClick={() => { setSortBy("date-desc"); setIsSortMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
-                    {crumb.name}
+                    <CalendarDays className="size-4" /> ใหม่สุดไปเก่าสุด
+                  </button>
+                  <button
+                    onClick={() => { setSortBy("date-asc"); setIsSortMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <CalendarDays className="size-4" /> เก่าสุดไปใหม่สุด
+                  </button>
+
+                  <div className="border-t border-border/50 my-1"></div>
+
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
+                  <button
+                    onClick={() => { setSortBy("name-asc"); setIsSortMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <ArrowDownAZ className="size-4" /> A-Z, ก-ฮ
+                  </button>
+                  <button
+                    onClick={() => { setSortBy("name-desc"); setIsSortMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <ArrowUpAZ className="size-4" /> Z-A, ฮ-ก
                   </button>
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileChange}
-          accept={activeTab === 'youtube' ? "video/*" : ".pdf,application/pdf"}
-        />
+            {/* View Options Dropdown */}
+            <div className="relative flex-1 sm:flex-initial" ref={viewMenuRef}>
+              <button
+                onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  {viewMode === "large" && <LayoutGrid className="size-4" />}
+                  {viewMode === "medium" && <Grid3X3 className="size-4" />}
+                  {viewMode === "list" && <List className="size-4" />}
+                  <span className="hidden sm:inline">มุมมอง</span>
+                </span>
+                <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", isViewMenuOpen && "rotate-180")} />
+              </button>
 
-        <div className="flex items-center gap-2">
-          {activeTab === 'drive' && (
-            <button
-              type="button"
-              onClick={handleCreateFolder}
-              disabled={isCreatingFolder}
-              className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {isCreatingFolder ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />}
-              สร้างโฟลเดอร์
-            </button>
-          )}
-          {activeTab === 'drive' ? (
-            <button
-              type="button"
-              onClick={handleUploadClick}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-            >
-              <UploadCloud className="size-4" />
-              อัปโหลดเอกสาร
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleUploadClick}
-              className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
-            >
-              <UploadCloud className="size-4" />
-              อัปโหลดวิดีโอผูกกับคู่มือ
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-6 flex flex-col sm:flex-row gap-3 items-center">
-        <div className="relative w-full sm:w-auto flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อเอกสารหรือโฟลเดอร์..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-border/50 bg-card px-9 py-2.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
-          />
-        </div>
-
-        <div className="flex w-full sm:w-auto gap-2">
-          <button
-            onClick={selectAll}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-          >
-            {selectedIds.size === filtered.length && filtered.length > 0 ? (
-              <><CheckSquare className="size-4 text-primary" /> ยกเลิก</>
-            ) : (
-              <><Square className="size-4 text-muted-foreground" /> เลือกทั้งหมด</>
-            )}
-          </button>
-
-          {/* Sort Options Dropdown */}
-          <div className="relative flex-1 sm:flex-initial" ref={sortMenuRef}>
-            <button
-              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-              className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <ArrowDownUp className="size-4 text-muted-foreground" />
-                จัดเรียง
-              </span>
-              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isSortMenuOpen && "rotate-180")} />
-            </button>
-
-            {isSortMenuOpen && (
-              <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
-                <button
-                  onClick={() => { setSortBy("date-desc"); setIsSortMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <CalendarDays className="size-4" /> ใหม่สุดไปเก่าสุด
-                </button>
-                <button
-                  onClick={() => { setSortBy("date-asc"); setIsSortMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <CalendarDays className="size-4" /> เก่าสุดไปใหม่สุด
-                </button>
-
-                <div className="border-t border-border/50 my-1"></div>
-
-                <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
-                <button
-                  onClick={() => { setSortBy("name-asc"); setIsSortMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <ArrowDownAZ className="size-4" /> A-Z, ก-ฮ
-                </button>
-                <button
-                  onClick={() => { setSortBy("name-desc"); setIsSortMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <ArrowUpAZ className="size-4" /> Z-A, ฮ-ก
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* View Options Dropdown */}
-          <div className="relative flex-1 sm:flex-initial" ref={viewMenuRef}>
-            <button
-              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-              className="w-full sm:w-auto flex items-center justify-between gap-2 bg-card border border-border/50 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                {viewMode === "large" && <LayoutGrid className="size-4" />}
-                {viewMode === "medium" && <Grid3X3 className="size-4" />}
-                {viewMode === "list" && <List className="size-4" />}
-                <span className="hidden sm:inline">มุมมอง</span>
-              </span>
-              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", isViewMenuOpen && "rotate-180")} />
-            </button>
-
-            {isViewMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <button
-                  onClick={() => { setViewMode("large"); setIsViewMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <LayoutGrid className="size-4" /> ไอคอนขนาดใหญ่
-                </button>
-                <button
-                  onClick={() => { setViewMode("medium"); setIsViewMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <Grid3X3 className="size-4" /> ไอคอนขนาดกลาง
-                </button>
-                <button
-                  onClick={() => { setViewMode("list"); setIsViewMenuOpen(false); }}
-                  className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
-                >
-                  <List className="size-4" /> รายละเอียด (List)
-                </button>
-              </div>
-            )}
+              {isViewMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    onClick={() => { setViewMode("large"); setIsViewMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <LayoutGrid className="size-4" /> ไอคอนขนาดใหญ่
+                  </button>
+                  <button
+                    onClick={() => { setViewMode("medium"); setIsViewMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <Grid3X3 className="size-4" /> ไอคอนขนาดกลาง
+                  </button>
+                  <button
+                    onClick={() => { setViewMode("list"); setIsViewMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                  >
+                    <List className="size-4" /> รายละเอียด (List)
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileChange}
+        accept={activeTab === 'youtube' ? "video/*" : ".pdf,application/pdf"}
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -1484,14 +1503,14 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                         {/* PDF Upload */}
                         <div>
                           <label className="text-[13px] font-semibold text-foreground flex items-center gap-2 mb-2">
-                            <FileDown className="size-4 text-orange-500" />ลิงก์ PDF (ไม่บังคับ)
+                            <FileDown className="size-4 text-orange-500" />ลิงก์เอกสาร PDF / Canva (ไม่บังคับ)
                           </label>
                           <div className="flex gap-2">
                             <input
                               type="text"
                               value={editedPdfUrl}
                               onChange={(e) => setEditedPdfUrl(e.target.value)}
-                              placeholder="https://..."
+                              placeholder="https://... (Google Drive PDF หรือ ลิงก์ Canva)"
                               className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-[14px] text-foreground outline-none transition-colors"
                             />
                             {editedPdfUrl !== (activeGuide.pdfUrl || '') ? (

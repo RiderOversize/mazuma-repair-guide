@@ -1,50 +1,32 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
+interface CustomVideoPlayerProps {
+  videoUrl: string
+  label?: string
+  fallbackDriveUrl?: string
 }
 
-export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
+export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomVideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const playerRef = useRef<any>(null)
   
-  const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [isScrubbing, setIsScrubbing] = useState(false)
-  const [showControls, setShowControls] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
+  const [volume, setVolume] = useState(1)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showControls, setShowControls] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isScrubbing, setIsScrubbing] = useState(false)
+  const [hasError, setHasError] = useState(false)
   
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Extract video ID
-  let videoId = ""
-  try {
-    const urlObj = new URL(videoUrl)
-    if (urlObj.hostname.includes("youtube.com")) {
-      if (urlObj.pathname === "/watch") {
-        videoId = urlObj.searchParams.get("v") || ""
-      } else if (urlObj.pathname.startsWith("/embed/")) {
-        videoId = urlObj.pathname.split("/embed/")[1]?.split("?")[0] || ""
-      } else if (urlObj.pathname.startsWith("/shorts/")) {
-        videoId = urlObj.pathname.split("/shorts/")[1] || ""
-      }
-    } else if (urlObj.hostname === "youtu.be") {
-      videoId = urlObj.pathname.slice(1)
-    }
-  } catch (e) {
-    // Ignore invalid URL
-  }
 
   // Auto-hide controls timer
   const resetControlsTimer = useCallback(() => {
@@ -77,76 +59,84 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     }
   }, [isPlaying, isScrubbing])
 
-  useEffect(() => {
-    if (!videoId) return
-
-    const loadPlayer = () => {
-      if (!containerRef.current) return
-      playerRef.current = new window.YT.Player(containerRef.current, {
-        videoId: videoId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          iv_load_policy: 3,
-        },
-        events: {
-          onReady: (e: any) => {
-            setIsReady(true)
-            setDuration(e.target.getDuration())
-          },
-          onStateChange: (e: any) => {
-            if (e.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true)
-            } else if (
-              e.data === window.YT.PlayerState.PAUSED ||
-              e.data === window.YT.PlayerState.ENDED
-            ) {
-              setIsPlaying(false)
-            }
-          },
-        },
-      })
-    }
-
-    if (!window.YT) {
-      const tag = document.createElement("script")
-      tag.src = "https://www.youtube.com/iframe_api"
-      const firstScriptTag = document.getElementsByTagName("script")[0]
-      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag)
-
-      window.onYouTubeIframeAPIReady = () => {
-        loadPlayer()
-      }
+  const togglePlay = () => {
+    if (!videoRef.current) return
+    if (isPlaying) {
+      videoRef.current.pause()
     } else {
-      loadPlayer()
+      videoRef.current.play()
     }
+    resetControlsTimer()
+  }
 
-    return () => {
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy()
-        } catch (e) {}
-      }
-    }
-  }, [videoId])
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || isScrubbing) return
+    setCurrentTime(videoRef.current.currentTime)
+  }
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (isPlaying && !isScrubbing) {
-      interval = setInterval(() => {
-        if (playerRef.current && playerRef.current.getCurrentTime) {
-          setCurrentTime(playerRef.current.getCurrentTime())
-        }
-      }, 500)
+  const handleLoadedMetadata = () => {
+    if (!videoRef.current) return
+    setDuration(videoRef.current.duration)
+    setIsLoading(false)
+  }
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value)
+    setCurrentTime(newTime)
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime
     }
-    return () => clearInterval(interval)
-  }, [isPlaying, isScrubbing])
+  }
+
+  const handleSeekStart = () => {
+    setIsScrubbing(true)
+    setShowControls(true)
+  }
+
+  const handleSeekEnd = () => {
+    setIsScrubbing(false)
+    resetControlsTimer()
+  }
+
+  const skipSeconds = (seconds: number) => {
+    if (!videoRef.current) return
+    videoRef.current.currentTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + seconds))
+    resetControlsTimer()
+  }
+
+  const toggleMute = () => {
+    if (!videoRef.current) return
+    const nextMuted = !isMuted
+    videoRef.current.muted = nextMuted
+    setIsMuted(nextMuted)
+    resetControlsTimer()
+  }
+
+  const changePlaybackRate = () => {
+    if (!videoRef.current) return
+    const rates = [1, 1.25, 1.5, 2, 0.75]
+    const nextIndex = (rates.indexOf(playbackRate) + 1) % rates.length
+    const nextRate = rates[nextIndex]
+    videoRef.current.playbackRate = nextRate
+    setPlaybackRate(nextRate)
+    resetControlsTimer()
+  }
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => {
+        console.warn("Error requesting fullscreen:", err)
+      })
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen().catch(err => {
+        console.warn("Error exiting fullscreen:", err)
+      })
+      setIsFullscreen(false)
+    }
+    resetControlsTimer()
+  }
 
   const formatTime = (timeInSeconds: number) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "0:00"
@@ -155,142 +145,80 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
     return `${m}:${s.toString().padStart(2, "0")}`
   }
 
-  const togglePlay = () => {
-    if (!playerRef.current || !isReady) return
-    if (isPlaying) {
-      playerRef.current.pauseVideo()
-    } else {
-      playerRef.current.playVideo()
-    }
-    resetControlsTimer()
-  }
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value)
-    setCurrentTime(newTime)
-  }
-
-  const handleSeekStart = () => {
-    setIsScrubbing(true)
-    setShowControls(true)
-  }
-
-  const handleSeekEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
-    setIsScrubbing(false)
-    if (playerRef.current) {
-      const newTime = parseFloat((e.target as HTMLInputElement).value)
-      playerRef.current.seekTo(newTime, true)
-    }
-    resetControlsTimer()
-  }
-
-  const skipSeconds = (seconds: number) => {
-    if (!playerRef.current) return
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds))
-    setCurrentTime(newTime)
-    playerRef.current.seekTo(newTime, true)
-    resetControlsTimer()
-  }
-
-  const toggleMute = () => {
-    if (!playerRef.current) return
-    if (isMuted) {
-      playerRef.current.unMute()
-      setIsMuted(false)
-    } else {
-      playerRef.current.mute()
-      setIsMuted(true)
-    }
-    resetControlsTimer()
-  }
-
-  const changePlaybackRate = () => {
-    if (!playerRef.current) return
-    const rates = [1, 1.25, 1.5, 2, 0.75]
-    const nextIndex = (rates.indexOf(playbackRate) + 1) % rates.length
-    const nextRate = rates[nextIndex]
-    playerRef.current.setPlaybackRate(nextRate)
-    setPlaybackRate(nextRate)
-    resetControlsTimer()
-  }
-
-  const toggleFullscreen = () => {
-    const el = containerRef.current?.parentElement
-    if (!el) return
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().catch(console.warn)
-      setIsFullscreen(true)
-    } else {
-      document.exitFullscreen().catch(console.warn)
-      setIsFullscreen(false)
-    }
-    resetControlsTimer()
-  }
-
-  if (!videoId) {
+  if (hasError && fallbackDriveUrl) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white text-sm">
-        รูปแบบลิงก์ YouTube ไม่ถูกต้อง
-      </div>
+      <iframe
+        className="w-full h-full border-0"
+        src={fallbackDriveUrl}
+        allow="autoplay"
+        sandbox="allow-scripts allow-same-origin allow-presentation"
+      />
     )
   }
 
   return (
     <div
-      className="relative w-full h-full bg-black group select-none overflow-hidden"
+      ref={containerRef}
+      className="relative w-full h-full bg-black select-none overflow-hidden group"
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
       onClick={resetControlsTimer}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={e => e.preventDefault()}
     >
-      {/* The actual YouTube iframe will be mounted here */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div ref={containerRef} />
-      </div>
-
-      {/* Transparent Click Layer */}
-      <div
-        className="absolute inset-0 z-10 cursor-pointer"
-        onContextMenu={(e) => e.preventDefault()}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        className="w-full h-full object-contain cursor-pointer"
+        playsInline
+        preload="metadata"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
+        onError={() => setHasError(true)}
         onClick={togglePlay}
-      >
-        {!isReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-xs">
-            <Loader2 className="size-9 animate-spin text-primary" />
-          </div>
-        )}
+        controlsList="nodownload noplaybackrate"
+        disablePictureInPicture
+      />
 
-        {/* Center Play Button on Pause */}
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300",
-            !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
-          )}
-        >
-          {isReady && !isPlaying && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                togglePlay()
-              }}
-              className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
-              aria-label="เล่นวิดีโอ"
-            >
-              <Play className="size-6.5 translate-x-0.5 fill-current" />
-            </button>
-          )}
+      {/* Loading Spinner */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs pointer-events-none z-20">
+          <Loader2 className="size-9 animate-spin text-primary" />
         </div>
+      )}
+
+      {/* Big Center Play/Pause button on Tap / Pause */}
+      <div 
+        className={cn(
+          "absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-300",
+          !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
+        )}
+      >
+        {!isPlaying && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              togglePlay()
+            }}
+            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
+            aria-label="เล่นวิดีโอ"
+          >
+            <Play className="size-6.5 translate-x-0.5 fill-current" />
+          </button>
+        )}
       </div>
 
-      {/* Auto-Hiding Bottom Control Bar */}
+      {/* Control Overlay Bar (Auto-hides when playing) */}
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 z-30 flex flex-col justify-end bg-gradient-to-t from-black/95 via-black/60 to-transparent px-3.5 pb-2.5 pt-10 transition-all duration-300 ease-in-out",
           showControls ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"
         )}
         onClick={(e) => e.stopPropagation()}
-        onContextMenu={(e) => e.preventDefault()}
       >
         {/* Scrubber / Progress Bar */}
         <div className="group/seek relative w-full h-5 flex items-center cursor-pointer mb-1.5">
@@ -307,7 +235,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
             onTouchEnd={handleSeekEnd}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
-          {/* Visual Progress Bar */}
+          {/* Progress Bar Visual */}
           <div className="relative w-full h-1.5 bg-white/25 rounded-full overflow-hidden transition-all duration-200 group-hover/seek:h-2.5">
             <div
               className="absolute left-0 top-0 h-full bg-primary rounded-full transition-all duration-75"
@@ -316,9 +244,10 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
           </div>
         </div>
 
-        {/* Controls Row */}
+        {/* Action Controls Row */}
         <div className="flex items-center justify-between gap-2 text-white">
           <div className="flex items-center gap-2">
+            {/* Play/Pause Button */}
             <button
               type="button"
               onClick={togglePlay}
@@ -352,7 +281,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
               <RotateCw className="size-3.5" />
             </button>
 
-            {/* Time */}
+            {/* Current Time / Duration */}
             <div className="text-[11.5px] font-mono font-medium tracking-wide text-white/90 ml-1 select-none">
               <span>{formatTime(currentTime)}</span>
               <span className="text-white/40 mx-1">/</span>
@@ -361,7 +290,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Speed */}
+            {/* Playback Speed */}
             <button
               type="button"
               onClick={changePlaybackRate}
@@ -371,7 +300,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
               {playbackRate}x
             </button>
 
-            {/* Mute */}
+            {/* Mute/Unmute */}
             <button
               type="button"
               onClick={toggleMute}
@@ -381,7 +310,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
               {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
 
-            {/* Fullscreen */}
+            {/* Fullscreen Toggle */}
             <button
               type="button"
               onClick={toggleFullscreen}

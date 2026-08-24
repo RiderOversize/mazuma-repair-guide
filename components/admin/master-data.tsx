@@ -1034,12 +1034,12 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <FileDown className="size-4 text-orange-500" /> ลิงค์ PDF (ไม่บังคับ)
+                  <FileDown className="size-4 text-orange-500" /> ลิงก์เอกสาร PDF / Canva (ไม่บังคับ)
                 </label>
                 <div className="flex gap-2">
                   <input 
                     className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
-                    placeholder="https://..."
+                    placeholder="https://... (Google Drive PDF หรือ ลิงก์ Canva)"
                     value={guideForm.pdfUrl}
                     onChange={e => setGuideForm({...guideForm, pdfUrl: e.target.value})}
                   />

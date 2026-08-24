@@ -200,6 +200,10 @@ export function clearCache(sheetName?: string) {
   } else {
     // @ts-expect-error Next.js 15 canary types issue
     revalidateTag('all-sheets');
+    Object.values(SHEETS).forEach((sheet) => {
+      // @ts-expect-error Next.js 15 canary types issue
+      revalidateTag(`sheet-${sheet}`);
+    });
   }
 }
 

@@ -88,7 +88,7 @@ export function GuidesManagement({ user, initialSearch = "", initialModelId }: {
 
   return (
     <div className="mx-auto w-full px-4 pb-8">
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl pb-4 pt-2 -mx-4 px-4 border-b border-border/40 mb-6 shadow-sm">
+      <div className="sticky top-0 md:top-16 z-20 bg-background/95 backdrop-blur-md pb-4 pt-2 -mx-4 px-4 border-b border-border/40 mb-6 shadow-xs">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">การผูกคู่มือสินค้า (MasterData)</h1>

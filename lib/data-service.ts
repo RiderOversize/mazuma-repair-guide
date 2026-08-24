@@ -41,6 +41,7 @@ import {
   updateSymptom as _updateSymptom,
   deleteSymptom as _deleteSymptom
 } from "./sheets-db";
+import type { DeviceModel } from "./types";
 
 export { type ActiveSession, type RepairFeedback } from "./sheets-db";
 
@@ -120,23 +121,82 @@ export async function preloadTechnicianData() {
     _getModels(),
   ]);
 
-  const mapByCode = new Map<string, string>();
-  const mapByName = new Map<string, string>();
-  mappings.forEach((m) => {
-    if (m.modelCode && m.symptomTypeCode) mapByCode.set(m.modelCode.trim(), m.symptomTypeCode.trim());
-    if (m.modelName && m.symptomTypeCode) mapByName.set(m.modelName.trim(), m.symptomTypeCode.trim());
+  // ดึง Thumbnail จากชีต Models (ถ้ามี) มาประกอบกับ MasterData
+  const thumbByCode = new Map<string, string>();
+  const thumbByName = new Map<string, string>();
+  rawMods.forEach((m) => {
+    if (m.code && m.thumbnail) thumbByCode.set(m.code.trim().toLowerCase(), m.thumbnail);
+    if (m.name && m.thumbnail) thumbByName.set(m.name.trim().toLowerCase(), m.thumbnail);
   });
 
-  const mods = rawMods.map((m) => {
-    const symType =
-      m.symptomTypeId ||
-      mapByCode.get(m.code?.trim()) ||
-      mapByName.get(m.name?.trim()) ||
-      "";
-    return { ...m, symptomTypeId: symType };
+  // สร้างรายการรุ่นสินค้าสำหรับแอปช่างโดยตรงจากชีต MasterData (ไม่เอาจากชีต Models)
+  const masterDataModels: DeviceModel[] = mappings.map((m, index) => {
+    const code = (m.modelCode || "").trim();
+    const name = (m.modelName || "").trim();
+    const matCatCode = (m.matCategoryCode || "").trim();
+    const matCatName = (m.matCategoryName || "").trim();
+
+    // 1. ระบุ Category จาก matCategoryCode (เช่น "F1-01-00" -> slug "F1") หรือชื่อหมวดหมู่
+    let categoryId = "";
+    if (matCatCode) {
+      const prefix = matCatCode.split("-")[0].trim().toUpperCase();
+      const matchedCat = cats.find(
+        (c) => c.slug.toUpperCase() === prefix || c.id === prefix || (matCatName && c.name.toLowerCase() === matCatName.toLowerCase())
+      );
+      if (matchedCat) {
+        categoryId = matchedCat.id || matchedCat.slug;
+      } else {
+        categoryId = prefix;
+      }
+    }
+    if (!categoryId && matCatName) {
+      const matchedCat = cats.find((c) => c.name.toLowerCase() === matCatName.toLowerCase());
+      if (matchedCat) categoryId = matchedCat.id || matchedCat.slug;
+    }
+
+    // 2. ระบุ SubCategory จาก SubCategories
+    let subcategoryId = matCatCode || matCatName || "";
+    if (matCatCode || matCatName) {
+      const matchedSub = subCats.find(
+        (sc) =>
+          (matCatCode && (sc.index?.toLowerCase() === matCatCode.toLowerCase() || sc.id.toLowerCase() === matCatCode.toLowerCase())) ||
+          (matCatName && sc.name?.toLowerCase() === matCatName.toLowerCase())
+      );
+      if (matchedSub) {
+        subcategoryId = matchedSub.index || matchedSub.id;
+      }
+    }
+
+    const codeLower = code.toLowerCase();
+    const nameLower = name.toLowerCase();
+    const thumbnail = (codeLower ? thumbByCode.get(codeLower) : "") || (nameLower ? thumbByName.get(nameLower) : "") || "";
+
+    return {
+      id: code || m.id || `md-model-${index}`,
+      code: code,
+      name: name || code || "ไม่ระบุชื่อรุ่น",
+      categoryId: categoryId,
+      subcategoryId: subcategoryId,
+      symptomTypeId: (m.symptomTypeCode || "").trim(),
+      thumbnail: thumbnail,
+      status: "active" as const,
+      createdAt: m.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }).filter((m) => m.code || m.name);
+
+  // ตัดรายการซ้ำตามรหัสรุ่น (Deduplicate)
+  const uniqueMasterModels = new Map<string, DeviceModel>();
+  masterDataModels.forEach((m) => {
+    const key = m.code ? m.code.toLowerCase() : m.id;
+    if (!uniqueMasterModels.has(key)) {
+      uniqueMasterModels.set(key, m);
+    }
   });
 
-  return { categories: cats, guides: gds, subCategories: subCats, symptomTypes: symTypes, symptoms: syms, mappings, models: mods };
+  const finalModels = Array.from(uniqueMasterModels.values());
+
+  return { categories: cats, guides: gds, subCategories: subCats, symptomTypes: symTypes, symptoms: syms, mappings, models: finalModels };
 }
 
 export async function preloadAdminData() {
