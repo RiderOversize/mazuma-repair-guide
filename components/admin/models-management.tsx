@@ -310,27 +310,35 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
       {isFormOpen && (
         <>
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[90] hidden md:block" onClick={() => setIsFormOpen(false)}></div>
-          <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl">
-          <div className="flex items-center justify-between px-4 py-3 pt-safe border-b border-border/40 bg-background/70 backdrop-blur-2xl">
-            <button type="button" onClick={() => setIsFormOpen(false)} className="text-[15px] font-medium text-muted-foreground">ยกเลิก</button>
-            <h3 className="font-display text-[17px] font-bold">{editingId ? "แก้ไขรุ่น" : "เพิ่มรุ่นใหม่"}</h3>
-            <button type="button" onClick={handleSubmit} disabled={saving} className="text-[15px] font-semibold text-primary disabled:opacity-50">
-              {saving ? <Loader2 className="size-4 animate-spin" /> : "บันทึก"}
+          <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl overflow-hidden">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm z-10 shrink-0">
+            <h3 className="font-display text-[18px] font-bold text-foreground">
+              {editingId ? "แก้ไขรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}
+            </h3>
+            <button 
+              type="button" 
+              onClick={() => setIsFormOpen(false)} 
+              className="p-2 -mr-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <X className="size-5" />
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto px-4 py-6 pb-24">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="space-y-1.5">
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-5 py-6">
+            <form id="model-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+              <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
                 <div className="flex flex-col gap-3">
-                  <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
+                  <div className="flex h-36 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
                     {formData.thumbnail ? (
                        <img src={formData.thumbnail} alt="Preview" className="h-full w-full object-contain p-2" onError={(e) => (e.currentTarget.style.display = 'none')} />
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
                         <ImageIcon className="size-8" />
-                        <span className="text-[11px]">ไม่มีรูปภาพ</span>
+                        <span className="text-[12px] font-medium">ไม่มีรูปภาพ</span>
                       </div>
                     )}
                   </div>
@@ -339,54 +347,54 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                     value={formData.thumbnail}
                     onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
                 <input
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="เช่น Mazuma รุ่น Hydro Pro"
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-foreground">รหัสรุ่น <span className="text-destructive">*</span></label>
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-foreground">รหัสรุ่น (Model Code) <span className="text-destructive">*</span></label>
                 <input
                   required
                   value={formData.code}
                   onChange={e => setFormData({ ...formData, code: e.target.value })}
                   placeholder="เช่น MZ-HP4500"
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm uppercase"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm uppercase"
                 />
               </div>
               
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.categoryId}
                   onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
                 >
                   <option value="">เลือกหมวดหมู่หลัก</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.subcategoryId}
                   onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
                   disabled={!formData.categoryId}
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
                 >
                   <option value="">เลือกหมวดหมู่ย่อย</option>
                   {subCategories.filter(sc => {
@@ -396,24 +404,45 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                 </select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[13px] font-semibold text-foreground">สถานะ</label>
                 <div className="flex flex-col gap-2">
-                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card")}>
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="active" checked={formData.status === "active"} onChange={() => setFormData({ ...formData, status: "active"})} className="size-4 text-primary focus:ring-primary" />
                      <span className="text-[14px] font-medium">เปิดจำหน่าย</span>
                    </label>
-                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card")}>
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="draft" checked={formData.status === "draft"} onChange={() => setFormData({ ...formData, status: "draft"})} className="size-4 text-amber-500 focus:ring-amber-500" />
                      <span className="text-[14px] font-medium">ฉบับร่าง</span>
                    </label>
-                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card")}>
+                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="discontinued" checked={formData.status === "discontinued"} onChange={() => setFormData({ ...formData, status: "discontinued"})} className="size-4 text-destructive focus:ring-destructive" />
                      <span className="text-[14px] font-medium">ยกเลิกผลิต</span>
                    </label>
                 </div>
               </div>
             </form>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="shrink-0 p-5 border-t border-border/40 bg-background/95 backdrop-blur-sm z-10">
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => setIsFormOpen(false)} 
+                className="flex-1 py-3.5 rounded-xl border border-border/50 bg-card font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                type="submit" 
+                form="model-form"
+                disabled={saving} 
+                className="flex-1 py-3.5 rounded-xl bg-primary font-semibold text-primary-foreground shadow-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="size-5 animate-spin" /> : "บันทึกข้อมูล"}
+              </button>
+            </div>
           </div>
         </div>
         </>
