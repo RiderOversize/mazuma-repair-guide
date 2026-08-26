@@ -52,29 +52,23 @@ export function GuideForm({
       getModels(), getSymptomTypes(), getCategories(), getSubCategories(), getMasterDataMappings()
     ])
     
-    // Filter out models that are already mapped
-    const mappedModelCodes = new Set(maps.map(m => m.modelCode))
-    if (editMapping) {
-      mappedModelCodes.delete(editMapping.modelCode)
-    }
-    
-    const availableModels = mods.filter(m => !mappedModelCodes.has(m.code))
-    
-    setModels(availableModels)
+    setModels(mods)
     setSymptomTypes(symTypes)
     setCategories(cats)
     setSubCategories(subCats)
     
     if (editMapping) {
-      // Find model ID by code from available models
-      const m = availableModels.find(x => x.code === editMapping.modelCode)
+      // Find model ID by code
+      const m = mods.find(x => x.code === editMapping.modelCode || x.name === editMapping.modelName)
       if (m) {
         setSelectedModelIds([m.id])
       }
       
       // Symptom type code might be saved in subcategoryId
-      const st = symTypes.find(x => x.subcategoryId === editMapping.symptomTypeCode || x.id === editMapping.symptomTypeCode)
+      const st = symTypes.find(x => x.subcategoryId === editMapping.symptomTypeCode || x.id === editMapping.symptomTypeCode || x.name === editMapping.symptomTypeName)
       if (st) setSelectedSymptomTypeId(st.id)
+    } else if (initialModelIds && initialModelIds.length > 0) {
+      setSelectedModelIds(initialModelIds)
     }
     
     setLoading(false)

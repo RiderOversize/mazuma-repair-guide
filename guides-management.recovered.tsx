@@ -660,8 +660,8 @@ export function GuidesManagement({
             </div>
           </div>
 
-          {/* Model List */}
-          <div className="flex flex-col gap-3">
+          {/* Model Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {paginatedModels.map((m: DeviceModel) => {
               const code = (m.code || "").trim().toUpperCase()
               const guides = mappingsByModelCode.get(code) || []
@@ -671,82 +671,91 @@ export function GuidesManagement({
                 <div
                   key={m.id}
                   onClick={() => setSelectedModelId(m.id)}
-                  className="group flex flex-col sm:flex-row justify-between rounded-2xl border border-border/40 bg-card p-4 shadow-sm hover:border-primary/50 hover:shadow-md transition-all cursor-pointer gap-4 sm:items-center"
+                  className="group flex flex-col justify-between rounded-2xl border border-border/40 bg-card p-4 shadow-sm hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
                 >
-                  {/* Left: Image & Info */}
-                  <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background overflow-hidden shadow-inner">
-                      {m.thumbnail ? (
-                        <img src={m.thumbnail} alt={m.name} className="h-full w-full object-contain p-1" />
-                      ) : (
-                        <ImageIcon className="size-5 text-muted-foreground/30" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <span className="font-bold text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                          {m.code}
-                        </span>
-                        {subCat && (
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">
-                            {subCat.name}
-                          </span>
+                  <div>
+                    {/* Card Top: Image & Base Info */}
+                    <div className="flex gap-3.5 items-start">
+                      <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl border border-border/40 bg-background overflow-hidden shadow-inner">
+                        {m.thumbnail ? (
+                          <img src={m.thumbnail} alt={m.name} className="h-full w-full object-contain p-1.5" />
+                        ) : (
+                          <ImageIcon className="size-7 text-muted-foreground/30" />
                         )}
                       </div>
-                      <h3 className="font-bold text-[14px] leading-snug text-foreground truncate group-hover:text-primary transition-colors">
-                        {m.name}
-                      </h3>
-                    </div>
-                  </div>
 
-                  {/* Middle: Guide Status Indicator */}
-                  <div className="sm:w-[260px] shrink-0 border-t sm:border-t-0 sm:border-l border-border/40 pt-3 sm:pt-0 sm:px-4">
-                    {guides.length > 0 ? (
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <span className="inline-flex items-center gap-1 font-semibold text-[12px] text-green-600 dark:text-green-400">
-                          <CheckCircle2 className="size-3.5 shrink-0" />
-                          <span className="truncate">มีคู่มือแล้ว {guides.length} อาการ</span>
-                        </span>
-                        <div className="flex flex-wrap gap-1 max-h-[24px] overflow-hidden">
-                          {guides.slice(0, 2).map((g) => (
-                            <span
-                              key={g.id}
-                              className="inline-flex items-center gap-1 rounded-md bg-muted/50 border border-border/40 px-2 py-0.5 text-[10px] text-foreground/80 truncate max-w-[120px]"
-                            >
-                              {g.symptomTypeName}
-                            </span>
-                          ))}
-                          {guides.length > 2 && (
-                            <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
-                              +{guides.length - 2}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <span className="font-bold text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                            {m.code}
+                          </span>
+                          {subCat && (
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
+                              {subCat.name}
                             </span>
                           )}
                         </div>
+
+                        <h3 className="font-bold text-[14px] leading-snug text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                          {m.name}
+                        </h3>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-[12px] bg-amber-500/5 border border-amber-500/15 p-2 rounded-xl h-full">
-                        <span className="inline-flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
-                          <AlertCircle className="size-3.5 shrink-0" />
-                          ยังไม่มีคู่มือซ่อม
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => openCreateGuideForModel(m, e)}
-                          className="inline-flex items-center gap-1 font-bold text-[11px] text-primary hover:underline shrink-0"
-                        >
-                          <Plus className="size-3" /> ผูกคู่มือ
-                        </button>
-                      </div>
-                    )}
+                    </div>
+
+                    {/* Guide Status Indicator */}
+                    <div className="mt-3.5 pt-3 border-t border-border/40">
+                      {guides.length > 0 ? (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="inline-flex items-center gap-1 font-semibold text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="size-3.5" />
+                              มีคู่มือแล้ว {guides.length} อาการ
+                            </span>
+                            <span className="text-[11px] text-muted-foreground group-hover:text-primary font-medium flex items-center">
+                              ดูรายละเอียด <ChevronRight className="size-3" />
+                            </span>
+                          </div>
+                          {/* Symptoms list snippet */}
+                          <div className="flex flex-wrap gap-1 max-h-[48px] overflow-hidden">
+                            {guides.slice(0, 3).map((g) => (
+                              <span
+                                key={g.id}
+                                className="inline-flex items-center gap-1 rounded-md bg-muted/50 border border-border/40 px-2 py-0.5 text-[11px] text-foreground/80 truncate max-w-[150px]"
+                              >
+                                {g.symptomTypeName}
+                              </span>
+                            ))}
+                            {guides.length > 3 && (
+                              <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
+                                +{guides.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between text-[12px] bg-amber-500/5 border border-amber-500/15 p-2 rounded-xl">
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+                            <AlertCircle className="size-3.5" />
+                            ยังไม่มีคู่มือซ่อม
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => openCreateGuideForModel(m, e)}
+                            className="inline-flex items-center gap-1 font-bold text-[11px] text-primary hover:underline"
+                          >
+                            <Plus className="size-3" /> ผูกคู่มือ
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Right: Actions */}
-                  <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-border/40 pt-3 sm:pt-0 sm:pl-4 shrink-0" onClick={e => e.stopPropagation()}>
+                  {/* Card Bottom Actions */}
+                  <div className="flex items-center gap-2 pt-3 mt-3 border-t border-border/40" onClick={e => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => setSelectedModelId(m.id)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 px-3 py-2 text-[12px] font-bold text-primary active:scale-95 transition-transform"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 py-2 text-[12px] font-bold text-primary active:scale-95 transition-transform"
                     >
                       <BookOpen className="size-3.5" />
                       ดูคู่มือ ({guides.length})

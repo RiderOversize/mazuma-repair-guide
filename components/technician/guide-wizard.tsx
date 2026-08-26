@@ -377,8 +377,8 @@ export function GuideWizard({
             </div>
             
             <div className="flex flex-col gap-3">
-              {dbSupervisors.filter(sup => user.assignedSupervisors?.includes(sup.employeeCode)).map((sup) => (
-                <div key={sup.employeeCode} className="flex items-center justify-between p-3 rounded-2xl border border-border bg-background hover:border-primary/50 transition-colors">
+              {dbSupervisors.filter(sup => sup && sup.employeeCode && user.assignedSupervisors?.includes(sup.employeeCode)).map((sup, idx) => (
+                <div key={sup.employeeCode || `sup-wiz-${idx}`} className="flex items-center justify-between p-3 rounded-2xl border border-border bg-background hover:border-primary/50 transition-colors">
                   <div className="flex items-center gap-3">
                     {sup.avatar && sup.avatar !== "/avatars/technician.png" && sup.avatar !== "/avatars/admin.png" ? (
                       <div className="size-10 rounded-full overflow-hidden shrink-0 border border-border shadow-sm">

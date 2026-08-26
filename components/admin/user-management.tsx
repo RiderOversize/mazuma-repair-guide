@@ -10,9 +10,8 @@ import { cn } from "@/lib/utils"
 
 export const AVAILABLE_MENUS = [
   { id: "dashboard", label: "ภาพรวม" },
-  { id: "guides", label: "คู่มือ" },
+  { id: "guides", label: "คู่มือและรุ่นสินค้า" },
   { id: "master-data", label: "จัดการข้อมูล" },
-  { id: "models", label: "จัดการรุ่นสินค้า" },
   { id: "media", label: "คลังสื่อ (Media)" },
   { id: "users", label: "ผู้ใช้งานและสิทธิ์" },
   { id: "settings", label: "ตั้งค่าระบบ" },
@@ -42,18 +41,23 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
   const [editNameValue, setEditNameValue] = useState("")
 
   const roleCounts = useMemo(() => {
+    const validUsers = users.filter(u => u && u.employeeCode && u.employeeCode.trim() !== "")
     return {
-      all: users.length,
-      admin: users.filter(u => u.role === "admin").length,
-      head: users.filter(u => u.role === "head").length,
-      technician: users.filter(u => u.role === "technician").length,
+      all: validUsers.length,
+      admin: validUsers.filter(u => u.role === "admin").length,
+      head: validUsers.filter(u => u.role === "head").length,
+      technician: validUsers.filter(u => u.role === "technician").length,
     }
   }, [users])
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
+      if (!u || !u.employeeCode || u.employeeCode.trim() === "") return false
       const q = searchQuery.toLowerCase().trim()
-      const matchSearch = !q || u.name.toLowerCase().includes(q) || u.employeeCode.toLowerCase().includes(q) || (u.phone && u.phone.includes(q))
+      const matchSearch = !q || 
+        (u.name && u.name.toLowerCase().includes(q)) || 
+        (u.employeeCode && u.employeeCode.toLowerCase().includes(q)) || 
+        (u.phone && u.phone.includes(q))
       const matchRole = roleFilter === "all" || u.role === roleFilter
       const matchStatus = statusFilter === "all" || u.status === statusFilter
       return matchSearch && matchRole && matchStatus
@@ -76,9 +80,14 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
 
   const loadUsers = async () => {
     setLoading(true)
-    const data = await getUsers()
-    setUsers(data)
-    setLoading(false)
+    try {
+      const data = await getUsers()
+      setUsers((data || []).filter(u => u && typeof u.employeeCode === 'string' && u.employeeCode.trim() !== ''))
+    } catch (err) {
+      console.error("Error loading users:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const selectedUser = users.find(u => u.employeeCode === selectedUserId)
@@ -445,9 +454,10 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             <div className="flex flex-col overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
               {filteredUsers.map((u, i, arr) => {
                 const isLast = i === arr.length - 1;
+                const itemKey = u.employeeCode || `user-${i}`;
                 return (
                   <div
-                    key={u.employeeCode}
+                    key={itemKey}
                     onClick={() => {
                       setSelectedUserId(u.employeeCode)
                       setCurrentView('detail')
@@ -562,11 +572,12 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 </div>
               </div>
               <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map(sup => {
+                {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map((sup, idx) => {
                   const hasAccess = newAssignedSupervisors.includes(sup.employeeCode)
+                  const supKey = sup.employeeCode || `sup-create-${idx}`;
                   return (
                     <label
-                      key={sup.employeeCode}
+                      key={supKey}
                       className={cn(
                         "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-muted/30 active:scale-[0.98]",
                         hasAccess 
@@ -605,7 +616,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                     </label>
                   )
                 })}
-                {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
+                {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
                   <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
                 )}
               </div>
@@ -785,11 +796,12 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-              {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map(sup => {
+              {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).map((sup, idx) => {
                 const hasAccess = (selectedUser.assignedSupervisors || []).includes(sup.employeeCode)
+                const supKey = sup.employeeCode || `sup-detail-${idx}`;
                 return (
                   <label
-                    key={sup.employeeCode}
+                    key={supKey}
                     className={cn(
                       "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-muted/30 active:scale-[0.98]",
                       hasAccess 
@@ -822,7 +834,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                   </label>
                 )
               })}
-              {users.filter(u => u.role === "head" && (u.name.toLowerCase().includes(headSearch.toLowerCase()) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
+              {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
                 <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center md:col-span-2">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
               )}
             </div>

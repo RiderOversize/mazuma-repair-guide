@@ -2,7 +2,7 @@ import NextAuth from "next-auth"
 import LineProvider from "next-auth/providers/line"
 import { getUsers } from "@/lib/data-service"
 
-export const authOptions = {
+const authOptions = {
   providers: [
     LineProvider({
       clientId: process.env.LINE_CLIENT_ID!,

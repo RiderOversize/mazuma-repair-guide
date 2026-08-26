@@ -23,26 +23,41 @@ export async function getUsers(forceFetch: boolean = false): Promise<AuthUser[]>
   const headers = allRows[0] || [];
   const rows = allRows.slice(1);
   const empCodeIdx = getIndexCaseInsensitive(headers, 'employeeCode');
-  const uniqueRows = Array.from(new Map(rows.map(r => [r[empCodeIdx !== -1 ? empCodeIdx : 0], r])).values());
+
+  // Filter out blank rows or rows without employeeCode
+  const validRows = rows.filter(r => {
+    if (!r || !Array.isArray(r) || r.length === 0) return false;
+    const code = empCodeIdx !== -1 ? r[empCodeIdx] : r[0];
+    return typeof code === 'string' ? code.trim() !== '' : !!code;
+  });
+
+  const uniqueRows = Array.from(new Map(validRows.map(r => {
+    const code = String((empCodeIdx !== -1 ? r[empCodeIdx] : r[0]) || '').trim();
+    return [code, r];
+  })).values());
   
-  return uniqueRows.map(r => {
+  const users: AuthUser[] = [];
+  for (const r of uniqueRows) {
     const obj = mapRowToObject(headers, r);
-    return {
-      employeeCode: obj.employeeCode,
-      name: obj.name,
-      phone: obj.phone,
-      role: obj.role as any,
+    const code = String(obj.employeeCode || '').trim();
+    if (!code) continue;
+    users.push({
+      employeeCode: code,
+      name: obj.name || "",
+      phone: obj.phone || "",
+      role: (obj.role as any) || "technician",
       title: obj.role === "admin" ? "ผู้ดูแลระบบ" : obj.role === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค",
-      status: obj.status as any,
-      createdAt: obj.createdAt,
+      status: (obj.status as any) || "active",
+      createdAt: obj.createdAt || "",
       initials: obj.name ? obj.name.substring(0, 2) : "",
       avatar: obj.avatarUrl || (obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png"),
       lineName: obj.LineName || obj.lineName || "-",
-      lineUserId: obj.lineUserId,
-      assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').filter(Boolean) : [],
-      accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').filter(Boolean) : undefined,
-    };
-  });
+      lineUserId: obj.lineUserId || "",
+      assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+    });
+  }
+  return users;
 }
 
 export async function createUser(user: AuthUser): Promise<AuthUser> {

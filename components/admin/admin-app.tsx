@@ -43,13 +43,12 @@ import type { AuthUser } from "@/lib/auth"
 
 const topNavItems = [
   { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
-  { id: "guides", label: "คู่มือ", icon: BookOpen },
+  { id: "guides", label: "คู่มือและรุ่นสินค้า", icon: BookOpen },
   { id: "master-data", label: "จัดการข้อมูล", icon: Database },
   { id: "more", label: "เพิ่มเติม", icon: Menu },
 ]
 
 const moreItems = [
-  { id: "models", label: "จัดการรุ่นสินค้า", icon: Smartphone, color: "text-blue-500", bg: "bg-blue-500/10" },
   { id: "media", label: "คลังสื่อ (Media)", icon: ImageIcon, color: "text-purple-500", bg: "bg-purple-500/10" },
   { id: "users", label: "ผู้ใช้งานและสิทธิ์", icon: Users, color: "text-orange-500", bg: "bg-orange-500/10" },
   { id: "settings", label: "ตั้งค่าระบบ", icon: Settings, color: "text-gray-500", bg: "bg-gray-500/10" },
@@ -67,6 +66,7 @@ export function AdminApp({
   const hasAccess = (menuId: string) => {
     if (menuId === "more") return true;
     if (user.role === "admin" && allowedMenus.length === 0) return true;
+    if (menuId === "guides" && (allowedMenus.includes("guides") || allowedMenus.includes("models"))) return true;
     return allowedMenus.includes(menuId);
   }
 
@@ -193,8 +193,7 @@ export function AdminApp({
     return (
       <div className="pb-24 pt-4">
         {view === "dashboard" && <AdminDashboard key={resetKey} user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
-        {view === "guides" && <GuidesManagement key={`guides-${guidesInitialModelId || 'none'}-${resetKey}`} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} />}
-        {view === "models" && <ModelsManagement key={resetKey} user={user} />}
+        {(view === "guides" || view === "models") && <GuidesManagement key={`guides-${guidesInitialModelId || 'none'}-${resetKey}`} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} setGlobalBack={setGlobalBack} />}
         {view === "master-data" && <MasterDataManagement key={resetKey} user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
         {view === "media" && <MediaLibrary key={resetKey} user={user} />}
         {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} onLogout={onLogout} />}
