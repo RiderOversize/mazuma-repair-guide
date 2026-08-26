@@ -19,30 +19,51 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [fontFamily, setFontFamilyState] = useState<FontFamily>("sarabun")
   const [mounted, setMounted] = useState(false)
 
+  const applyFontSettings = (size: FontSize, font: FontFamily) => {
+    if (typeof document === "undefined") return
+    document.documentElement.setAttribute("data-font-size", size)
+    document.documentElement.setAttribute("data-font-family", font)
+    
+    // Direct CSS root font size to guarantee 100% immediate effect across all browsers & Tailwind rem units
+    const sizeMap: Record<FontSize, string> = {
+      sm: "13.5px",
+      base: "16px",
+      lg: "18.5px",
+      xl: "21px",
+    }
+    document.documentElement.style.fontSize = sizeMap[size] || "16px"
+  }
+
   useEffect(() => {
     const savedFontSize = localStorage.getItem("app-font-size") as FontSize
     const savedFontFamily = localStorage.getItem("app-font-family") as FontFamily
     
+    const initialSize = savedFontSize || "base"
+    const initialFont = savedFontFamily || "sarabun"
+
     if (savedFontSize) setFontSizeState(savedFontSize)
     if (savedFontFamily) setFontFamilyState(savedFontFamily)
+    
+    applyFontSettings(initialSize, initialFont)
     setMounted(true)
   }, [])
 
   useEffect(() => {
     if (mounted) {
-      document.documentElement.setAttribute("data-font-size", fontSize)
-      document.documentElement.setAttribute("data-font-family", fontFamily)
+      applyFontSettings(fontSize, fontFamily)
     }
   }, [fontSize, fontFamily, mounted])
 
   const setFontSize = (size: FontSize) => {
     setFontSizeState(size)
     localStorage.setItem("app-font-size", size)
+    applyFontSettings(size, fontFamily)
   }
 
   const setFontFamily = (font: FontFamily) => {
     setFontFamilyState(font)
     localStorage.setItem("app-font-family", font)
+    applyFontSettings(fontSize, font)
   }
 
   // Prevent flash of incorrect settings by not rendering children until mounted? 

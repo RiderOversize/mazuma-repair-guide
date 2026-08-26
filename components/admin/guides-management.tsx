@@ -348,7 +348,7 @@ export function GuidesManagement({
             <button
               type="button"
               onClick={() => setSelectedModelId(null)}
-              className="inline-flex items-center gap-2 rounded-xl bg-card border border-border/50 px-3.5 py-2 text-[13px] font-semibold text-foreground hover:bg-muted transition-colors shadow-xs active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-card border border-border/50 px-3.5 py-2 text-[0.8125rem] font-semibold text-foreground hover:bg-muted transition-colors shadow-xs active:scale-95"
             >
               <ArrowLeft className="size-4" />
               กลับไปหน้ารายการรุ่น
@@ -358,7 +358,7 @@ export function GuidesManagement({
               <button
                 type="button"
                 onClick={(e) => openEditModel(selectedModel, e)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-muted px-3.5 py-2 text-[13px] font-semibold text-foreground hover:bg-muted/80 transition-colors active:scale-95 shadow-xs"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-muted px-3.5 py-2 text-[0.8125rem] font-semibold text-foreground hover:bg-muted/80 transition-colors active:scale-95 shadow-xs"
               >
                 <Edit className="size-4" />
                 แก้ไขข้อมูลรุ่น
@@ -366,7 +366,7 @@ export function GuidesManagement({
               <button
                 type="button"
                 onClick={() => openCreateGuideForModel(selectedModel)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[13px] font-bold text-primary-foreground hover:bg-primary/90 shadow-sm active:scale-95 transition-transform"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[0.8125rem] font-bold text-primary-foreground hover:bg-primary/90 shadow-sm active:scale-95 transition-transform"
               >
                 <Plus className="size-4" />
                 ผูกคู่มืออาการใหม่
@@ -391,18 +391,18 @@ export function GuidesManagement({
 
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.6875rem] font-bold text-primary">
                     <Smartphone className="size-3" />
                     {selectedModel.code}
                   </span>
                   <span className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold",
                     selectedModel.status === "active" ? "bg-green-500/10 text-green-600" : selectedModel.status === "draft" ? "bg-amber-500/10 text-amber-600" : "bg-destructive/10 text-destructive"
                   )}>
                     {selectedModel.status === "active" ? "เปิดจำหน่าย" : selectedModel.status === "draft" ? "ฉบับร่าง" : "ยกเลิกผลิต"}
                   </span>
                   {subCategories.find(sc => sc.id === selectedModel.subcategoryId || sc.index === selectedModel.subcategoryId)?.name && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
                       <Layers className="size-3" />
                       {subCategories.find(sc => sc.id === selectedModel.subcategoryId || sc.index === selectedModel.subcategoryId)?.name}
                     </span>
@@ -413,7 +413,7 @@ export function GuidesManagement({
                   {selectedModel.name}
                 </h1>
 
-                <p className="text-[13px] text-muted-foreground">
+                <p className="text-[0.8125rem] text-muted-foreground">
                   มีคู่มือการซ่อมแล้ว <strong className="text-foreground">{guidesForSelectedModel.length}</strong> อาการ
                 </p>
               </div>
@@ -428,13 +428,13 @@ export function GuidesManagement({
                   <Stethoscope className="size-5 text-primary" />
                   คู่มือซ่อมตามอาการเสีย ({guidesForSelectedModel.length} รายการ)
                 </h2>
-                <p className="text-[12px] text-muted-foreground mt-0.5">รายการคู่มือที่ช่างเทคนิคจะมองเห็นเมื่อเลือกรุ่นสินค้านี้</p>
+                <p className="text-xs text-muted-foreground mt-0.5">รายการคู่มือที่ช่างเทคนิคจะมองเห็นเมื่อเลือกรุ่นสินค้านี้</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => openCreateGuideForModel(selectedModel)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3.5 py-1.5 text-[12px] font-bold transition-colors active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3.5 py-1.5 text-xs font-bold transition-colors active:scale-95"
               >
                 <Plus className="size-3.5" />
                 เพิ่มคู่มืออาการ
@@ -455,10 +455,10 @@ export function GuidesManagement({
                             <Stethoscope className="size-4.5" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-[14px] leading-tight text-foreground line-clamp-2">
+                            <h3 className="font-bold text-sm leading-tight text-foreground line-clamp-2">
                               {mapping.symptomTypeName}
                             </h3>
-                            <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                            <p className="text-[0.6875rem] font-medium text-muted-foreground mt-0.5">
                               รหัสอาการ: {mapping.symptomTypeCode}
                             </p>
                           </div>
@@ -466,7 +466,7 @@ export function GuidesManagement({
                       </div>
 
                       {mapping.matCategoryName && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-muted/40 px-2 py-0.5 text-[0.6875rem] text-muted-foreground">
                           <Tag className="size-3" />
                           {mapping.matCategoryName}
                         </div>
@@ -477,7 +477,7 @@ export function GuidesManagement({
                       <button
                         type="button"
                         onClick={(e) => openEditGuide(mapping, e)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 py-2 text-[12px] font-bold text-primary active:scale-95 transition-transform"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 py-2 text-xs font-bold text-primary active:scale-95 transition-transform"
                       >
                         <Edit className="size-3.5" />
                         แก้ไขคู่มือ
@@ -500,15 +500,15 @@ export function GuidesManagement({
                   <AlertCircle className="size-7" />
                 </div>
                 <div>
-                  <h3 className="font-display text-[16px] font-bold text-foreground">ยังไม่มีคู่มือสำหรับสินค้ารุ่นนี้</h3>
-                  <p className="text-[13px] text-muted-foreground mt-1 max-w-sm">
+                  <h3 className="font-display text-base font-bold text-foreground">ยังไม่มีคู่มือสำหรับสินค้ารุ่นนี้</h3>
+                  <p className="text-[0.8125rem] text-muted-foreground mt-1 max-w-sm">
                     ผูกประเภทอาการเสียเข้ากับรุ่นสินค้านี้ เพื่อให้ช่างสามารถดูขั้นตอนการซ่อมได้
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => openCreateGuideForModel(selectedModel)}
-                  className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+                  className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[0.8125rem] font-bold text-primary-foreground shadow-sm active:scale-95 transition-transform"
                 >
                   <Plus className="size-4" />
                   ผูกคู่มือแรกสำหรับรุ่นนี้
@@ -530,7 +530,7 @@ export function GuidesManagement({
                   <BookOpen className="size-6 text-primary" />
                   จัดการคู่มือและรุ่นสินค้า
                 </h1>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
+                <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
                   ศูนย์รวมข้อมูลรุ่นสินค้าและคู่มือการซ่อม ({filteredModels.length} จาก {stats.totalModels} รุ่น)
                 </p>
               </div>
@@ -542,7 +542,7 @@ export function GuidesManagement({
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-chart-4 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-4"></span>
                     </span>
-                    <div className="text-[11px] leading-tight">
+                    <div className="text-[0.6875rem] leading-tight">
                       <span className="font-semibold block">SFTP ล่าสุด</span>
                       <span className="opacity-90">{new Date(lastSyncTime).toLocaleDateString("th-TH")}</span>
                     </div>
@@ -552,7 +552,7 @@ export function GuidesManagement({
                 <button
                   type="button"
                   onClick={openCreateModel}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
                 >
                   <Plus className="size-4" />
                   เพิ่มรุ่นใหม่
@@ -574,7 +574,7 @@ export function GuidesManagement({
                       setSearchQuery(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="h-10 w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="h-10 w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 text-sm outline-none transition-all focus:border-primary shadow-sm"
                   />
                   {searchQuery && (
                     <button
@@ -598,7 +598,7 @@ export function GuidesManagement({
                       setFilterSubCategory(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[13px] outline-none transition-all focus:border-primary shadow-sm text-foreground"
+                    className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground"
                   >
                     <option value="">ทุกหมวดหมู่ย่อย</option>
                     {categories.map(cat => {
@@ -622,7 +622,7 @@ export function GuidesManagement({
                   type="button"
                   onClick={() => { setFilterGuideStatus("all"); setCurrentPage(1); }}
                   className={cn(
-                    "rounded-xl px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-all",
+                    "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all",
                     filterGuideStatus === "all"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
@@ -634,7 +634,7 @@ export function GuidesManagement({
                   type="button"
                   onClick={() => { setFilterGuideStatus("has_guides"); setCurrentPage(1); }}
                   className={cn(
-                    "rounded-xl px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
+                    "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
                     filterGuideStatus === "has_guides"
                       ? "bg-green-600 text-white shadow-xs"
                       : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
@@ -647,7 +647,7 @@ export function GuidesManagement({
                   type="button"
                   onClick={() => { setFilterGuideStatus("no_guides"); setCurrentPage(1); }}
                   className={cn(
-                    "rounded-xl px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
+                    "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
                     filterGuideStatus === "no_guides"
                       ? "bg-amber-600 text-white shadow-xs"
                       : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
@@ -675,12 +675,12 @@ export function GuidesManagement({
                 >
                   {/* Status Badge */}
                   {guides.length > 0 ? (
-                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm flex items-center gap-1">
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[0.625rem] font-bold px-3 py-1 rounded-bl-xl shadow-sm flex items-center gap-1">
                       <CheckCircle2 className="size-3" />
                       มีคู่มือแล้ว
                     </div>
                   ) : (
-                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm flex items-center gap-1">
+                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[0.625rem] font-bold px-3 py-1 rounded-bl-xl shadow-sm flex items-center gap-1">
                       <AlertCircle className="size-3" />
                       ยังไม่มีคู่มือ
                     </div>
@@ -698,16 +698,16 @@ export function GuidesManagement({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <span className="font-bold text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                        <span className="font-bold text-[0.6875rem] text-primary bg-primary/10 px-2 py-0.5 rounded-md">
                           {m.code}
                         </span>
                         {subCat && (
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                          <span className="text-[0.6875rem] text-muted-foreground truncate max-w-[200px]">
                             {subCat.name}
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-[14px] leading-snug text-foreground truncate group-hover:text-primary transition-colors pr-16 sm:pr-0">
+                      <h3 className="font-bold text-sm leading-snug text-foreground truncate group-hover:text-primary transition-colors pr-16 sm:pr-0">
                         {m.name}
                       </h3>
                     </div>
@@ -719,7 +719,7 @@ export function GuidesManagement({
                       <button
                         type="button"
                         onClick={() => setSelectedModelId(m.id)}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 px-3 py-2 text-[12px] font-bold text-primary active:scale-95 transition-transform"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 px-3 py-2 text-xs font-bold text-primary active:scale-95 transition-transform"
                       >
                         <BookOpen className="size-3.5" />
                         ดูคู่มือ
@@ -728,7 +728,7 @@ export function GuidesManagement({
                       <button
                         type="button"
                         onClick={(e) => openCreateGuideForModel(m, e)}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 text-[12px] font-bold text-amber-600 dark:text-amber-400 active:scale-95 transition-transform"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 active:scale-95 transition-transform"
                       >
                         <Plus className="size-3.5" />
                         ผูกคู่มือ
@@ -759,8 +759,8 @@ export function GuidesManagement({
           {filteredModels.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border p-12 text-center bg-card/30">
               <Boxes className="size-10 text-muted-foreground/30 mb-1" />
-              <h3 className="font-display text-[15px] font-bold text-muted-foreground">ไม่พบรุ่นสินค้าที่ค้นหา</h3>
-              <p className="text-[13px] text-muted-foreground/70">ลองเปลี่ยนคำค้นหา หรือรีเซ็ตตัวกรอง</p>
+              <h3 className="font-display text-[0.9375rem] font-bold text-muted-foreground">ไม่พบรุ่นสินค้าที่ค้นหา</h3>
+              <p className="text-[0.8125rem] text-muted-foreground/70">ลองเปลี่ยนคำค้นหา หรือรีเซ็ตตัวกรอง</p>
               <button
                 type="button"
                 onClick={() => { setSearchQuery(""); setFilterSubCategory(""); setFilterGuideStatus("all"); }}
@@ -778,12 +778,12 @@ export function GuidesManagement({
                 type="button"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-40 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+                className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-40 text-[0.8125rem] font-medium shadow-sm active:scale-95 transition-transform"
               >
                 <ChevronLeft className="size-4" /> ก่อนหน้า
               </button>
 
-              <span className="text-[13px] font-semibold text-muted-foreground">
+              <span className="text-[0.8125rem] font-semibold text-muted-foreground">
                 หน้า {currentPage} จาก {totalPages}
               </span>
 
@@ -791,7 +791,7 @@ export function GuidesManagement({
                 type="button"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-40 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+                className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-40 text-[0.8125rem] font-medium shadow-sm active:scale-95 transition-transform"
               >
                 ถัดไป <ChevronRight className="size-4" />
               </button>
@@ -808,21 +808,29 @@ export function GuidesManagement({
       {isModelFormOpen && (
         <>
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[90]" onClick={() => setIsModelFormOpen(false)}></div>
-          <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 pt-safe border-b border-border/40 bg-background/70 backdrop-blur-2xl">
-              <button type="button" onClick={() => setIsModelFormOpen(false)} className="text-[15px] font-medium text-muted-foreground">ยกเลิก</button>
-              <h3 className="font-display text-[17px] font-bold">{editingModelId ? "แก้ไขรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}</h3>
-              <button type="button" onClick={handleSaveModel} disabled={savingModel} className="text-[15px] font-semibold text-primary disabled:opacity-50">
-                {savingModel ? <Loader2 className="size-4 animate-spin" /> : "บันทึก"}
+          <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl overflow-hidden">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm z-10 shrink-0">
+              <h3 className="font-display text-lg font-bold text-foreground">
+                {editingModelId ? "แก้ไขรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsModelFormOpen(false)} 
+                className="p-2 -mr-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X className="size-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-6 pb-24">
-              <form onSubmit={handleSaveModel} className="flex flex-col gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-5 py-6">
+              <form id="model-form" onSubmit={handleSaveModel} className="flex flex-col gap-6">
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
+                    <div className="flex h-36 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
                       {modelFormData.thumbnail ? (
                         <img
                           src={modelFormData.thumbnail}
@@ -833,7 +841,7 @@ export function GuidesManagement({
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
                           <ImageIcon className="size-8" />
-                          <span className="text-[11px]">ไม่มีรูปภาพ</span>
+                          <span className="text-xs font-medium">ไม่มีรูปภาพ</span>
                         </div>
                       )}
                     </div>
@@ -842,54 +850,54 @@ export function GuidesManagement({
                       value={modelFormData.thumbnail}
                       onChange={e => setModelFormData({ ...modelFormData, thumbnail: e.target.value })}
                       placeholder="https://example.com/image.jpg"
-                      className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                      className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
                   <input
                     required
                     value={modelFormData.name}
                     onChange={e => setModelFormData({ ...modelFormData, name: e.target.value })}
                     placeholder="เช่น Mazuma รุ่น Hydro Pro"
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">รหัสรุ่น (Model Code) <span className="text-destructive">*</span></label>
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">รหัสรุ่น (Model Code) <span className="text-destructive">*</span></label>
                   <input
                     required
                     value={modelFormData.code}
                     onChange={e => setModelFormData({ ...modelFormData, code: e.target.value.toUpperCase() })}
                     placeholder="เช่น MZ-HP4500"
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm uppercase"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm uppercase"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
                   <select
                     required
                     value={modelFormData.categoryId}
                     onChange={e => setModelFormData({ ...modelFormData, categoryId: e.target.value, subcategoryId: "" })}
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                   >
                     <option value="">เลือกหมวดหมู่หลัก</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
                   <select
                     required
                     value={modelFormData.subcategoryId}
                     onChange={e => setModelFormData({ ...modelFormData, subcategoryId: e.target.value })}
                     disabled={!modelFormData.categoryId}
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
                   >
                     <option value="">เลือกหมวดหมู่ย่อย</option>
                     {subCategories.filter(sc => {
@@ -899,24 +907,45 @@ export function GuidesManagement({
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-foreground">สถานะ</label>
+                <div className="space-y-2">
+                  <label className="text-[0.8125rem] font-semibold text-foreground">สถานะ</label>
                   <div className="flex flex-col gap-2">
-                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", modelFormData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card")}>
+                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/50")}>
                       <input type="radio" name="status" value="active" checked={modelFormData.status === "active"} onChange={() => setModelFormData({ ...modelFormData, status: "active" })} className="size-4 text-primary focus:ring-primary" />
-                      <span className="text-[14px] font-medium">เปิดจำหน่าย</span>
+                      <span className="text-sm font-medium">เปิดจำหน่าย</span>
                     </label>
-                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", modelFormData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card")}>
+                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card hover:bg-muted/50")}>
                       <input type="radio" name="status" value="draft" checked={modelFormData.status === "draft"} onChange={() => setModelFormData({ ...modelFormData, status: "draft" })} className="size-4 text-amber-500 focus:ring-amber-500" />
-                      <span className="text-[14px] font-medium">ฉบับร่าง</span>
+                      <span className="text-sm font-medium">ฉบับร่าง</span>
                     </label>
-                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors", modelFormData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card")}>
+                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/50")}>
                       <input type="radio" name="status" value="discontinued" checked={modelFormData.status === "discontinued"} onChange={() => setModelFormData({ ...modelFormData, status: "discontinued" })} className="size-4 text-destructive focus:ring-destructive" />
-                      <span className="text-[14px] font-medium">ยกเลิกผลิต</span>
+                      <span className="text-sm font-medium">ยกเลิกผลิต</span>
                     </label>
                   </div>
                 </div>
               </form>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="shrink-0 p-5 border-t border-border/40 bg-background/95 backdrop-blur-sm z-10">
+              <div className="flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModelFormOpen(false)} 
+                  className="flex-1 py-3.5 rounded-xl border border-border/50 bg-card font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit" 
+                  form="model-form"
+                  disabled={savingModel} 
+                  className="flex-1 py-3.5 rounded-xl bg-primary font-semibold text-primary-foreground shadow-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {savingModel ? <Loader2 className="size-5 animate-spin" /> : "บันทึกข้อมูล"}
+                </button>
+              </div>
             </div>
           </div>
         </>

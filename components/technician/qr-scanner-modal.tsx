@@ -179,7 +179,7 @@ export function QrScannerModal({
               <h2 className="text-base font-display font-bold text-foreground flex items-center gap-1.5">
                 สแกน QR / บาร์โค้ด
               </h2>
-              <p className="text-[11px] text-muted-foreground">ส่องกล้องไปที่ฉลากสินค้า Mazuma</p>
+              <p className="text-[0.6875rem] text-muted-foreground">ส่องกล้องไปที่ฉลากสินค้า Mazuma</p>
             </div>
           </div>
           <button
@@ -215,7 +215,7 @@ export function QrScannerModal({
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-foreground">ไม่สามารถเข้าถึงกล้องสดได้</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[240px]">
+                  <p className="text-[0.6875rem] text-muted-foreground leading-relaxed max-w-[240px]">
                     สามารถเลือกรูปภาพจากอัลบั้ม หรือพิมพ์รหัสสินค้าด้านล่างได้ทันทีครับ
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export function QrScannerModal({
                   <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_#22d3ee] animate-laser" />
 
                   <div className="absolute inset-x-0 -bottom-8 flex justify-center">
-                    <span className="rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-medium text-white/90 border border-white/10">
+                    <span className="rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[0.625rem] font-medium text-white/90 border border-white/10">
                       วาง QR / บาร์โค้ด ในกรอบ
                     </span>
                   </div>
@@ -297,7 +297,7 @@ export function QrScannerModal({
           <div className="space-y-1.5 pt-1 border-t border-border/40">
             <label className="text-xs font-semibold text-foreground/80 flex items-center justify-between">
               <span>หรือพิมพ์รหัสสินค้า / ชื่อรุ่น</span>
-              <span className="text-[10.5px] text-muted-foreground font-normal">กด Enter หรือ ตกลง</span>
+              <span className="text-[0.65625rem] text-muted-foreground font-normal">กด Enter หรือ ตกลง</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -323,7 +323,7 @@ export function QrScannerModal({
 
           {/* Fast Test Shortcuts */}
           <div className="space-y-1.5 pt-1">
-            <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+            <p className="text-[0.6875rem] font-semibold text-muted-foreground flex items-center gap-1">
               <Zap className="size-3 text-amber-500" /> ทางลัดทดสอบรุ่นยอดนิยม:
             </p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -332,7 +332,7 @@ export function QrScannerModal({
                   key={sample.code}
                   type="button"
                   onClick={() => handleMatchModel(sample.code)}
-                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-2.5 py-1.5 text-left text-[11px] hover:border-primary/40 hover:bg-primary/5 transition-all"
+                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-2.5 py-1.5 text-left text-[0.6875rem] hover:border-primary/40 hover:bg-primary/5 transition-all"
                 >
                   <span className="font-medium text-foreground truncate">{sample.code}</span>
                   <ArrowRight className="size-3 text-muted-foreground shrink-0" />

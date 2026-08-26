@@ -56,15 +56,10 @@ export function ModelList({
     : catModels
 
   return (
-    <div className="mx-auto w-full max-w-[480px]">
-      {/* Permanently Fixed Top Header */}
-      <div
-        className={cn(
-          "fixed inset-x-0 z-30 flex justify-center pointer-events-none transition-all duration-300",
-          preview ? "top-[41px]" : "top-0"
-        )}
-      >
-        <div className="w-full max-w-[480px] pointer-events-auto px-4 pt-3 pb-2.5 bg-background/85 backdrop-blur-2xl border-b border-border/40 shadow-xs">
+    <div className="mx-auto w-full max-w-3xl">
+      {/* Permanently Sticky Top Header */}
+      <div className="sticky top-0 z-30 flex justify-center transition-all duration-300 w-full">
+        <div className="w-full bg-background/85 backdrop-blur-2xl px-4 pt-3 pb-2.5 border-b border-border/40 shadow-xs">
           {/* Top Header Card */}
           <div className="relative overflow-hidden rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-xl p-3.5 shadow-sm">
             <div className={cn("absolute -top-12 -right-12 size-36 rounded-full blur-2xl pointer-events-none opacity-60", theme.accentGlow)} />
@@ -79,14 +74,14 @@ export function ModelList({
                   <h1 className="font-display text-base font-bold leading-tight tracking-tight text-foreground truncate">
                     {subCategory?.name || "เลือกรุ่นสินค้า"}
                   </h1>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  <p className="text-[0.6875rem] text-muted-foreground mt-0.5 truncate">
                     <span className="font-semibold text-foreground/80">{category.name}</span>
                     {subCategory?.index ? ` (${subCategory.index})` : ""} • {catModels.length} รุ่น
                   </p>
                 </div>
               </div>
 
-              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
+              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
                 {category.slug}
               </span>
             </div>
@@ -115,8 +110,8 @@ export function ModelList({
         </div>
       </div>
 
-      {/* Scrollable Model Cards Grid with Calibrated Top Clearance */}
-      <div className={cn("px-4 pb-24 space-y-2.5", preview ? "pt-[190px]" : "pt-[150px]")}>
+      {/* Scrollable Model Cards Grid */}
+      <div className="px-4 pt-4 pb-24 space-y-2.5">
         {results.length > 0 && (
           <div className="flex items-center justify-between px-1">
             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
@@ -151,7 +146,7 @@ export function ModelList({
                   <div className="flex items-center gap-3 min-w-0 pr-2">
                     {/* Thumbnail / Icon Box */}
                     <div className="size-11 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background/90 flex items-center justify-center shadow-2xs transition-transform group-hover:scale-105">
-                      {m.thumbnail ? (
+                      {m.thumbnail && m.thumbnail.trim() !== "" ? (
                         <img src={m.thumbnail} alt="" className="size-full object-cover" />
                       ) : (
                         <Boxes className="size-5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
@@ -160,10 +155,10 @@ export function ModelList({
                     
                     {/* Details */}
                     <div className="min-w-0">
-                      <p className="font-display text-[14px] font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      <p className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
                         {m.name}
                       </p>
-                      <p className="text-[11px] font-mono text-muted-foreground mt-0.5 truncate">
+                      <p className="text-[0.6875rem] font-mono text-muted-foreground mt-0.5 truncate">
                         <span className="font-semibold text-foreground/80">{m.code}</span>
                       </p>
                     </div>

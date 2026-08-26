@@ -89,7 +89,7 @@ export function EmployeeBindView({
         <button
           type="button"
           onClick={onCancel}
-          className="mb-6 flex items-center gap-1.5 text-[13px] font-semibold text-zinc-400 transition-colors hover:text-white"
+          className="mb-6 flex items-center gap-1.5 text-[0.8125rem] font-semibold text-zinc-400 transition-colors hover:text-white"
         >
           <ArrowLeft className="size-4" />
           ยกเลิก
@@ -102,21 +102,21 @@ export function EmployeeBindView({
               <Image src={lineProfile.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="48px" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[14px] font-bold text-white">{lineProfile.lineName}</p>
-              <p className="text-[11px] text-zinc-400 font-medium mt-0.5">เชื่อมต่อผ่าน LINE สำเร็จ</p>
+              <p className="truncate text-sm font-bold text-white">{lineProfile.lineName}</p>
+              <p className="text-[0.6875rem] text-zinc-400 font-medium mt-0.5">เชื่อมต่อผ่าน LINE สำเร็จ</p>
             </div>
           </div>
 
           <div className="mb-6">
              <h1 className="font-display text-xl font-bold text-white">ยืนยันตัวตนพนักงาน</h1>
-             <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-400">
+             <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-zinc-400">
                เข้าใช้งานครั้งแรก กรุณากรอกรหัสพนักงานและเบอร์โทรศัพท์ของคุณเพื่อผูกบัญชี
              </p>
           </div>
 
           <div className="space-y-4">
              <div>
-               <label htmlFor="employee-code" className="block text-[13px] font-semibold text-zinc-300 mb-1.5">
+               <label htmlFor="employee-code" className="block text-[0.8125rem] font-semibold text-zinc-300 mb-1.5">
                  รหัสพนักงาน (Employee Code)
                </label>
                <div className="relative">
@@ -133,13 +133,13 @@ export function EmployeeBindView({
                      if (error) setError(null)
                    }}
                    disabled={status !== "idle"}
-                   className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-4 text-[14px] uppercase tracking-wide text-white outline-none transition-all focus:border-primary focus:bg-black/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 placeholder:text-zinc-600 shadow-inner"
+                   className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-4 text-sm uppercase tracking-wide text-white outline-none transition-all focus:border-primary focus:bg-black/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 placeholder:text-zinc-600 shadow-inner"
                  />
                </div>
              </div>
 
              <div>
-               <label htmlFor="phone" className="block text-[13px] font-semibold text-zinc-300 mb-1.5">
+               <label htmlFor="phone" className="block text-[0.8125rem] font-semibold text-zinc-300 mb-1.5">
                  เบอร์โทรศัพท์ (Phone Number)
                </label>
                <div className="relative">
@@ -159,14 +159,14 @@ export function EmployeeBindView({
                      if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) confirm()
                    }}
                    disabled={status !== "idle"}
-                   className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-4 text-[14px] text-white outline-none transition-all focus:border-primary focus:bg-black/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 placeholder:text-zinc-600 shadow-inner"
+                   className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-4 text-sm text-white outline-none transition-all focus:border-primary focus:bg-black/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 placeholder:text-zinc-600 shadow-inner"
                  />
                </div>
              </div>
           </div>
 
           {error ? (
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-[13px] font-medium text-red-400">
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-[0.8125rem] font-medium text-red-400">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <p>{error}</p>
             </div>

@@ -753,7 +753,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
   return (
     <div className="mx-auto w-full px-4 pb-24">
       {/* Sticky Header Section */}
-      <div className="sticky top-0 md:top-16 z-20 bg-background/95 backdrop-blur-md pb-3.5 pt-2 -mx-4 px-4 border-b border-border/40 mb-4 shadow-xs space-y-3">
+      <div className="sticky top-0 md:top-16 z-30 bg-background/95 backdrop-blur-md pb-3.5 pt-2 -mx-4 px-4 border-b border-border/40 mb-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">คลังสื่อ (PDF/Video)</h1>
@@ -765,7 +765,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   setActiveTab('drive')
                   setSelectedIds(new Set())
                 }}
-                className={cn("px-3.5 py-1.5 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'drive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                className={cn("px-3.5 py-1.5 text-[0.8125rem] font-semibold rounded-lg transition-all", activeTab === 'drive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
               >
                 Google Drive
               </button>
@@ -774,7 +774,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   setActiveTab('youtube')
                   setSelectedIds(new Set())
                 }}
-                className={cn("px-3.5 py-1.5 text-[13px] font-semibold rounded-lg transition-all", activeTab === 'youtube' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                className={cn("px-3.5 py-1.5 text-[0.8125rem] font-semibold rounded-lg transition-all", activeTab === 'youtube' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
               >
                 YouTube
               </button>
@@ -787,7 +787,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 type="button"
                 onClick={handleCreateFolder}
                 disabled={isCreatingFolder}
-                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-[0.8125rem] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-95 transition-all disabled:opacity-50"
               >
                 {isCreatingFolder ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />}
                 สร้างโฟลเดอร์
@@ -797,7 +797,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
               <button
                 type="button"
                 onClick={handleUploadClick}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
               >
                 <UploadCloud className="size-4" />
                 อัปโหลดเอกสาร
@@ -806,7 +806,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
               <button
                 type="button"
                 onClick={handleUploadClick}
-                className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-2 text-[0.8125rem] font-semibold text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
               >
                 <UploadCloud className="size-4" />
                 อัปโหลดวิดีโอผูกกับคู่มือ
@@ -817,7 +817,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
         {/* Breadcrumbs */}
         {activeTab === 'drive' && breadcrumbs.length > 1 && (
-          <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground overflow-x-auto py-0.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto py-0.5">
             {breadcrumbs.map((crumb, index) => (
               <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
                 {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
@@ -844,7 +844,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
               placeholder="ค้นหาชื่อเอกสารหรือโฟลเดอร์..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 py-2 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 py-2 text-sm outline-none transition-all focus:border-primary shadow-sm"
             />
             {search && (
               <button
@@ -860,7 +860,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           <div className="flex w-full sm:w-auto gap-2 shrink-0">
             <button
               onClick={selectAll}
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[0.8125rem] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
             >
               {selectedIds.size === filtered.length && filtered.length > 0 ? (
                 <><CheckSquare className="size-4 text-primary" /> ยกเลิก</>
@@ -873,7 +873,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             <div className="relative flex-1 sm:flex-initial" ref={sortMenuRef}>
               <button
                 onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[0.8125rem] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
               >
                 <span className="flex items-center gap-1.5">
                   <ArrowDownUp className="size-4 text-muted-foreground" />
@@ -884,32 +884,32 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
               {isSortMenuOpen && (
                 <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
+                  <div className="text-[0.625rem] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามวันที่</div>
                   <button
                     onClick={() => { setSortBy("date-desc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", sortBy === "date-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <CalendarDays className="size-4" /> ใหม่สุดไปเก่าสุด
                   </button>
                   <button
                     onClick={() => { setSortBy("date-asc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", sortBy === "date-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <CalendarDays className="size-4" /> เก่าสุดไปใหม่สุด
                   </button>
 
                   <div className="border-t border-border/50 my-1"></div>
 
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
+                  <div className="text-[0.625rem] font-bold text-muted-foreground uppercase px-3 py-1.5">เรียงตามชื่อ</div>
                   <button
                     onClick={() => { setSortBy("name-asc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", sortBy === "name-asc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <ArrowDownAZ className="size-4" /> A-Z, ก-ฮ
                   </button>
                   <button
                     onClick={() => { setSortBy("name-desc"); setIsSortMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", sortBy === "name-desc" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <ArrowUpAZ className="size-4" /> Z-A, ฮ-ก
                   </button>
@@ -921,7 +921,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             <div className="relative flex-1 sm:flex-initial" ref={viewMenuRef}>
               <button
                 onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[13px] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
+                className="w-full sm:w-auto flex items-center justify-between gap-1.5 bg-card border border-border/50 px-3 py-2 rounded-xl text-[0.8125rem] font-semibold text-foreground shadow-sm hover:border-border transition-colors"
               >
                 <span className="flex items-center gap-1.5">
                   {viewMode === "large" && <LayoutGrid className="size-4" />}
@@ -936,19 +936,19 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 <div className="absolute right-0 top-full mt-1.5 w-48 bg-card border border-border/50 rounded-xl shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     onClick={() => { setViewMode("large"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", viewMode === "large" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <LayoutGrid className="size-4" /> ไอคอนขนาดใหญ่
                   </button>
                   <button
                     onClick={() => { setViewMode("medium"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", viewMode === "medium" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <Grid3X3 className="size-4" /> ไอคอนขนาดกลาง
                   </button>
                   <button
                     onClick={() => { setViewMode("list"); setIsViewMenuOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-[0.8125rem] rounded-lg transition-colors", viewMode === "list" ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-foreground")}
                   >
                     <List className="size-4" /> รายละเอียด (List)
                   </button>
@@ -977,7 +977,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           {filtered.map(m => {
             const isFolder = m.type === 'folder';
             const isSelected = selectedIds.has(m.id);
-            const isLinked = guides.some(g => g.mediaUrl === m.url || g.pdfUrl === m.url);
+            const isLinked = guides.some(g => 
+              (g.mediaUrl && g.mediaUrl.includes(m.id)) || 
+              (g.pdfUrl && g.pdfUrl.includes(m.id)) || 
+              g.mediaUrl === m.url || 
+              g.pdfUrl === m.url
+            );
 
             if (viewMode === "list") {
               return (
@@ -1006,8 +1011,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       {isFolder ? <Folder className="size-5 text-amber-600" /> : <FileText className="size-5 text-red-600" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[13px] font-semibold text-foreground truncate hover:text-primary transition-colors" title={m.name}>{m.name}</span>
-                      <span className="text-[11px] text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
+                      <span className="text-[0.8125rem] font-semibold text-foreground truncate hover:text-primary transition-colors" title={m.name}>{m.name}</span>
+                      <span className="text-[0.6875rem] text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
@@ -1015,13 +1020,13 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       <button
                         onClick={(e) => handleBadgeClick(e, m, isLinked)}
                         className={cn(
-                          "text-[11px] font-semibold px-2 py-0.5 rounded-full hidden sm:inline-flex hover:opacity-80 transition-opacity active:scale-95 cursor-pointer",
+                          "text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full hidden sm:inline-flex hover:opacity-80 transition-opacity active:scale-95 cursor-pointer",
                           isLinked ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
                         )}>
                         {isLinked ? "ผูกคู่มือแล้ว" : "ยังไม่ผูก"}
                       </button>
                     )}
-                    <span className="text-[12px] text-muted-foreground hidden sm:block">{isFolder ? '-' : m.size}</span>
+                    <span className="text-xs text-muted-foreground hidden sm:block">{isFolder ? '-' : m.size}</span>
                   </div>
                 </div>
               )
@@ -1052,7 +1057,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   </button>
                   <div className="flex items-center gap-3 p-4">
                     <Folder className="size-8 text-amber-500 shrink-0 fill-amber-100" strokeWidth={1.5} />
-                    <p className="font-semibold truncate text-foreground flex-1 text-[14px]" title={m.name}>
+                    <p className="font-semibold truncate text-foreground flex-1 text-sm" title={m.name}>
                       {m.name}
                     </p>
                   </div>
@@ -1084,7 +1089,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                     {isSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
                   </button>
                   <FileText className={cn("size-4 shrink-0", isSelected ? "text-primary" : "text-red-500")} />
-                  <p className={cn("font-semibold truncate text-foreground flex-1", viewMode === "large" ? "text-[13px]" : "text-[11px]")} title={m.name}>
+                  <p className={cn("font-semibold truncate text-foreground flex-1", viewMode === "large" ? "text-[0.8125rem]" : "text-[0.6875rem]")} title={m.name}>
                     {m.name}
                   </p>
                 </div>
@@ -1096,11 +1101,11 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   {/* Link Status Badge */}
                   <div className="absolute top-2 right-2 z-20 pointer-events-auto">
                     {isLinked ? (
-                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/90 text-white text-[10px] font-semibold backdrop-blur-sm shadow-sm hover:bg-green-600 transition-colors cursor-pointer" title="คลิกเพื่อแก้ไขการผูก">
+                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/90 text-white text-[0.625rem] font-semibold backdrop-blur-sm shadow-sm hover:bg-green-600 transition-colors cursor-pointer" title="คลิกเพื่อแก้ไขการผูก">
                         <CheckCircle2 className="size-3" /> ผูกแล้ว
                       </button>
                     ) : (
-                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background/80 text-muted-foreground text-[10px] font-semibold backdrop-blur-sm border border-border/50 shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all cursor-pointer" title="คลิกเพื่อผูกกับคู่มือ">
+                      <button onClick={(e) => handleBadgeClick(e, m, isLinked)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background/80 text-muted-foreground text-[0.625rem] font-semibold backdrop-blur-sm border border-border/50 shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all cursor-pointer" title="คลิกเพื่อผูกกับคู่มือ">
                         <AlertTriangle className="size-3" /> ยังไม่ผูก
                       </button>
                     )}
@@ -1113,7 +1118,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
           {filtered.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-dashed border-border bg-card/30 mt-4">
               <Folder className="size-10 text-muted-foreground/30 mb-3" />
-              <h3 className="font-display text-[15px] font-bold text-muted-foreground">โฟลเดอร์ว่างเปล่า หรือไม่พบข้อมูลที่ค้นหา</h3>
+              <h3 className="font-display text-[0.9375rem] font-bold text-muted-foreground">โฟลเดอร์ว่างเปล่า หรือไม่พบข้อมูลที่ค้นหา</h3>
             </div>
           )}
         </div>
@@ -1122,27 +1127,27 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
       {/* Floating Action Bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 bg-popover border border-border shadow-2xl rounded-full px-4 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-5">
-          <span className="text-[13px] font-bold text-foreground px-2 whitespace-nowrap">
+          <span className="text-[0.8125rem] font-bold text-foreground px-2 whitespace-nowrap">
             เลือกไว้ {selectedIds.size} รายการ
           </span>
           <div className="h-6 w-px bg-border"></div>
           {selectedIds.size === 1 && (
             <button
               onClick={handleRename}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary text-[13px] font-semibold text-foreground transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary text-[0.8125rem] font-semibold text-foreground transition-colors whitespace-nowrap"
             >
               <Edit className="size-4" /> เปลี่ยนชื่อ
             </button>
           )}
           <button
             onClick={handleOpenMoveModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary text-[13px] font-semibold text-foreground transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary text-[0.8125rem] font-semibold text-foreground transition-colors whitespace-nowrap"
           >
             <FolderUp className="size-4" /> ย้าย
           </button>
           <button
             onClick={handleBulkDelete}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-destructive/10 text-[13px] font-semibold text-destructive transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-destructive/10 text-[0.8125rem] font-semibold text-destructive transition-colors whitespace-nowrap"
           >
             <Trash2 className="size-4" /> ลบ
           </button>
@@ -1162,7 +1167,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-              <h2 className="font-bold text-[15px] flex items-center gap-2">
+              <h2 className="font-bold text-[0.9375rem] flex items-center gap-2">
                 <FolderUp className="size-4 text-primary" /> เลือกปลายทาง
               </h2>
               <button onClick={() => setIsMoveModalOpen(false)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors">
@@ -1172,7 +1177,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
             <div className="p-4 bg-background">
               {/* Modal Breadcrumbs */}
-              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground overflow-x-auto pb-3 mb-2 border-b border-border/50">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-3 mb-2 border-b border-border/50">
                 {moveBreadcrumbs.map((crumb, index) => (
                   <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
                     {index > 0 && <ChevronRight className="size-3.5 opacity-50" />}
@@ -1198,7 +1203,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                     className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors text-left"
                   >
                     <Folder className="size-5 text-amber-500 shrink-0" />
-                    <span className="text-[13px] font-semibold text-foreground truncate">{f.name}</span>
+                    <span className="text-[0.8125rem] font-semibold text-foreground truncate">{f.name}</span>
                     <ChevronRight className="size-4 text-muted-foreground/50 ml-auto" />
                   </button>
                 ))}
@@ -1206,7 +1211,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                 {moveFolders.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 gap-2">
                     <Folder className="size-8" />
-                    <span className="text-[12px]">ไม่มีโฟลเดอร์ย่อย</span>
+                    <span className="text-xs">ไม่มีโฟลเดอร์ย่อย</span>
                   </div>
                 )}
               </div>
@@ -1215,14 +1220,14 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
             <div className="p-4 border-t border-border bg-muted/30 flex justify-end gap-2">
               <button
                 onClick={() => setIsMoveModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-[13px] font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                className="px-4 py-2 rounded-xl text-[0.8125rem] font-semibold text-muted-foreground hover:bg-muted transition-colors"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleConfirmMove}
                 disabled={isMoving || moveTargetFolderId === currentFolderId}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[0.8125rem] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
               >
                 {isMoving ? <Loader2 className="size-4 animate-spin" /> : null}
                 ย้ายมาที่นี่
@@ -1246,21 +1251,21 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       if (drillStep === 3) setDrillStep(2)
                       if (drillStep === 4) setDrillStep(3)
                     }}
-                    className="p-1.5 rounded-md hover:bg-muted text-foreground transition-colors flex items-center gap-1 text-[13px] font-semibold"
+                    className="p-1.5 rounded-md hover:bg-muted text-foreground transition-colors flex items-center gap-1 text-[0.8125rem] font-semibold"
                   >
                     <ChevronLeft className="size-4" /> ย้อนกลับ
                   </button>
                 )}
                 <div>
-                  <h2 className="font-bold text-[16px] text-foreground flex items-center gap-2">
+                  <h2 className="font-bold text-base text-foreground flex items-center gap-2">
                     {drillStep === 1 && (preselectedFileForLink ? "เลือกคู่มือที่ต้องการผูก" : "จัดการอาการเสียและวิธีตรวจสอบ")}
                     {drillStep === 2 && activeSymType?.name}
                     {drillStep === 3 && activeSym?.title}
                     {drillStep === 4 && "แก้ไขหัวข้อการตรวจสอบ"}
                   </h2>
-                  {drillStep === 1 && <p className="text-[12px] text-muted-foreground mt-0.5">{preselectedFileForLink ? "เลือกกลุ่มอาการที่ต้องการเชื่อมโยง" : "Symptom Group ทั้งหมด"}</p>}
-                  {drillStep === 2 && <p className="text-[12px] text-muted-foreground mt-0.5">อาการเสียย่อยและหัวข้อการตรวจสอบที่ผูกกับ Symptom Group นี้</p>}
-                  {drillStep === 3 && <p className="text-[12px] text-muted-foreground mt-0.5">หัวข้อการตรวจสอบแก้ไขที่เกี่ยวข้องกับ Issue นี้</p>}
+                  {drillStep === 1 && <p className="text-xs text-muted-foreground mt-0.5">{preselectedFileForLink ? "เลือกกลุ่มอาการที่ต้องการเชื่อมโยง" : "Symptom Group ทั้งหมด"}</p>}
+                  {drillStep === 2 && <p className="text-xs text-muted-foreground mt-0.5">อาการเสียย่อยและหัวข้อการตรวจสอบที่ผูกกับ Symptom Group นี้</p>}
+                  {drillStep === 3 && <p className="text-xs text-muted-foreground mt-0.5">หัวข้อการตรวจสอบแก้ไขที่เกี่ยวข้องกับ Issue นี้</p>}
                 </div>
               </div>
               <button onClick={() => setIsDrilldownModalOpen(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors shrink-0">
@@ -1283,7 +1288,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       <div className="p-4 border-b border-border/50 bg-muted/10 flex justify-end">
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[13px] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-[0.8125rem] font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 transition-colors"
                         >
                           <FileText className="size-4" /> อัปโหลดไฟล์ทั่วไป (ไม่ผูกข้อมูล)
                         </button>
@@ -1302,11 +1307,11 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                               <Stethoscope className="size-5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-[14px] text-foreground">
+                              <p className="font-semibold text-sm text-foreground">
                                 <span className="text-blue-500 font-bold mr-1">{st.id} -</span>
                                 {st.name}
                               </p>
-                              <p className="text-[12px] text-muted-foreground">คำอธิบาย: {st.description || '-'}</p>
+                              <p className="text-xs text-muted-foreground">คำอธิบาย: {st.description || '-'}</p>
                             </div>
                           </div>
                           <ChevronRight className="size-5 text-muted-foreground/40 shrink-0" />
@@ -1327,7 +1332,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       return (
                         <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                           <AlertTriangle className="size-10 text-muted-foreground/30 mb-3" />
-                          <p className="text-[15px]">ไม่มีอาการเสียย่อยในกลุ่มนี้</p>
+                          <p className="text-[0.9375rem]">ไม่มีอาการเสียย่อยในกลุ่มนี้</p>
                         </div>
                       )
                     }
@@ -1346,8 +1351,8 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                             <AlertTriangle className="size-5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-[14px] text-foreground">{sym.title}</p>
-                            <p className="text-[12px] text-muted-foreground">{sym.description || 'ไม่มีคำอธิบาย'}</p>
+                            <p className="font-semibold text-sm text-foreground">{sym.title}</p>
+                            <p className="text-xs text-muted-foreground">{sym.description || 'ไม่มีคำอธิบาย'}</p>
                           </div>
                         </div>
                         <ChevronRight className="size-5 text-muted-foreground/40 shrink-0" />
@@ -1363,7 +1368,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       return (
                         <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                           <FileText className="size-10 text-muted-foreground/30 mb-3" />
-                          <p className="text-[15px]">ยังไม่มีหัวข้อการตรวจสอบสำหรับอาการนี้</p>
+                          <p className="text-[0.9375rem]">ยังไม่มีหัวข้อการตรวจสอบสำหรับอาการนี้</p>
                         </div>
                       )
                     }
@@ -1384,12 +1389,12 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                             <FileText className="size-5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-[14px] text-foreground mb-1">{g.title}</p>
+                            <p className="font-semibold text-sm text-foreground mb-1">{g.title}</p>
                             <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${g.mediaUrl ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground'}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.625rem] font-semibold ${g.mediaUrl ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground'}`}>
                                 <UploadCloud className="size-3" /> {g.mediaUrl ? 'มี VDO' : 'ไม่มี VDO'}
                               </span>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${g.pdfUrl ? 'bg-orange-100 text-orange-700' : 'bg-muted text-muted-foreground'}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.625rem] font-semibold ${g.pdfUrl ? 'bg-orange-100 text-orange-700' : 'bg-muted text-muted-foreground'}`}>
                                 <FileDown className="size-3" /> {g.pdfUrl ? 'มี PDF' : 'ไม่มี PDF'}
                               </span>
                             </div>
@@ -1404,24 +1409,24 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   {drillStep === 4 && activeGuide && (
                     <div className="p-6">
                       <div className="mb-6">
-                        <label className="text-[13px] font-semibold text-foreground block mb-2">หัวข้อการตรวจสอบ</label>
+                        <label className="text-[0.8125rem] font-semibold text-foreground block mb-2">หัวข้อการตรวจสอบ</label>
                         <input
                           type="text"
                           value={activeGuide.title}
                           readOnly
-                          className="w-full rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-[14px] text-muted-foreground outline-none cursor-not-allowed"
+                          className="w-full rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
                         />
                       </div>
 
                       {preselectedFileForLink && (
                         <div className="mb-6 bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-3 justify-between">
-                          <div className="flex items-center gap-2 text-[13px] text-primary min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-[0.8125rem] text-primary min-w-0 flex-1">
                             <FileText className="size-4 shrink-0" />
                             <span className="truncate">นำไฟล์มาผูก: <strong>{preselectedFileForLink.name}</strong></span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                            <button onClick={() => setEditedMediaUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-[12px] font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ VDO</button>
-                            <button onClick={() => setEditedPdfUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-[12px] font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ PDF</button>
+                            <button onClick={() => setEditedMediaUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-xs font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ VDO</button>
+                            <button onClick={() => setEditedPdfUrl(preselectedFileForLink.url)} className="flex-1 sm:flex-none px-3 py-1.5 bg-background border border-border/50 rounded-lg text-xs font-semibold hover:border-primary/50 transition-colors">ดึงมาใส่ PDF</button>
                           </div>
                         </div>
                       )}
@@ -1430,7 +1435,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                         {/* VDO Upload */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <label className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+                            <label className="text-[0.8125rem] font-semibold text-foreground flex items-center gap-2">
                               <UploadCloud className="size-4 text-blue-500" />อัปโหลด VDO (ไม่บังคับ)
                             </label>
                           </div>
@@ -1444,7 +1449,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                                 <HardDrive className="size-3.5" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-[12px] text-foreground">Google Drive</p>
+                                <p className="font-semibold text-xs text-foreground">Google Drive</p>
                               </div>
                               {videoDestination === 'drive' && <CheckCircle2 className="size-3.5 text-blue-500 absolute top-1.5 right-1.5" />}
                             </div>
@@ -1457,7 +1462,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                                 <PlaySquare className="size-3.5" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-[12px] text-foreground">YouTube</p>
+                                <p className="font-semibold text-xs text-foreground">YouTube</p>
                               </div>
                               {videoDestination === 'youtube' && <CheckCircle2 className="size-3.5 text-red-500 absolute top-1.5 right-1.5" />}
                             </div>
@@ -1468,13 +1473,13 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                               value={editedMediaUrl}
                               onChange={(e) => setEditedMediaUrl(e.target.value)}
                               placeholder="https://..."
-                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-[14px] text-foreground outline-none transition-colors"
+                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-sm text-foreground outline-none transition-colors"
                             />
                             {editedMediaUrl !== (activeGuide.mediaUrl || '') ? (
                               <button
                                 onClick={() => handleSaveManualUrl('vdo', editedMediaUrl)}
                                 disabled={guideUploadingState !== null}
-                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50 shrink-0"
+                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[0.8125rem] font-semibold transition-colors disabled:opacity-50 shrink-0"
                               >
                                 {guideUploadingState === 'vdo' ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 บันทึกลิงก์
@@ -1483,7 +1488,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                               <div className="relative overflow-hidden inline-block shrink-0">
                                 <button
                                   disabled={guideUploadingState !== null}
-                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[0.8125rem] font-semibold transition-colors disabled:opacity-50"
                                 >
                                   {guideUploadingState === 'vdo' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
                                   อัปโหลดใหม่
@@ -1502,7 +1507,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
 
                         {/* PDF Upload */}
                         <div>
-                          <label className="text-[13px] font-semibold text-foreground flex items-center gap-2 mb-2">
+                          <label className="text-[0.8125rem] font-semibold text-foreground flex items-center gap-2 mb-2">
                             <FileDown className="size-4 text-orange-500" />ลิงก์เอกสาร PDF / Canva (ไม่บังคับ)
                           </label>
                           <div className="flex gap-2">
@@ -1511,13 +1516,13 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                               value={editedPdfUrl}
                               onChange={(e) => setEditedPdfUrl(e.target.value)}
                               placeholder="https://... (Google Drive PDF หรือ ลิงก์ Canva)"
-                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-[14px] text-foreground outline-none transition-colors"
+                              className="flex-1 rounded-xl border border-border/50 bg-background hover:border-primary/50 focus:border-primary px-3 py-2 text-sm text-foreground outline-none transition-colors"
                             />
                             {editedPdfUrl !== (activeGuide.pdfUrl || '') ? (
                               <button
                                 onClick={() => handleSaveManualUrl('pdf', editedPdfUrl)}
                                 disabled={guideUploadingState !== null}
-                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50 shrink-0"
+                                className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[0.8125rem] font-semibold transition-colors disabled:opacity-50 shrink-0"
                               >
                                 {guideUploadingState === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 บันทึกลิงก์
@@ -1526,7 +1531,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                               <div className="relative overflow-hidden inline-block shrink-0">
                                 <button
                                   disabled={guideUploadingState !== null}
-                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[13px] font-semibold transition-colors disabled:opacity-50"
+                                  className="h-full flex items-center gap-1.5 px-4 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground text-[0.8125rem] font-semibold transition-colors disabled:opacity-50"
                                 >
                                   {guideUploadingState === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
                                   อัปโหลดใหม่
@@ -1547,7 +1552,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                       <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border/50">
                         <button
                           onClick={() => setIsDrilldownModalOpen(false)}
-                          className="px-5 py-2 rounded-xl text-[14px] font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                          className="px-5 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
                         >
                           ปิดหน้าต่าง
                         </button>

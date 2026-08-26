@@ -76,7 +76,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
               <h2 className="text-base font-display font-bold text-foreground leading-none">
                 เครื่องมือ & ตารางช่าง
               </h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Mazuma Tech Reference & Calculator</p>
+              <p className="text-[0.6875rem] text-muted-foreground mt-0.5">Mazuma Tech Reference & Calculator</p>
             </div>
           </div>
           <button 
@@ -92,7 +92,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => setActiveTab("wire")}
             className={cn(
-              "flex-1 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all",
+              "flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all",
               activeTab === "wire" 
                 ? "bg-card text-primary shadow-xs border border-border/50" 
                 : "text-muted-foreground hover:text-foreground"
@@ -104,7 +104,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => setActiveTab("pressure")}
             className={cn(
-              "flex-1 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all",
+              "flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all",
               activeTab === "pressure" 
                 ? "bg-card text-primary shadow-xs border border-border/50" 
                 : "text-muted-foreground hover:text-foreground"
@@ -116,7 +116,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => setActiveTab("error_codes")}
             className={cn(
-              "flex-1 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all",
+              "flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all",
               activeTab === "error_codes" 
                 ? "bg-card text-primary shadow-xs border border-border/50" 
                 : "text-muted-foreground hover:text-foreground"
@@ -132,50 +132,70 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           {/* TAB 1: Wire & Breaker Calculator */}
           {activeTab === "wire" && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-muted-foreground">
-                  เลือกกำลังวัตต์เครื่องทำน้ำอุ่น (Watt):
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[3500, 4500, 5500, 6000, 8000, 10000].map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setWattage(w)}
-                      className={cn(
-                        "py-2.5 rounded-xl border text-[13px] font-bold transition-all shadow-2xs",
-                        wattage === w
-                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20 scale-[1.02]"
-                          : "bg-card border-border/50 text-foreground hover:bg-muted/50"
-                      )}
-                    >
-                      {w.toLocaleString()} W
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-2 block">
+                    เลือกกำลังวัตต์เครื่องทำน้ำอุ่น (Watt):
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[3500, 4500, 5500, 6000, 8000, 10000].map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => setWattage(w)}
+                        className={cn(
+                          "py-2.5 rounded-xl border text-[0.8125rem] font-bold transition-all shadow-2xs",
+                          wattage === w
+                            ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20 scale-[1.02]"
+                            : "bg-card border-border/50 text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        {w.toLocaleString()} W
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+                    หรือกรอกกำลังวัตต์เอง:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={wattage || ""}
+                      onChange={(e) => setWattage(parseInt(e.target.value) || 0)}
+                      placeholder="เช่น 4500"
+                      className="w-full rounded-xl border border-border/60 bg-card py-2.5 pl-4 pr-12 text-sm font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-2xs"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-muted-foreground text-sm">
+                      W
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Calculated Result Card */}
               <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/25 p-4 space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-amber-500/15">
-                  <span className="text-[12px] font-semibold text-amber-700 dark:text-amber-300">กระแสไฟสูงสุด (Current):</span>
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">กระแสไฟสูงสุด (Current):</span>
                   <span className="font-mono text-base font-bold text-amber-600 dark:text-amber-400">{currentAmp} A</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="rounded-xl bg-background/80 border border-border/50 p-3 flex flex-col gap-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">ขนาดเบรกเกอร์ (CB):</span>
-                    <span className="text-[15px] font-extrabold text-primary">{recommendedBreaker} A</span>
-                    <span className="text-[10px] text-muted-foreground">ชนิด RCBO / ELCB 30mA</span>
+                    <span className="text-[0.6875rem] font-medium text-muted-foreground">ขนาดเบรกเกอร์ (CB):</span>
+                    <span className="text-[0.9375rem] font-extrabold text-primary">{recommendedBreaker} A</span>
+                    <span className="text-[0.625rem] text-muted-foreground">ชนิด RCBO / ELCB 30mA</span>
                   </div>
 
                   <div className="rounded-xl bg-background/80 border border-border/50 p-3 flex flex-col gap-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">ขนาดสายไฟทองแดง:</span>
-                    <span className="text-[15px] font-extrabold text-emerald-600 dark:text-emerald-400">{recommendedWire}</span>
-                    <span className="text-[10px] text-muted-foreground">สายดิน: {groundWire}</span>
+                    <span className="text-[0.6875rem] font-medium text-muted-foreground">ขนาดสายไฟทองแดง:</span>
+                    <span className="text-[0.9375rem] font-extrabold text-emerald-600 dark:text-emerald-400">{recommendedWire}</span>
+                    <span className="text-[0.625rem] text-muted-foreground">สายดิน: {groundWire}</span>
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-amber-500/10 p-2.5 flex items-start gap-2 text-[11px] text-amber-800 dark:text-amber-200">
+                <div className="rounded-xl bg-amber-500/10 p-2.5 flex items-start gap-2 text-[0.6875rem] text-amber-800 dark:text-amber-200">
                   <ShieldCheck className="size-4 shrink-0 text-amber-600 mt-0.5" />
                   <span>ต้องต่อสายดินขนาดไม่ต่ำกว่า {groundWire} และทดสอบปุ่ม Test ELCB ทุกครั้งหลังติดตั้ง</span>
                 </div>
@@ -187,7 +207,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           {activeTab === "pressure" && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-muted-foreground">
+                <label className="text-xs font-semibold text-muted-foreground">
                   ระบุแรงดันน้ำ (Bar):
                 </label>
                 <div className="relative">
@@ -207,7 +227,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
 
               {/* Quick Preset Buttons */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                <span className="text-[11px] text-muted-foreground shrink-0 mr-1">ค่ามาตรฐาน:</span>
+                <span className="text-[0.6875rem] text-muted-foreground shrink-0 mr-1">ค่ามาตรฐาน:</span>
                 {[
                   { label: "ประปาทั่วไป (1.5 Bar)", val: "1.5" },
                   { label: "ปั๊มบ้าน (2.5 Bar)", val: "2.5" },
@@ -217,7 +237,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
                   <button
                     key={preset.label}
                     onClick={() => setBar(preset.val)}
-                    className="shrink-0 rounded-full bg-muted/60 hover:bg-primary/10 border border-border/40 px-2.5 py-1 text-[10.5px] font-medium text-foreground/80 hover:text-primary transition-colors"
+                    className="shrink-0 rounded-full bg-muted/60 hover:bg-primary/10 border border-border/40 px-2.5 py-1 text-[0.65625rem] font-medium text-foreground/80 hover:text-primary transition-colors"
                   >
                     {preset.label}
                   </button>
@@ -227,21 +247,21 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
               {/* Conversion Results Grid */}
               <div className="grid grid-cols-3 gap-2.5 pt-2">
                 <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 p-3.5 text-center">
-                  <span className="text-[11px] font-semibold text-muted-foreground block mb-1">PSI (ปอนด์/ตร.นิ้ว)</span>
+                  <span className="text-[0.6875rem] font-semibold text-muted-foreground block mb-1">PSI (ปอนด์/ตร.นิ้ว)</span>
                   <span className="font-mono text-xl font-bold text-cyan-600 dark:text-cyan-400">{psi}</span>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">psi</span>
+                  <span className="text-[0.625rem] text-muted-foreground block mt-0.5">psi</span>
                 </div>
 
                 <div className="rounded-2xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-3.5 text-center">
-                  <span className="text-[11px] font-semibold text-muted-foreground block mb-1">กิโลปาสคาล</span>
+                  <span className="text-[0.6875rem] font-semibold text-muted-foreground block mb-1">กิโลปาสคาล</span>
                   <span className="font-mono text-xl font-bold text-blue-600 dark:text-blue-400">{kpa}</span>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">kPa</span>
+                  <span className="text-[0.625rem] text-muted-foreground block mt-0.5">kPa</span>
                 </div>
 
                 <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 p-3.5 text-center">
-                  <span className="text-[11px] font-semibold text-muted-foreground block mb-1">ระยะส่งน้ำ</span>
+                  <span className="text-[0.6875rem] font-semibold text-muted-foreground block mb-1">ระยะส่งน้ำ</span>
                   <span className="font-mono text-xl font-bold text-indigo-600 dark:text-indigo-400">{headMeters}</span>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">เมตร (Head)</span>
+                  <span className="text-[0.625rem] text-muted-foreground block mt-0.5">เมตร (Head)</span>
                 </div>
               </div>
             </div>
@@ -250,7 +270,7 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
           {/* TAB 3: Error Code Diagnostic Index */}
           {activeTab === "error_codes" && (
             <div className="space-y-3">
-              <p className="text-[12px] font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 ตารางวิเคราะห์รหัสอาการและไฟแจ้งเตือนที่พบบ่อย:
               </p>
 
@@ -261,20 +281,20 @@ export function TechToolsModal({ onClose }: { onClose: () => void }) {
                     className="rounded-2xl bg-card border border-border/50 p-3.5 space-y-2 shadow-2xs hover:border-primary/30 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-display text-[13px] font-bold text-primary flex items-center gap-1.5">
+                      <span className="font-display text-[0.8125rem] font-bold text-primary flex items-center gap-1.5">
                         <AlertTriangle className="size-3.5 text-amber-500" />
                         {item.code}
                       </span>
-                      <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[9.5px] font-semibold text-muted-foreground uppercase">
+                      <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[0.59375rem] font-semibold text-muted-foreground uppercase">
                         {item.type}
                       </span>
                     </div>
 
-                    <p className="text-[12px] text-foreground font-medium">
+                    <p className="text-xs text-foreground font-medium">
                       {item.symptom}
                     </p>
 
-                    <div className="rounded-xl bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1">
+                    <div className="rounded-xl bg-muted/30 p-2 text-[0.6875rem] text-muted-foreground space-y-1">
                       <p><strong className="text-foreground">สาเหตุ:</strong> {item.cause}</p>
                       <p><strong className="text-emerald-600 dark:text-emerald-400">การแก้ไข:</strong> {item.action}</p>
                     </div>

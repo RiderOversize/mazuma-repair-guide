@@ -408,7 +408,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         <div className="mb-6">
           <button
             onClick={goBack}
-            className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
+            className="mb-4 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-primary hover:text-primary/80 transition-colors"
           >
             <ChevronRight className="size-5 rotate-180" />
             <span>กลับ</span>
@@ -421,7 +421,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             {currentView === 'symptoms' && (activeSymptomType?.name || "Issue")}
             {currentView === 'guides' && (activeSymptom?.title || "อาการเสียย่อย / หัวข้อการตรวจสอบ")}
           </h1>
-          <p className="text-[13px] text-muted-foreground mt-1">
+          <p className="text-[0.8125rem] text-muted-foreground mt-1">
             {currentView === 'categories' && "Product Group ทั้งหมด"}
             {currentView === 'subCategories' && "Product Category ในหมวดหมู่นี้"}
             {currentView === 'symptomTypesRoot' && "Symptom Group ทั้งหมด"}
@@ -435,7 +435,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         <div className="flex flex-col gap-6">
           <div className="mb-2">
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">จัดการข้อมูล (Master Data)</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">เลือกส่วนที่ต้องการจัดการ</p>
+            <p className="text-[0.8125rem] text-muted-foreground mt-1">เลือกส่วนที่ต้องการจัดการ</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div 
@@ -468,27 +468,27 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
       <div className="flex justify-end mb-4">
         {currentView === 'categories' && (
-          <button onClick={openAddCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm">
+          <button onClick={openAddCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
             <Plus className="size-4" /> เพิ่มหมวดหมู่หลัก
           </button>
         )}
         {currentView === 'subCategories' && (
-          <button onClick={openAddSubCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm">
+          <button onClick={openAddSubCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
             <Plus className="size-4" /> เพิ่มหมวดหมู่ย่อย
           </button>
         )}
         {currentView === 'symptomTypesRoot' && (
-          <button onClick={openAddSymptomType} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm">
+          <button onClick={openAddSymptomType} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
             <Plus className="size-4" /> เพิ่มกลุ่มอาการ
           </button>
         )}
         {currentView === 'symptoms' && (
-          <button onClick={() => { setIssueForm({ id: '', title: '', description: '', severity: 'Medium', isEdit: false }); setShowIssueModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm">
+          <button onClick={() => { setIssueForm({ id: '', title: '', description: '', severity: 'Medium', isEdit: false }); setShowIssueModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
             <Plus className="size-4" /> เพิ่ม Issue
           </button>
         )}
         {currentView === 'guides' && (
-          <button onClick={() => { setGuideForm({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false }); setShowGuideModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm">
+          <button onClick={() => { setGuideForm({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false }); setShowGuideModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
             <Plus className="size-4" /> เพิ่มหัวข้อการตรวจสอบ
           </button>
         )}
@@ -514,11 +514,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                       <Boxes className="size-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[15px] break-words text-foreground">
+                      <p className="font-semibold text-[0.9375rem] break-words text-foreground">
                         {cat.slug && <span className="text-primary font-bold mr-1">{cat.slug} -</span>}
                         {cat.name}
                       </p>
-                      <p className="text-[13px] text-muted-foreground break-words">{cat.description || 'ไม่มีคำอธิบาย'}</p>
+                      <p className="text-[0.8125rem] text-muted-foreground break-words">{cat.description || 'ไม่มีคำอธิบาย'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -543,7 +543,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 return (
                   <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                     <ListTree className="size-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-[15px]">ไม่มีหมวดหมู่ย่อย</p>
+                    <p className="text-[0.9375rem]">ไม่มีหมวดหมู่ย่อย</p>
                   </div>
                 )
               }
@@ -559,11 +559,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                         <ListTree className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] break-words text-foreground">
+                        <p className="font-semibold text-[0.9375rem] break-words text-foreground">
                           <span className="text-indigo-500 font-bold mr-1">{subCat.index} -</span>
                           {subCat.name}
                         </p>
-                        <p className="text-[13px] text-muted-foreground break-words font-mono">ID: {subCat.id}</p>
+                        <p className="text-[0.8125rem] text-muted-foreground break-words font-mono">ID: {subCat.id}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -584,7 +584,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             {symptomTypes.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                 <Stethoscope className="size-10 text-muted-foreground/30 mb-3" />
-                <p className="text-[15px]">ไม่มีกลุ่มอาการเสีย</p>
+                <p className="text-[0.9375rem]">ไม่มีกลุ่มอาการเสีย</p>
               </div>
             ) : (
               symptomTypes.map((st, i) => {
@@ -603,11 +603,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                         <Stethoscope className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] break-words text-foreground">
+                        <p className="font-semibold text-[0.9375rem] break-words text-foreground">
                           <span className="text-blue-500 font-bold mr-1">{st.id} -</span>
                           {st.name}
                         </p>
-                        <p className="text-[13px] text-muted-foreground break-words font-mono">คำอธิบาย: {st.description || '-'}</p>
+                        <p className="text-[0.8125rem] text-muted-foreground break-words font-mono">คำอธิบาย: {st.description || '-'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -635,7 +635,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 return (
                   <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                     <AlertTriangle className="size-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-[15px]">ไม่มี Issue ในกลุ่มนี้</p>
+                    <p className="text-[0.9375rem]">ไม่มี Issue ในกลุ่มนี้</p>
                   </div>
                 )
               }
@@ -655,8 +655,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                         <AlertTriangle className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] break-words text-foreground">{sym.title}</p>
-                        <p className="text-[13px] text-muted-foreground break-words">{sym.description || 'ไม่มีคำอธิบาย'}</p>
+                        <p className="font-semibold text-[0.9375rem] break-words text-foreground">{sym.title}</p>
+                        <p className="text-[0.8125rem] text-muted-foreground break-words">{sym.description || 'ไม่มีคำอธิบาย'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -690,7 +690,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 return (
                   <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                     <FileText className="size-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-[15px]">ยังไม่มีอาการเสียย่อย / หัวข้อการตรวจสอบสำหรับอาการนี้</p>
+                    <p className="text-[0.9375rem]">ยังไม่มีอาการเสียย่อย / หัวข้อการตรวจสอบสำหรับอาการนี้</p>
                   </div>
                 )
               }
@@ -706,23 +706,23 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                         <FileText className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-[15px] break-words text-foreground">{guide.title}</p>
+                        <p className="font-semibold text-[0.9375rem] break-words text-foreground">{guide.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {guide.mediaUrl ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-semibold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[0.6875rem] font-semibold">
                               <Video className="size-3" /> VDO
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[0.6875rem] font-medium">
                               <Video className="size-3" /> ไม่มี VDO
                             </span>
                           )}
                           {guide.pdfUrl ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 text-[11px] font-semibold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 text-[0.6875rem] font-semibold">
                               <FileDown className="size-3" /> PDF
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[0.6875rem] font-medium">
                               <FileDown className="size-3" /> ไม่มี PDF
                             </span>
                           )}
@@ -994,7 +994,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                       <HardDrive className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[13px] text-foreground">Google Drive</p>
+                      <p className="font-semibold text-[0.8125rem] text-foreground">Google Drive</p>
                     </div>
                     {videoDestination === 'drive' && <CheckCircle2 className="size-4 text-blue-500 absolute top-2 right-2" />}
                   </div>
@@ -1007,7 +1007,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                       <PlaySquare className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[13px] text-foreground">YouTube</p>
+                      <p className="font-semibold text-[0.8125rem] text-foreground">YouTube</p>
                     </div>
                     {videoDestination === 'youtube' && <CheckCircle2 className="size-4 text-red-500 absolute top-2 right-2" />}
                   </div>

@@ -324,7 +324,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
         <div className="mb-6 pt-2">
           <button
             onClick={goBack}
-            className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
+            className="mb-4 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-primary hover:text-primary/80 transition-colors"
           >
             <ChevronRight className="size-5 rotate-180" />
             <span>กลับ</span>
@@ -333,7 +333,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             {currentView === 'create' && "เพิ่มผู้ใช้งานใหม่"}
             {currentView === 'detail' && "ตั้งค่าบัญชีผู้ใช้งาน"}
           </h1>
-          <p className="text-[13px] text-muted-foreground mt-1">
+          <p className="text-[0.8125rem] text-muted-foreground mt-1">
             {currentView === 'create' && "กรอกข้อมูลพนักงานเพื่อสร้างบัญชี"}
             {currentView === 'detail' && `${selectedUser?.title || ''} • ${selectedUser?.employeeCode || ''}`}
           </p>
@@ -349,14 +349,14 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
                   ผู้ใช้งานทั้งหมด
                 </h1>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
+                <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
                   จัดการพนักงานและสิทธิ์การเข้าถึง ({filteredUsers.length} จาก {users.length} คน)
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setCurrentView('create')}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform shrink-0"
               >
                 <UserPlus className="size-4" /> เพิ่มผู้ใช้
               </button>
@@ -370,7 +370,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                   placeholder="ค้นหาชื่อ หรือรหัสพนักงาน..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 py-2 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 py-2 text-sm outline-none transition-all focus:border-primary shadow-sm"
                 />
                 {searchQuery && (
                   <button
@@ -388,7 +388,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-border/50 bg-card px-3 py-2 text-[13px] outline-none transition-all focus:border-primary shadow-sm text-foreground pr-8"
+                  className="w-full appearance-none rounded-xl border border-border/50 bg-card px-3 py-2 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground pr-8"
                 >
                   <option value="all">สถานะทั้งหมด</option>
                   <option value="active">เปิดใช้งาน (Active)</option>
@@ -419,7 +419,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 >
                   <span>{item.label}</span>
                   <span className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    "rounded-full px-1.5 py-0.2 text-[0.625rem]",
                     roleFilter === item.id
                       ? "bg-primary-foreground/20 text-primary-foreground font-bold"
                       : "bg-background/80 text-muted-foreground"
@@ -470,10 +470,10 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-[15px] truncate text-foreground leading-tight">{u.name}</p>
+                          <p className="font-semibold text-[0.9375rem] truncate text-foreground leading-tight">{u.name}</p>
                           <span className={cn("inline-flex size-2 shrink-0 rounded-full", u.status === "active" ? "bg-green-500" : "bg-muted-foreground")} title={u.status === "active" ? "เปิดใช้งาน" : "ระงับการใช้งาน"} />
                         </div>
-                        <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {u.role === "admin" ? "ผู้ดูแลระบบ" : u.role === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค"} • {u.employeeCode}
                         </p>
                       </div>
@@ -499,44 +499,44 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
       {currentView === 'create' && (
         <form onSubmit={handleCreate} className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-4 shadow-sm pb-8 md:max-w-3xl md:mx-auto w-full">
           <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">รหัสพนักงาน <span className="text-destructive">*</span></label>
+            <label className="text-[0.8125rem] font-semibold text-foreground">รหัสพนักงาน <span className="text-destructive">*</span></label>
             <input
               type="text"
               required
               value={newEmpCode}
               onChange={e => setNewEmpCode(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
               placeholder="เช่น MZ-999"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">ชื่อ-นามสกุล <span className="text-destructive">*</span></label>
+            <label className="text-[0.8125rem] font-semibold text-foreground">ชื่อ-นามสกุล <span className="text-destructive">*</span></label>
             <input
               type="text"
               required
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
               placeholder="ชื่อ นามสกุล"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">เบอร์โทรศัพท์</label>
+            <label className="text-[0.8125rem] font-semibold text-foreground">เบอร์โทรศัพท์</label>
             <input
               type="tel"
               value={newPhone}
               onChange={e => setNewPhone(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
               placeholder="เช่น 0812345678"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">ระดับสิทธิ์ (Role)</label>
+            <label className="text-[0.8125rem] font-semibold text-foreground">ระดับสิทธิ์ (Role)</label>
             <select
               value={newRole}
               onChange={e => setNewRole(e.target.value as Role)}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
             >
               <option value="technician">ช่างเทคนิค (Technician)</option>
               <option value="head">หัวหน้าช่าง (Head)</option>
@@ -544,11 +544,11 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[13px] font-semibold text-foreground">สถานะ</label>
+            <label className="text-[0.8125rem] font-semibold text-foreground">สถานะ</label>
             <select
               value={newStatus}
               onChange={e => setNewStatus(e.target.value as "active" | "inactive")}
-              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
             >
               <option value="active">เปิดใช้งาน (Active)</option>
               <option value="inactive">ระงับชั่วคราว (Inactive)</option>
@@ -558,8 +558,8 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
           {newRole === "technician" && (
             <div className="mt-2 space-y-3">
               <div>
-                <label className="text-[13px] font-semibold text-foreground">กำหนดหัวหน้าช่างที่ปรึกษา</label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">เลือกหัวหน้าช่างที่สามารถให้คำปรึกษาได้ (เลือกได้มากกว่า 1)</p>
+                <label className="text-[0.8125rem] font-semibold text-foreground">กำหนดหัวหน้าช่างที่ปรึกษา</label>
+                <p className="text-[0.6875rem] text-muted-foreground mt-0.5 mb-3">เลือกหัวหน้าช่างที่สามารถให้คำปรึกษาได้ (เลือกได้มากกว่า 1)</p>
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -567,7 +567,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                     placeholder="ค้นหาชื่อหัวหน้าช่าง..."
                     value={headSearch}
                     onChange={e => setHeadSearch(e.target.value)}
-                    className="w-full rounded-xl border border-input bg-background/50 pl-9 pr-4 py-2.5 text-[13px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="w-full rounded-xl border border-input bg-background/50 pl-9 pr-4 py-2.5 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm"
                   />
                 </div>
               </div>
@@ -587,10 +587,10 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                     >
                       <div className="flex-1 min-w-0">
                         <span className={cn(
-                          "block text-[15px] font-semibold truncate transition-colors",
+                          "block text-[0.9375rem] font-semibold truncate transition-colors",
                           hasAccess ? "text-primary" : "text-foreground"
                         )}>{sup.name}</span>
-                        <span className="block text-[13px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                        <span className="block text-[0.8125rem] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
                       </div>
                       <input 
                         type="checkbox" 
@@ -617,7 +617,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                   )
                 })}
                 {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
-                  <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
+                  <p className="text-[0.8125rem] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
                 )}
               </div>
             </div>
@@ -625,7 +625,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
 
           {newRole !== "technician" && (
             <div className="mt-2 space-y-3">
-              <label className="text-[13px] font-semibold text-foreground">สิทธิ์การเข้าถึงเมนู (เลือกได้มากกว่า 1)</label>
+              <label className="text-[0.8125rem] font-semibold text-foreground">สิทธิ์การเข้าถึงเมนู (เลือกได้มากกว่า 1)</label>
               <div className="flex flex-col gap-2">
                 {AVAILABLE_MENUS.map(menu => {
                   const hasAccess = newAccessibleMenus.includes(menu.id)
@@ -657,7 +657,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                       )}>
                         {hasAccess && <CheckCircle2 className="size-3.5" />}
                       </div>
-                      <span className="text-[14px] font-semibold text-foreground">{menu.label}</span>
+                      <span className="text-sm font-semibold text-foreground">{menu.label}</span>
                     </label>
                   )
                 })}
@@ -669,7 +669,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
              <button
                type="submit"
                disabled={saving}
-               className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-[15px] font-bold text-primary-foreground shadow-md transition-all active:scale-95 disabled:opacity-50"
+               className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-[0.9375rem] font-bold text-primary-foreground shadow-md transition-all active:scale-95 disabled:opacity-50"
              >
                {saving ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />}
                สร้างบัญชี
@@ -692,7 +692,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                        type="text" 
                        value={editNameValue} 
                        onChange={e => setEditNameValue(e.target.value)} 
-                       className="rounded-xl border border-input bg-card px-3 py-1.5 text-[15px] font-bold outline-none focus:border-primary shadow-sm flex-1 min-w-0"
+                       className="rounded-xl border border-input bg-card px-3 py-1.5 text-[0.9375rem] font-bold outline-none focus:border-primary shadow-sm flex-1 min-w-0"
                        autoFocus
                      />
                      <button onClick={saveName} className="rounded-xl bg-primary p-2 text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95 shrink-0">
@@ -704,20 +704,20 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                    </div>
                  ) : (
                    <div className="flex items-center gap-2 mb-2 group">
-                     <h2 className="text-[17px] font-bold text-foreground truncate">{selectedUser.name}</h2>
+                     <h2 className="text-[1.0625rem] font-bold text-foreground truncate">{selectedUser.name}</h2>
                      <button onClick={startEditName} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full opacity-60 hover:opacity-100 transition-all active:scale-95 shrink-0">
                        <Edit2 className="size-4" />
                      </button>
                    </div>
                  )}
                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                    <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.6875rem] font-bold text-primary">
                       <Shield className="size-3" />
                       {selectedUser.role.toUpperCase()}
                     </div>
                     <div 
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold",
                         selectedUser.status === "active" 
                           ? "bg-green-500/10 text-green-600" 
                           : "bg-muted text-muted-foreground"
@@ -728,7 +728,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                     </div>
                  </div>
                  {selectedUser.createdAt && (
-                   <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                   <p className="text-[0.6875rem] text-muted-foreground flex items-center gap-1 mt-1">
                      <Calendar className="size-3" /> เข้าร่วม {new Date(selectedUser.createdAt).toLocaleDateString('th-TH')}
                      <span className="mx-1 text-border">•</span>
                      รหัส: {selectedUser.employeeCode}
@@ -744,16 +744,16 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                     <User className="size-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
-                    <p className="text-[14px] font-bold text-foreground truncate">{selectedUser.lineName && selectedUser.lineName !== "-" ? selectedUser.lineName : "ไม่ได้ระบุ"}</p>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">UID: {selectedUser.lineUserId}</p>
+                    <p className="text-[0.6875rem] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
+                    <p className="text-sm font-bold text-foreground truncate">{selectedUser.lineName && selectedUser.lineName !== "-" ? selectedUser.lineName : "ไม่ได้ระบุ"}</p>
+                    <p className="text-[0.6875rem] text-muted-foreground truncate mt-0.5">UID: {selectedUser.lineUserId}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleDisconnectLineAdmin}
                   disabled={saving}
-                  className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-2 text-[13px] font-bold text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-50 w-full sm:w-auto shrink-0"
+                  className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-2 text-[0.8125rem] font-bold text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-50 w-full sm:w-auto shrink-0"
                 >
                   ยกเลิกการเชื่อมต่อ
                 </button>
@@ -762,11 +762,11 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             
             {/* Role Change */}
             <div className="mb-6 border-b border-border/40 pb-6">
-              <h4 className="font-display text-[15px] font-bold mb-3">ปรับเปลี่ยนระดับสิทธิ์ (Role)</h4>
+              <h4 className="font-display text-[0.9375rem] font-bold mb-3">ปรับเปลี่ยนระดับสิทธิ์ (Role)</h4>
               <select
                 value={selectedUser.role}
                 onChange={(e) => changeRole(e.target.value as Role)}
-                className="w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] outline-none transition-all focus:border-primary shadow-sm font-medium"
+                className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm font-medium"
               >
                 <option value="technician">ช่างเทคนิค (Technician)</option>
                 <option value="head">หัวหน้าช่าง (Head)</option>
@@ -777,13 +777,13 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             {selectedUser.role === "technician" && (
               <div className="flex items-center gap-3 rounded-xl bg-amber-500/10 p-3 text-amber-600 mb-5 border border-amber-500/20">
                 <ShieldAlert className="size-5 shrink-0" />
-                <p className="text-[12px] font-medium leading-tight">ช่างเทคนิคจะมีสิทธิ์ใช้หน้าแอปช่างเท่านั้น ไม่สามารถเข้าถึงระบบหลังบ้านได้</p>
+                <p className="text-xs font-medium leading-tight">ช่างเทคนิคจะมีสิทธิ์ใช้หน้าแอปช่างเท่านั้น ไม่สามารถเข้าถึงระบบหลังบ้านได้</p>
               </div>
             )}
                 
             <div className="mb-3 mt-4">
-              <h4 className="font-display text-[15px] font-bold">กำหนดหัวหน้าช่างที่ปรึกษา</h4>
-              <p className="text-[12px] text-muted-foreground mt-0.5 mb-3">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
+              <h4 className="font-display text-[0.9375rem] font-bold">กำหนดหัวหน้าช่างที่ปรึกษา</h4>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-3">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -791,7 +791,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                   placeholder="ค้นหาชื่อหัวหน้าช่าง..."
                   value={headSearch}
                   onChange={e => setHeadSearch(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-card pl-9 pr-4 py-2.5 text-[13px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-input bg-card pl-9 pr-4 py-2.5 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm"
                 />
               </div>
             </div>
@@ -811,10 +811,10 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                   >
                     <div className="flex-1 min-w-0">
                       <span className={cn(
-                        "block text-[14px] font-semibold truncate transition-colors",
+                        "block text-sm font-semibold truncate transition-colors",
                         hasAccess ? "text-primary" : "text-foreground"
                       )}>{sup.name}</span>
-                      <span className="block text-[12px] text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
+                      <span className="block text-xs text-muted-foreground truncate">{sup.phone || "ไม่มีเบอร์"}</span>
                     </div>
                     <input 
                       type="checkbox" 
@@ -835,15 +835,15 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 )
               })}
               {users.filter(u => u && u.employeeCode && u.role === "head" && ((u.name && u.name.toLowerCase().includes(headSearch.toLowerCase())) || u.employeeCode.toLowerCase().includes(headSearch.toLowerCase()))).length === 0 && (
-                <p className="text-[13px] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center md:col-span-2">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
+                <p className="text-[0.8125rem] text-muted-foreground bg-muted/30 p-3 rounded-xl text-center md:col-span-2">ไม่พบรายชื่อหัวหน้าช่างที่ค้นหา</p>
               )}
             </div>
             
             {selectedUser.role !== "technician" && (
               <div className="mt-6 border-t border-border/40 pt-6">
                 <div className="mb-3">
-                  <h4 className="font-display text-[15px] font-bold">สิทธิ์การเข้าถึงเมนู</h4>
-                  <p className="text-[12px] text-muted-foreground mt-0.5">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
+                  <h4 className="font-display text-[0.9375rem] font-bold">สิทธิ์การเข้าถึงเมนู</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {AVAILABLE_MENUS.map(menu => {
@@ -859,7 +859,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                         )}
                       >
                         <span className={cn(
-                          "text-[14px] font-semibold transition-colors",
+                          "text-sm font-semibold transition-colors",
                           hasAccess ? "text-primary" : "text-foreground"
                         )}>{menu.label}</span>
                         <input 
@@ -885,7 +885,7 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             )}
 
             <div className="mt-6 pt-6 border-t border-border/40">
-              <h4 className="font-display text-[15px] font-bold mb-3 text-destructive">ตั้งค่าสถานะบัญชี</h4>
+              <h4 className="font-display text-[0.9375rem] font-bold mb-3 text-destructive">ตั้งค่าสถานะบัญชี</h4>
               <label className={cn(
                 "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-all hover:bg-destructive/5 active:scale-[0.98]",
                 selectedUser.status === "inactive"
@@ -894,10 +894,10 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
               )}>
                 <div className="flex-1 min-w-0">
                   <span className={cn(
-                    "block text-[15px] font-semibold truncate transition-colors",
+                    "block text-[0.9375rem] font-semibold truncate transition-colors",
                     selectedUser.status === "inactive" ? "text-destructive" : "text-foreground"
                   )}>ระงับสิทธิ์การใช้งานบัญชีนี้</span>
-                  <span className="block text-[13px] text-muted-foreground truncate">ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้ชั่วคราว</span>
+                  <span className="block text-[0.8125rem] text-muted-foreground truncate">ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้ชั่วคราว</span>
                 </div>
                 <input 
                   type="checkbox" 

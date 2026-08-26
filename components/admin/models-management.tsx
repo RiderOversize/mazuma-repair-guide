@@ -159,7 +159,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">จัดการรุ่นสินค้า</h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
+            <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
               ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ ({filteredModels.length} รุ่น)
             </p>
           </div>
@@ -170,7 +170,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-chart-4 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-4"></span>
                 </span>
-                <div className="text-[11px] leading-tight">
+                <div className="text-[0.6875rem] leading-tight">
                   <span className="font-semibold block">SFTP ล่าสุด</span>
                   <span className="opacity-90">{new Date(lastSyncTime).toLocaleDateString("th-TH")} {new Date(lastSyncTime).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
@@ -178,7 +178,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
             )}
             <button
               onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
             >
               <Plus className="size-4" />
               เพิ่มรุ่นใหม่
@@ -198,7 +198,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                 setSearchQuery(e.target.value)
                 setCurrentPage(1)
               }}
-              className="h-10 w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+              className="h-10 w-full rounded-xl border border-border/50 bg-card pl-9 pr-8 text-sm outline-none transition-all focus:border-primary shadow-sm"
             />
             {searchQuery && (
               <button
@@ -221,7 +221,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                 setFilterSubCategory(e.target.value)
                 setCurrentPage(1)
               }}
-              className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[13px] outline-none transition-all focus:border-primary shadow-sm text-foreground"
+              className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground"
             >
               <option value="">ทุกหมวดหมู่ย่อย</option>
               {categories.map(cat => {
@@ -252,16 +252,16 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-[15px] leading-tight text-foreground line-clamp-1">{m.name}</p>
+                    <p className="font-semibold text-[0.9375rem] leading-tight text-foreground line-clamp-1">{m.name}</p>
                     <div className="flex items-center gap-1 shrink-0">
                       {m.status === "active" && <span className="size-2 rounded-full bg-green-500" title="Active"></span>}
                       {m.status === "draft" && <span className="size-2 rounded-full bg-amber-500" title="Draft"></span>}
                       {m.status === "discontinued" && <span className="size-2 rounded-full bg-destructive" title="Discontinued"></span>}
                     </div>
                   </div>
-                  <p className="text-[12px] font-medium text-muted-foreground truncate">{m.code}</p>
-                  <p className="text-[12px] text-muted-foreground truncate">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</p>
-                  <p className="text-[10px] text-muted-foreground/70 mt-2 flex items-center gap-1">
+                  <p className="text-xs font-medium text-muted-foreground truncate">{m.code}</p>
+                  <p className="text-xs text-muted-foreground truncate">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</p>
+                  <p className="text-[0.625rem] text-muted-foreground/70 mt-2 flex items-center gap-1">
                     <RefreshCw className="h-3 w-3" />
                     อัปเดต/ซิงค์: {m.lastSyncAt ? new Date(m.lastSyncAt).toLocaleString('th-TH') : (m.updatedAt ? new Date(m.updatedAt).toLocaleString('th-TH') : '-')}
                   </p>
@@ -278,7 +278,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
         {paginatedModels.length === 0 && (
           <div className="py-12 text-center flex flex-col items-center">
             <Boxes className="size-10 text-muted-foreground/30 mb-3" />
-            <p className="text-[15px] text-muted-foreground">ไม่มีข้อมูลรุ่นสินค้าที่ตรงกับการค้นหา</p>
+            <p className="text-[0.9375rem] text-muted-foreground">ไม่มีข้อมูลรุ่นสินค้าที่ตรงกับการค้นหา</p>
           </div>
         )}
       </div>
@@ -289,17 +289,17 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[0.8125rem] font-medium shadow-sm active:scale-95 transition-transform"
           >
             <ChevronLeft className="size-4" /> ก่อนหน้า
           </button>
-          <div className="text-[13px] font-medium text-muted-foreground">
+          <div className="text-[0.8125rem] font-medium text-muted-foreground">
             {currentPage} / {totalPages}
           </div>
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[13px] font-medium shadow-sm active:scale-95 transition-transform"
+            className="flex h-10 items-center justify-center gap-1 rounded-xl px-4 bg-card border border-border/40 disabled:opacity-50 text-[0.8125rem] font-medium shadow-sm active:scale-95 transition-transform"
           >
             ถัดไป <ChevronRight className="size-4" />
           </button>
@@ -314,7 +314,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm z-10 shrink-0">
-            <h3 className="font-display text-[18px] font-bold text-foreground">
+            <h3 className="font-display text-lg font-bold text-foreground">
               {editingId ? "แก้ไขรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}
             </h3>
             <button 
@@ -330,7 +330,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           <div className="flex-1 overflow-y-auto px-5 py-6">
             <form id="model-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">รูปภาพสินค้า (URL)</label>
                 <div className="flex flex-col gap-3">
                   <div className="flex h-36 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30 overflow-hidden">
                     {formData.thumbnail ? (
@@ -338,7 +338,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
                         <ImageIcon className="size-8" />
-                        <span className="text-[12px] font-medium">ไม่มีรูปภาพ</span>
+                        <span className="text-xs font-medium">ไม่มีรูปภาพ</span>
                       </div>
                     )}
                   </div>
@@ -347,40 +347,40 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                     value={formData.thumbnail}
                     onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">ชื่อรุ่นสินค้า <span className="text-destructive">*</span></label>
                 <input
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="เช่น Mazuma รุ่น Hydro Pro"
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">รหัสรุ่น (Model Code) <span className="text-destructive">*</span></label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">รหัสรุ่น (Model Code) <span className="text-destructive">*</span></label>
                 <input
                   required
                   value={formData.code}
                   onChange={e => setFormData({ ...formData, code: e.target.value })}
                   placeholder="เช่น MZ-HP4500"
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm uppercase"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm uppercase"
                 />
               </div>
               
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.categoryId}
                   onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                 >
                   <option value="">เลือกหมวดหมู่หลัก</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -388,13 +388,13 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.subcategoryId}
                   onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
                   disabled={!formData.categoryId}
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-[14px] outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
                 >
                   <option value="">เลือกหมวดหมู่ย่อย</option>
                   {subCategories.filter(sc => {
@@ -405,19 +405,19 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-semibold text-foreground">สถานะ</label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">สถานะ</label>
                 <div className="flex flex-col gap-2">
                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="active" checked={formData.status === "active"} onChange={() => setFormData({ ...formData, status: "active"})} className="size-4 text-primary focus:ring-primary" />
-                     <span className="text-[14px] font-medium">เปิดจำหน่าย</span>
+                     <span className="text-sm font-medium">เปิดจำหน่าย</span>
                    </label>
                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="draft" checked={formData.status === "draft"} onChange={() => setFormData({ ...formData, status: "draft"})} className="size-4 text-amber-500 focus:ring-amber-500" />
-                     <span className="text-[14px] font-medium">ฉบับร่าง</span>
+                     <span className="text-sm font-medium">ฉบับร่าง</span>
                    </label>
                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="discontinued" checked={formData.status === "discontinued"} onChange={() => setFormData({ ...formData, status: "discontinued"})} className="size-4 text-destructive focus:ring-destructive" />
-                     <span className="text-[14px] font-medium">ยกเลิกผลิต</span>
+                     <span className="text-sm font-medium">ยกเลิกผลิต</span>
                    </label>
                 </div>
               </div>

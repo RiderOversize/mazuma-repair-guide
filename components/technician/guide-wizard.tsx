@@ -38,6 +38,7 @@ export function GuideWizard({
   models,
   symptoms,
   symptomTypes,
+  preview = false,
   onBack,
   onHome,
 }: {
@@ -49,6 +50,7 @@ export function GuideWizard({
   models: DeviceModel[]
   symptoms: Symptom[]
   symptomTypes?: SymptomType[]
+  preview?: boolean
   onBack: () => void
   onHome?: () => void
 }) {
@@ -97,7 +99,7 @@ export function GuideWizard({
         "guide",
         currentGuide.title,
         currentGuide.id,
-        model ? `ดูบนเครื่อง ${model.name}` : ""
+        model ? `ดูบนเครื่อง ${model.name}` : "วินิจฉัยด่วน"
       ).catch(console.error)
     }
   }, [user, currentGuide.id, currentGuide.title, model])
@@ -111,7 +113,7 @@ export function GuideWizard({
     try {
       await logRepairFeedback({
         guideId: currentGuide.id,
-        modelId: model?.id || null,
+        modelId: model?.id || "วินิจฉัยด่วน",
         userId: user.employeeCode,
         userName: user.name,
         isSuccess: isHelpful,
@@ -200,49 +202,50 @@ export function GuideWizard({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col pb-28">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 px-4 pb-4 pt-14 backdrop-blur-2xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary hover:text-primary/80 transition-colors"
-        >
-          <ChevronLeft className="size-5" />
-          <span>อาการเสีย</span>
-        </button>
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary uppercase tracking-wide">
-            {category?.name}
-          </span>
-          {model && (
-            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground uppercase tracking-wide">
-              {model.name}
-            </span>
-          )}
-        </div>
-      </header>
-
-      <div className="flex flex-col gap-4 px-4 pt-4">
+    <div className={cn(
+      "mx-auto flex min-h-screen w-full max-w-3xl flex-col pb-28",
+      preview ? "pt-12" : "pt-2"
+    )}>
+      <div className="flex flex-col gap-4 px-4 pt-2">
         {/* Specific cause callout */}
-        <div className="flex items-start gap-2.5 rounded-xl border border-chart-3/40 bg-chart-3/10 p-3">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-chart-3" />
-          <div>
-            <div className="mb-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                อาการเสีย
-              </p>
-              <p className="mt-0.5 font-display text-[15px] font-semibold leading-snug text-foreground">
-                {symptom?.title || symptom?.description || "ไม่ระบุอาการเสีย"}
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-chart-3/40 bg-chart-3/10 p-3.5 shadow-sm">
+          {model && (
+            <div className="flex flex-col gap-1 pb-2.5 border-b border-chart-3/20">
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[10.5px]">
+                  รุ่นสินค้า
+                </span>
+                {model.code && (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-background/80 border border-border/60 text-[10.5px] font-mono font-semibold text-muted-foreground">
+                    {model.code}
+                  </span>
+                )}
+              </div>
+              <p className="font-display text-[13.5px] font-bold text-foreground leading-snug break-words mt-0.5">
+                {model.name}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                สาเหตุที่วินิจฉัย
-              </p>
-              <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/90">
-                {currentGuide.title}
-              </p>
+          )}
+          
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-chart-3" />
+            <div className="flex-1 min-w-0">
+              <div className="mb-2">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  อาการเสีย
+                </p>
+                <p className="mt-0.5 font-display text-[0.9375rem] font-semibold leading-snug text-foreground">
+                  {symptom?.title || symptom?.description || "ไม่ระบุอาการเสีย"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  สาเหตุที่วินิจฉัย
+                </p>
+                <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/90">
+                  {currentGuide.title}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -306,7 +309,7 @@ export function GuideWizard({
                 onClick={() => setCurrentIndex(c => Math.max(0, c - 1))}
                 disabled={isFirstGuide}
                 className={cn(
-                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-0 px-4 py-3.5 text-[15px] font-semibold transition-colors bg-muted/60",
+                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-0 px-4 py-3.5 text-[0.9375rem] font-semibold transition-colors bg-muted/60",
                   isFirstGuide
                     ? "cursor-not-allowed opacity-50"
                     : "text-foreground active:bg-muted",
@@ -324,7 +327,7 @@ export function GuideWizard({
                 }}
                 disabled={isLastGuide}
                 className={cn(
-                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-colors bg-primary/10",
+                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-3.5 text-[0.9375rem] font-semibold transition-colors bg-primary/10",
                   isLastGuide
                     ? "cursor-not-allowed opacity-50"
                     : "text-primary active:bg-primary/20",
@@ -335,28 +338,25 @@ export function GuideWizard({
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Sticky contact & feedback bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/80 p-4 pb-safe backdrop-blur-2xl">
-        <div className="mx-auto max-w-[480px] flex flex-row gap-3">
-          <button
-            onClick={() => setShowFeedback(true)}
-            className="flex flex-[2] items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-display text-[14px] font-bold text-white shadow-sm transition-transform active:scale-[0.98] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
-          >
-            <CheckCircle2 className="size-5 shrink-0" />
-            <span className="truncate">จบงาน</span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setShowContact(true)}
-            className="flex flex-[1] items-center justify-center gap-2 rounded-2xl bg-muted/80 hover:bg-muted px-4 py-3.5 font-display text-[14px] font-bold text-foreground transition-transform active:scale-[0.98]"
-          >
-            <Phone className="size-5 shrink-0" />
-            <span className="truncate">ติดต่อช่าง</span>
-          </button>
+          {/* Action buttons (จบงาน & ติดต่อช่าง) placed in content flow */}
+          <div className="pt-3 pb-6 flex flex-row gap-3">
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="flex flex-[2] items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-display text-sm font-bold text-white shadow-sm transition-transform active:scale-[0.98] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20 cursor-pointer"
+            >
+              <CheckCircle2 className="size-5 shrink-0" />
+              <span className="truncate">จบงาน (บันทึกผลการซ่อม)</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setShowContact(true)}
+              className="flex flex-[1] items-center justify-center gap-2 rounded-2xl bg-muted/80 hover:bg-muted px-4 py-3.5 font-display text-sm font-bold text-foreground transition-transform active:scale-[0.98] cursor-pointer"
+            >
+              <Phone className="size-5 shrink-0" />
+              <span className="truncate">ติดต่อช่าง</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -380,7 +380,7 @@ export function GuideWizard({
               {dbSupervisors.filter(sup => sup && sup.employeeCode && user.assignedSupervisors?.includes(sup.employeeCode)).map((sup, idx) => (
                 <div key={sup.employeeCode || `sup-wiz-${idx}`} className="flex items-center justify-between p-3 rounded-2xl border border-border bg-background hover:border-primary/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    {sup.avatar && sup.avatar !== "/avatars/technician.png" && sup.avatar !== "/avatars/admin.png" ? (
+                    {sup.avatar && sup.avatar.trim() !== "" && sup.avatar !== "/avatars/technician.png" && sup.avatar !== "/avatars/admin.png" ? (
                       <div className="size-10 rounded-full overflow-hidden shrink-0 border border-border shadow-sm">
                         <img src={sup.avatar} alt={sup.name} className="w-full h-full object-cover" />
                       </div>

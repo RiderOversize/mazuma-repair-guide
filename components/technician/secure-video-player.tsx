@@ -289,7 +289,7 @@ export function SecureVideoPlayer({
                     <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">
                       <div className="h-full w-1/3 rounded-full bg-white/70" />
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-white/50">
+                    <div className="mt-1.5 flex items-center justify-between text-[0.625rem] text-white/50">
                       <span>00:42</span>
                       <span>02:15</span>
                     </div>
@@ -351,7 +351,7 @@ export function SecureVideoPlayer({
           )}
 
           {/* Secure badge */}
-          <div className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-[10px] font-medium text-white/80 backdrop-blur-sm pointer-events-none">
+          <div className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-[0.625rem] font-medium text-white/80 backdrop-blur-sm pointer-events-none">
             <Lock className="size-3" />
             เนื้อหามีลิขสิทธิ์
           </div>
@@ -381,7 +381,7 @@ export function SecureVideoPlayer({
                   <h2 className="text-sm font-bold text-white truncate">
                     {isCanvaUrl(pdfUrl) ? "เอกสาร Canva ขั้นตอนที่ " : "เอกสารขั้นตอนที่ "} {stepNum}
                   </h2>
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 text-[0.625rem] font-medium text-amber-300">
                     <Lock className="size-2.5" />
                     {isCanvaUrl(pdfUrl) ? "Canva Interactive Guide" : "เอกสารสำหรับใช้งานภายใน"}
                   </span>

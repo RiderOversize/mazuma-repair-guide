@@ -81,8 +81,8 @@ export function UserMenu({
           <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="32px" />
         </span>
         <div className="flex flex-col items-start min-w-0">
-          <span className="max-w-[5rem] sm:max-w-[8rem] truncate font-bold text-[13px] leading-tight">{user.name}</span>
-          <span className="text-[10px] text-muted-foreground font-medium">{user.role.toUpperCase()}</span>
+          <span className="max-w-[5rem] sm:max-w-[8rem] truncate font-bold text-[0.8125rem] leading-tight">{user.name}</span>
+          <span className="text-[0.625rem] text-muted-foreground font-medium">{user.role.toUpperCase()}</span>
         </div>
         <ChevronDown className="size-4 opacity-50 shrink-0" />
       </button>
@@ -116,14 +116,14 @@ export function UserMenu({
                 <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="64px" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[18px] font-bold text-foreground">{user.name}</p>
-                <p className="truncate text-[13px] text-muted-foreground mt-0.5">{user.title}</p>
+                <p className="truncate text-lg font-bold text-foreground">{user.name}</p>
+                <p className="truncate text-[0.8125rem] text-muted-foreground mt-0.5">{user.title}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[0.625rem] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                     <Shield className="size-3" />
                     {user.role.toUpperCase()}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">ID: {user.employeeCode}</span>
+                  <span className="text-[0.6875rem] text-muted-foreground">ID: {user.employeeCode}</span>
                 </div>
               </div>
             </div>
@@ -134,9 +134,9 @@ export function UserMenu({
                     <User className="size-5" />
                  </div>
                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
-                    <p className="text-[14px] font-bold text-foreground truncate">{user.lineName && user.lineName !== "-" ? user.lineName : "ไม่ได้ระบุ"}</p>
-                    {user.lineUserId && <p className="text-[11px] text-muted-foreground truncate mt-0.5">UID: {user.lineUserId}</p>}
+                    <p className="text-[0.6875rem] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">บัญชี LINE ที่เชื่อมต่อ</p>
+                    <p className="text-sm font-bold text-foreground truncate">{user.lineName && user.lineName !== "-" ? user.lineName : "ไม่ได้ระบุ"}</p>
+                    {user.lineUserId && <p className="text-[0.6875rem] text-muted-foreground truncate mt-0.5">UID: {user.lineUserId}</p>}
                  </div>
                  {user.lineUserId && (
                    <button
@@ -162,7 +162,7 @@ export function UserMenu({
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
                      <LogOut className="size-5" />
                   </div>
-                  <span className="font-bold text-[15px]">ออกจากระบบ</span>
+                  <span className="font-bold text-[0.9375rem]">ออกจากระบบ</span>
                 </div>
               </button>
             </div>

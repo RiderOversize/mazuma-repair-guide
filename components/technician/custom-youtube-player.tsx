@@ -384,7 +384,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
             </button>
 
             {/* Time */}
-            <div className="text-[11.5px] font-mono font-medium tracking-wide text-white/90 ml-1 select-none">
+            <div className="text-[0.71875rem] font-mono font-medium tracking-wide text-white/90 ml-1 select-none">
               <span>{formatTime(currentTime)}</span>
               <span className="text-white/40 mx-1">/</span>
               <span className="text-white/60">{formatTime(duration)}</span>
@@ -396,7 +396,7 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
             <button
               type="button"
               onClick={changePlaybackRate}
-              className="px-2 py-1 rounded-md hover:bg-white/15 text-[11px] font-bold font-mono text-white/85 hover:text-white transition-all"
+              className="px-2 py-1 rounded-md hover:bg-white/15 text-[0.6875rem] font-bold font-mono text-white/85 hover:text-white transition-all"
               title="ความเร็วการเล่น"
             >
               {playbackRate}x

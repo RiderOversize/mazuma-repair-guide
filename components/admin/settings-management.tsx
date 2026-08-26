@@ -79,8 +79,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   {currentTheme === "dark" ? <Moon className="size-5" /> : <Sun className="size-5" />}
                 </div>
                 <div>
-                  <h3 className="font-medium text-[15px] text-foreground">โหมดหน้าจอ (Theme)</h3>
-                  <p className="text-[13px] text-muted-foreground">ปรับเปลี่ยนโทนสีของแอปพลิเคชัน</p>
+                  <h3 className="font-medium text-[0.9375rem] text-foreground">โหมดหน้าจอ (Theme)</h3>
+                  <p className="text-[0.8125rem] text-muted-foreground">ปรับเปลี่ยนโทนสีของแอปพลิเคชัน</p>
                 </div>
               </div>
 
@@ -130,8 +130,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   <Type className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[15px] text-foreground">รูปแบบตัวอักษร (Font)</h3>
-                  <p className="text-[13px] text-muted-foreground">ปรับเปลี่ยนฟอนต์ของแอปพลิเคชัน</p>
+                  <h3 className="font-medium text-[0.9375rem] text-foreground">รูปแบบตัวอักษร (Font)</h3>
+                  <p className="text-[0.8125rem] text-muted-foreground">ปรับเปลี่ยนฟอนต์ของแอปพลิเคชัน</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-1">
@@ -168,16 +168,16 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   <TextSelect className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[15px] text-foreground">ขนาดตัวอักษร</h3>
-                  <p className="text-[13px] text-muted-foreground">ปรับขนาดตัวอักษรเพื่อให้อ่านง่ายขึ้น</p>
+                  <h3 className="font-medium text-[0.9375rem] text-foreground">ขนาดตัวอักษร</h3>
+                  <p className="text-[0.8125rem] text-muted-foreground">ปรับขนาดตัวอักษรเพื่อให้อ่านง่ายขึ้น</p>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2 mt-1">
                 {[
-                  { id: "sm", label: "เล็ก", size: "text-[14px]" },
-                  { id: "base", label: "ปกติ", size: "text-[16px]" },
-                  { id: "lg", label: "ใหญ่", size: "text-[20px]" },
-                  { id: "xl", label: "ใหญ่มาก", size: "text-[24px]" },
+                  { id: "sm", label: "เล็ก", size: "text-sm" },
+                  { id: "base", label: "ปกติ", size: "text-base" },
+                  { id: "lg", label: "ใหญ่", size: "text-xl" },
+                  { id: "xl", label: "ใหญ่มาก", size: "text-2xl" },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -210,10 +210,10 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
                   <Globe className="size-5" />
                 </div>
-                <span className="font-medium text-[15px] text-foreground">ภาษา (Language)</span>
+                <span className="font-medium text-[0.9375rem] text-foreground">ภาษา (Language)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] text-muted-foreground">ไทย</span>
+                <span className="text-[0.8125rem] text-muted-foreground">ไทย</span>
                 <ChevronRight className="size-5 text-muted-foreground/40" />
               </div>
             </button>
@@ -225,7 +225,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
                   <Bell className="size-5" />
                 </div>
-                <span className="font-medium text-[15px] text-foreground">การแจ้งเตือน</span>
+                <span className="font-medium text-[0.9375rem] text-foreground">การแจ้งเตือน</span>
               </div>
               <ChevronRight className="size-5 text-muted-foreground/40" />
             </button>
@@ -237,7 +237,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-500">
                   <ShieldCheck className="size-5" />
                 </div>
-                <span className="font-medium text-[15px] text-foreground">ความปลอดภัยและสิทธิ์</span>
+                <span className="font-medium text-[0.9375rem] text-foreground">ความปลอดภัยและสิทธิ์</span>
               </div>
               <ChevronRight className="size-5 text-muted-foreground/40" />
             </button>
@@ -254,8 +254,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   <Database className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[15px] text-foreground">สถานะฐานข้อมูล</h3>
-                  <p className="text-[13px] text-emerald-500 flex items-center gap-1">
+                  <h3 className="font-medium text-[0.9375rem] text-foreground">สถานะฐานข้อมูล</h3>
+                  <p className="text-[0.8125rem] text-emerald-500 flex items-center gap-1">
                     <span className="relative flex size-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
@@ -279,8 +279,8 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
                   {isClearing ? <RefreshCw className="size-5 animate-spin" /> : <Trash2 className="size-5" />}
                 </div>
                 <div>
-                  <span className="font-medium text-[15px] text-destructive">ล้างแคชระบบ (Clear Cache)</span>
-                  <p className="text-[13px] text-muted-foreground">ลบข้อมูลชั่วคราวเพื่อเพิ่มพื้นที่</p>
+                  <span className="font-medium text-[0.9375rem] text-destructive">ล้างแคชระบบ (Clear Cache)</span>
+                  <p className="text-[0.8125rem] text-muted-foreground">ลบข้อมูลชั่วคราวเพื่อเพิ่มพื้นที่</p>
                 </div>
               </div>
             </button>
@@ -293,7 +293,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
             <span className="font-display font-bold text-primary-foreground text-xl">M</span>
           </div>
           <p className="font-medium text-foreground">Mazuma Repair Guide</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">เวอร์ชัน 1.0.0 (Build 2026)</p>
+          <p className="text-[0.8125rem] text-muted-foreground mt-0.5">เวอร์ชัน 1.0.0 (Build 2026)</p>
         </div>
       </div>
 
@@ -307,7 +307,7 @@ export function SettingsManagement({ user }: { user: AuthUser }) {
             <h3 className="mb-2 text-center font-display text-lg font-bold text-foreground">
               แจ้งเตือน
             </h3>
-            <p className="mb-6 text-center text-[15px] text-muted-foreground">
+            <p className="mb-6 text-center text-[0.9375rem] text-muted-foreground">
               {modalMessage}
             </p>
             <button

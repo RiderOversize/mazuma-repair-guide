@@ -185,14 +185,14 @@ export function AdminDashboard({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">ภาพรวมระบบ</h1>
-          <p className="text-[13px] text-muted-foreground mt-1">
+          <p className="text-[0.8125rem] text-muted-foreground mt-1">
             ยินดีต้อนรับ {user.name}
           </p>
         </div>
         <button
           type="button"
           onClick={() => window.location.href = '/?preview=true'}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
         >
           <ExternalLink className="size-4" />
           ดูแอพช่าง
@@ -210,18 +210,18 @@ export function AdminDashboard({
                  <AlertCircle className="size-4 text-destructive" />
               </div>
               <div>
-                 <h3 className="font-display text-[15px] font-bold text-destructive leading-tight">พบสินค้ารุ่นที่ยังไม่ได้ผูกอาการ ({modelsWithoutMappings.length})</h3>
-                 <p className="text-[13px] text-destructive/80 mt-1">
+                 <h3 className="font-display text-[0.9375rem] font-bold text-destructive leading-tight">พบสินค้ารุ่นที่ยังไม่ได้ผูกอาการ ({modelsWithoutMappings.length})</h3>
+                 <p className="text-[0.8125rem] text-destructive/80 mt-1">
                    กรุณาเพิ่มการจับคู่ MasterData ให้รองรับรุ่นเหล่านี้
                  </p>
               </div>
            </div>
            <div className="flex flex-wrap items-center gap-1.5 pl-11">
               {modelsWithoutMappings.slice(0, 3).map(m => (
-                <span key={m.id} className="text-[11px] bg-background/60 border border-destructive/20 px-2 py-0.5 rounded-md text-destructive/90 font-medium">{m.name}</span>
+                <span key={m.id} className="text-[0.6875rem] bg-background/60 border border-destructive/20 px-2 py-0.5 rounded-md text-destructive/90 font-medium">{m.name}</span>
               ))}
               {modelsWithoutMappings.length > 3 && (
-                <span className="text-[11px] bg-destructive/10 px-2 py-0.5 rounded-md text-destructive font-bold">
+                <span className="text-[0.6875rem] bg-destructive/10 px-2 py-0.5 rounded-md text-destructive font-bold">
                   +{modelsWithoutMappings.length - 3} รุ่น
                 </span>
               )}
@@ -230,7 +230,7 @@ export function AdminDashboard({
       )}
 
       {/* Technician Performance Stats */}
-      <h2 className="mb-3 font-display text-[16px] font-bold flex items-center gap-2">
+      <h2 className="mb-3 font-display text-base font-bold flex items-center gap-2">
         <Target className="size-4 text-emerald-500" /> สถิติการใช้งาน
       </h2>
       <div 
@@ -239,29 +239,29 @@ export function AdminDashboard({
       >
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex justify-between items-center">
           <div>
-            <p className="text-[13px] font-semibold text-emerald-600">อัตราการซ่อมสำเร็จ</p>
-            <p className="text-[11px] text-emerald-600/70 mt-0.5">จากทั้งหมด</p>
+            <p className="text-[0.8125rem] font-semibold text-emerald-600">อัตราการซ่อมสำเร็จ</p>
+            <p className="text-[0.6875rem] text-emerald-600/70 mt-0.5">จากทั้งหมด</p>
           </div>
           <span className="font-display text-3xl font-black text-emerald-600">{repairStats.successRate}%</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 shadow-sm flex flex-col items-center text-center">
             <span className="font-display text-xl font-black text-blue-600">{repairStats.total}</span>
-            <p className="text-[11px] font-semibold text-blue-600 mt-1">ใช้งาน (ครั้ง)</p>
+            <p className="text-[0.6875rem] font-semibold text-blue-600 mt-1">ใช้งาน (ครั้ง)</p>
           </div>
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3 shadow-sm flex flex-col items-center text-center">
             <span className="font-display text-xl font-black text-emerald-600">{repairStats.successCount}</span>
-            <p className="text-[11px] font-semibold text-emerald-600 mt-1">สำเร็จ</p>
+            <p className="text-[0.6875rem] font-semibold text-emerald-600 mt-1">สำเร็จ</p>
           </div>
           <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3 shadow-sm flex flex-col items-center text-center">
             <span className="font-display text-xl font-black text-rose-600">{repairStats.failedCount}</span>
-            <p className="text-[11px] font-semibold text-rose-600 mt-1">ไม่สำเร็จ</p>
+            <p className="text-[0.6875rem] font-semibold text-rose-600 mt-1">ไม่สำเร็จ</p>
           </div>
         </div>
       </div>
 
       {/* Stats grid */}
-      <h2 className="mb-3 font-display text-[16px] font-bold flex items-center gap-2">
+      <h2 className="mb-3 font-display text-base font-bold flex items-center gap-2">
         <BarChart3 className="size-4 text-primary" /> ฐานข้อมูลระบบ
       </h2>
       <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -279,7 +279,7 @@ export function AdminDashboard({
                  </div>
                  <p className="font-display text-xl font-black opacity-90">{s.value}</p>
               </div>
-              <p className="text-[12px] font-semibold opacity-90">{s.label}</p>
+              <p className="text-xs font-semibold opacity-90">{s.label}</p>
             </div>
           )
         })}
@@ -290,7 +290,7 @@ export function AdminDashboard({
         <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp className="size-4 text-primary" />
-            <h2 className="font-display text-[15px] font-bold">5 อันดับรุ่นยอดนิยม</h2>
+            <h2 className="font-display text-[0.9375rem] font-bold">5 อันดับรุ่นยอดนิยม</h2>
           </div>
           <div className="space-y-3">
             {topModels.map((tm, i) => (
@@ -299,12 +299,12 @@ export function AdminDashboard({
                 className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors"
                 onClick={() => setSelectedTopModel(tm.modelId)}
               >
-                 <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-bold text-muted-foreground">
+                 <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[0.6875rem] font-bold text-muted-foreground">
                    {i + 1}
                  </div>
                  <div className="flex-1 min-w-0">
-                   <p className="font-medium text-[13px] truncate text-foreground">{getModel(tm.modelId)?.name || tm.modelId}</p>
-                   <p className="text-[11px] text-muted-foreground truncate">{getModel(tm.modelId)?.code || ""}</p>
+                   <p className="font-medium text-[0.8125rem] truncate text-foreground">{getModel(tm.modelId)?.name || tm.modelId}</p>
+                   <p className="text-[0.6875rem] text-muted-foreground truncate">{getModel(tm.modelId)?.code || ""}</p>
                    <div className="mt-1 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                      <div 
                        className="h-full rounded-full bg-primary" 
@@ -313,13 +313,13 @@ export function AdminDashboard({
                    </div>
                  </div>
                  <div className="shrink-0 text-right">
-                   <span className="font-bold text-[13px]">{tm.count}</span>
-                   <span className="text-[11px] text-muted-foreground ml-0.5">ครั้ง</span>
+                   <span className="font-bold text-[0.8125rem]">{tm.count}</span>
+                   <span className="text-[0.6875rem] text-muted-foreground ml-0.5">ครั้ง</span>
                  </div>
               </div>
             ))}
             {topModels.length === 0 && (
-              <p className="text-[13px] text-muted-foreground text-center py-2">ยังไม่มีข้อมูล</p>
+              <p className="text-[0.8125rem] text-muted-foreground text-center py-2">ยังไม่มีข้อมูล</p>
             )}
           </div>
         </div>
@@ -329,12 +329,12 @@ export function AdminDashboard({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <User className="size-4 text-emerald-500" />
-              <h2 className="font-display text-[15px] font-bold">เข้าใช้งานล่าสุด</h2>
+              <h2 className="font-display text-[0.9375rem] font-bold">เข้าใช้งานล่าสุด</h2>
             </div>
             {uniqueUsers.length > 5 && (
               <button 
                 onClick={() => setShowAllActiveUsers(true)}
-                className="text-[11px] font-semibold text-primary hover:underline"
+                className="text-[0.6875rem] font-semibold text-primary hover:underline"
               >
                 ดูทั้งหมด
               </button>
@@ -346,7 +346,7 @@ export function AdminDashboard({
                 return (
                   <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
                      <User className="size-6 opacity-20 mb-2" />
-                     <p className="text-[12px]">ยังไม่มีข้อมูลการเข้าใช้งาน</p>
+                     <p className="text-xs">ยังไม่มีข้อมูลการเข้าใช้งาน</p>
                   </div>
                 )
               }
@@ -356,7 +356,7 @@ export function AdminDashboard({
                 
                 return (
                   <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px] overflow-hidden">
+                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[0.8125rem] overflow-hidden">
                        {user?.avatar ? (
                          // eslint-disable-next-line @next/next/no-img-element
                          <img src={user.avatar} alt={act.userName} className="w-full h-full object-cover" />
@@ -365,11 +365,11 @@ export function AdminDashboard({
                        )}
                      </div>
                      <div className="flex-1 min-w-0">
-                       <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
-                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
+                       <p className="text-[0.8125rem] font-bold text-foreground truncate">{act.userName}</p>
+                       <p className="text-[0.6875rem] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
                      </div>
                      <div className="shrink-0 text-right">
-                       <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
+                       <span className="text-[0.6875rem] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
                      </div>
                   </div>
                 )
@@ -383,12 +383,12 @@ export function AdminDashboard({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Boxes className="size-4 text-emerald-500" />
-              <h2 className="font-display text-[15px] font-bold">5 อันดับหมวดหมู่ที่มีรุ่นสินค้าที่ผูกคู่มือแล้ว</h2>
+              <h2 className="font-display text-[0.9375rem] font-bold">5 อันดับหมวดหมู่ที่มีรุ่นสินค้าที่ผูกคู่มือแล้ว</h2>
             </div>
             {categoriesWithCount.length > 5 && (
               <button 
                 onClick={() => setShowAllCategories(true)}
-                className="text-[11px] font-semibold text-primary hover:underline"
+                className="text-[0.6875rem] font-semibold text-primary hover:underline"
               >
                 ดูทั้งหมด
               </button>
@@ -396,15 +396,15 @@ export function AdminDashboard({
           </div>
           <div className="space-y-3">
             {topCategories.length === 0 || maxCategoryCount === 0 ? (
-              <p className="text-[13px] text-muted-foreground text-center py-2">ยังไม่มีข้อมูลการผูกคู่มือ</p>
+              <p className="text-[0.8125rem] text-muted-foreground text-center py-2">ยังไม่มีข้อมูลการผูกคู่มือ</p>
             ) : (
               topCategories.map((cat, i) => (
                 <button key={cat.id} onClick={() => onNavigateToGuides?.(cat.slug || cat.name)} className="w-full text-left flex items-center gap-3 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
-                   <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-bold text-muted-foreground group-hover:bg-background">
+                   <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[0.6875rem] font-bold text-muted-foreground group-hover:bg-background">
                      {i + 1}
                    </div>
                    <div className="flex-1 min-w-0">
-                     <p className="font-medium text-[13px] truncate text-foreground group-hover:text-primary transition-colors">
+                     <p className="font-medium text-[0.8125rem] truncate text-foreground group-hover:text-primary transition-colors">
                        {cat.slug && <span className="text-primary mr-1">{cat.slug} -</span>}
                        {cat.name}
                      </p>
@@ -417,8 +417,8 @@ export function AdminDashboard({
                    </div>
                    <div className="shrink-0 text-right flex items-center gap-2">
                      <div>
-                       <span className="font-bold text-[13px]">{cat.modelCount}</span>
-                       <span className="text-[11px] text-muted-foreground ml-0.5">รุ่น</span>
+                       <span className="font-bold text-[0.8125rem]">{cat.modelCount}</span>
+                       <span className="text-[0.6875rem] text-muted-foreground ml-0.5">รุ่น</span>
                      </div>
                      <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary" />
                    </div>
@@ -433,12 +433,12 @@ export function AdminDashboard({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
                <Activity className="size-4 text-primary" />
-               <h2 className="font-display text-[15px] font-bold">ความเคลื่อนไหวล่าสุด</h2>
+               <h2 className="font-display text-[0.9375rem] font-bold">ความเคลื่อนไหวล่าสุด</h2>
             </div>
             {activities.length > 5 && (
               <button 
                 onClick={() => setShowAllActivities(true)}
-                className="text-[11px] font-semibold text-primary hover:underline"
+                className="text-[0.6875rem] font-semibold text-primary hover:underline"
               >
                 ดูทั้งหมด
               </button>
@@ -450,13 +450,13 @@ export function AdminDashboard({
               <div key={act.id} className="relative pl-5">
                  <span className="absolute -left-1.5 top-1 size-2.5 rounded-full bg-primary ring-4 ring-card"></span>
                  <div className="flex flex-col gap-0.5">
-                    <p className="text-[13px] font-medium text-foreground">
+                    <p className="text-[0.8125rem] font-medium text-foreground">
                       {act.userName} <span className="font-normal text-muted-foreground">{getActionText(act.action)}</span>
                     </p>
                     {act.resourceName && (
-                      <p className="text-[12px] font-semibold text-primary">{act.resourceName}</p>
+                      <p className="text-xs font-semibold text-primary">{act.resourceName}</p>
                     )}
-                    <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <div className="mt-0.5 flex items-center gap-3 text-[0.625rem] text-muted-foreground">
                       <span className="flex items-center gap-1"><Clock className="size-2.5" /> {formatTimeAgo(act.timestamp)}</span>
                       <span className="flex items-center gap-1"><User className="size-2.5" /> {act.userCode}</span>
                     </div>
@@ -465,7 +465,7 @@ export function AdminDashboard({
             ))}
             
             {activities.length === 0 && (
-              <div className="pl-5 text-[12px] text-muted-foreground">
+              <div className="pl-5 text-xs text-muted-foreground">
                 ยังไม่มีความเคลื่อนไหวในระบบ
               </div>
             )}
@@ -491,11 +491,11 @@ export function AdminDashboard({
             <div className="overflow-y-auto pr-2 space-y-2">
               {categoriesWithCount.map((cat, i) => (
                 <button key={cat.id} onClick={() => { setShowAllCategories(false); onNavigateToGuides?.(cat.slug || cat.name); }} className="w-full text-left flex items-center gap-3 border-b border-border/40 pb-3 last:border-0 last:pb-0 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
-                   <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-[13px] font-bold text-muted-foreground group-hover:bg-background">
+                   <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-[0.8125rem] font-bold text-muted-foreground group-hover:bg-background">
                      {i + 1}
                    </div>
                    <div className="flex-1 min-w-0">
-                     <p className="font-medium text-[14px] truncate text-foreground group-hover:text-primary transition-colors">
+                     <p className="font-medium text-sm truncate text-foreground group-hover:text-primary transition-colors">
                        {cat.slug && <span className="text-primary mr-1">{cat.slug} -</span>}
                        {cat.name}
                      </p>
@@ -508,8 +508,8 @@ export function AdminDashboard({
                    </div>
                    <div className="shrink-0 text-right flex items-center gap-2">
                      <div>
-                       <span className="font-bold text-[14px]">{cat.modelCount}</span>
-                       <span className="text-[12px] text-muted-foreground ml-1">รุ่น</span>
+                       <span className="font-bold text-sm">{cat.modelCount}</span>
+                       <span className="text-xs text-muted-foreground ml-1">รุ่น</span>
                      </div>
                      <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary" />
                    </div>
@@ -541,7 +541,7 @@ export function AdminDashboard({
 
                 return (
                   <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[13px] overflow-hidden">
+                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[0.8125rem] overflow-hidden">
                        {user?.avatar ? (
                          // eslint-disable-next-line @next/next/no-img-element
                          <img src={user.avatar} alt={act.userName} className="w-full h-full object-cover" />
@@ -550,11 +550,11 @@ export function AdminDashboard({
                        )}
                      </div>
                      <div className="flex-1 min-w-0">
-                       <p className="text-[13px] font-bold text-foreground truncate">{act.userName}</p>
-                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
+                       <p className="text-[0.8125rem] font-bold text-foreground truncate">{act.userName}</p>
+                       <p className="text-[0.6875rem] text-muted-foreground mt-0.5 truncate">{getActionText(act.action)}</p>
                      </div>
                      <div className="shrink-0 text-right">
-                       <span className="text-[11px] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
+                       <span className="text-[0.6875rem] text-muted-foreground">{formatTimeAgo(act.timestamp)}</span>
                      </div>
                   </div>
                 )
@@ -585,13 +585,13 @@ export function AdminDashboard({
                   <div key={act.id} className="relative pl-5">
                      <span className="absolute -left-1.5 top-1 size-2.5 rounded-full bg-primary ring-4 ring-card"></span>
                      <div className="flex flex-col gap-0.5">
-                        <p className="text-[13px] font-medium text-foreground">
+                        <p className="text-[0.8125rem] font-medium text-foreground">
                           {act.userName} <span className="font-normal text-muted-foreground">{getActionText(act.action)}</span>
                         </p>
                         {act.resourceName && (
-                          <p className="text-[12px] font-semibold text-primary">{act.resourceName}</p>
+                          <p className="text-xs font-semibold text-primary">{act.resourceName}</p>
                         )}
-                        <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+                        <div className="mt-0.5 flex items-center gap-3 text-[0.625rem] text-muted-foreground">
                           <span className="flex items-center gap-1"><Clock className="size-2.5" /> {formatTimeAgo(act.timestamp)}</span>
                           <span className="flex items-center gap-1"><User className="size-2.5" /> {act.userCode}</span>
                         </div>
@@ -627,7 +627,7 @@ export function AdminDashboard({
                  placeholder="ค้นหารุ่นสินค้า..."
                  value={missingMappingSearch}
                  onChange={e => setMissingMappingSearch(e.target.value)}
-                 className="w-full pl-9 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                 className="w-full pl-9 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                />
             </div>
             
@@ -637,15 +637,15 @@ export function AdminDashboard({
                 .map(m => (
                 <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[14px] text-foreground truncate">{m.code} - {m.name}</p>
-                    <p className="text-[12px] text-muted-foreground mt-0.5 truncate">หมวดหมู่: {categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)?.name || m.categoryId}</p>
+                    <p className="font-semibold text-sm text-foreground truncate">{m.code} - {m.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">หมวดหมู่: {categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)?.name || m.categoryId}</p>
                   </div>
                   <button 
                     onClick={() => {
                       setShowMissingMappingsModal(false)
                       onNavigateToCreateGuideForModel?.(m.id)
                     }}
-                    className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                    className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     <Plus className="size-3.5" /> ไปผูกคู่มือ
                   </button>
@@ -704,19 +704,19 @@ export function AdminDashboard({
                 <div className="flex gap-2 p-1 bg-muted/30 rounded-xl w-fit">
                   <button
                     onClick={() => setRepairFilter("all")}
-                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "all" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[0.8125rem] font-semibold transition-all", repairFilter === "all" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
                   >
                     ทั้งหมด
                   </button>
                   <button
                     onClick={() => setRepairFilter("success")}
-                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "success" ? "bg-background shadow text-emerald-600" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[0.8125rem] font-semibold transition-all", repairFilter === "success" ? "bg-background shadow text-emerald-600" : "text-muted-foreground hover:text-foreground")}
                   >
                     สำเร็จ ({successCount})
                   </button>
                   <button
                     onClick={() => setRepairFilter("failed")}
-                    className={cn("px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all", repairFilter === "failed" ? "bg-background shadow text-rose-600" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[0.8125rem] font-semibold transition-all", repairFilter === "failed" ? "bg-background shadow text-rose-600" : "text-muted-foreground hover:text-foreground")}
                   >
                     ไม่สำเร็จ ({failedCount})
                   </button>
@@ -725,7 +725,7 @@ export function AdminDashboard({
                 <select 
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-background border border-border/50 rounded-xl text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="px-3 py-1.5 bg-background border border-border/50 rounded-xl text-[0.8125rem] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="all">ทุกช่วงเวลา</option>
                   <option value="today">วันนี้</option>
@@ -750,22 +750,22 @@ export function AdminDashboard({
                             <img src={fbUser.avatar} alt={fb.userName} className="w-full h-full object-cover" />
                           </div>
                         ) : (
-                          <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[12px]">
+                          <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                             {fb.userName?.substring(0, 2) || "U"}
                           </div>
                         )}
                         <div>
-                          <p className="font-semibold text-[14px] text-foreground">{fb.userName}</p>
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <p className="font-semibold text-sm text-foreground">{fb.userName}</p>
+                          <p className="text-[0.6875rem] text-muted-foreground flex items-center gap-1">
                             <Clock className="size-3" /> {formatTimeAgo(fb.timestamp)}
                           </p>
                         </div>
                       </div>
-                      <div className={cn("px-2.5 py-1 rounded-full text-[12px] font-bold", fb.isSuccess ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600")}>
+                      <div className={cn("px-2.5 py-1 rounded-full text-xs font-bold", fb.isSuccess ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600")}>
                         {fb.isSuccess ? "ซ่อมสำเร็จ" : "ซ่อมไม่สำเร็จ"}
                       </div>
                     </div>
-                    <div className="text-[13px] text-muted-foreground pl-10 space-y-1">
+                    <div className="text-[0.8125rem] text-muted-foreground pl-10 space-y-1">
                       <p><span className="font-medium text-foreground">รุ่นสินค้า:</span> {model ? `${model.code} - ${model.name}` : fb.modelId || "ไม่ระบุ"}</p>
                       
                       {fb.isSuccess ? (
@@ -790,7 +790,7 @@ export function AdminDashboard({
                 )
               })}
                 {displayedFeedbacks.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-[14px]">
+                  <div className="text-center py-8 text-muted-foreground text-sm">
                     ยังไม่มีประวัติการซ่อมในช่วงเวลานี้
                   </div>
                 )}
@@ -847,41 +847,41 @@ export function AdminDashboard({
                 </button>
               </div>
               <div className="mb-4">
-                <p className="font-semibold text-[16px] text-foreground">{modelInfo?.name || selectedTopModel}</p>
-                <p className="text-[13px] text-muted-foreground">{modelInfo?.code || ""}</p>
+                <p className="font-semibold text-base text-foreground">{modelInfo?.name || selectedTopModel}</p>
+                <p className="text-[0.8125rem] text-muted-foreground">{modelInfo?.code || ""}</p>
               </div>
               
               <div className="space-y-3">
                 <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
                   <div className="flex items-center gap-2 mb-2">
                     <Stethoscope className="size-4 text-amber-500" />
-                    <span className="font-bold text-[14px] text-amber-600">อาการเสียที่พบบ่อยที่สุด</span>
+                    <span className="font-bold text-sm text-amber-600">อาการเสียที่พบบ่อยที่สุด</span>
                   </div>
                   <div className="flex justify-between items-end pl-6">
-                    <p className="text-[14px] text-foreground font-medium">{topSymptom?.title || "ไม่ระบุ"}</p>
-                    <p className="text-[13px] font-bold text-amber-600">{topSymptomCount > 0 ? `${topSymptomCount} ครั้ง` : "-"}</p>
+                    <p className="text-sm text-foreground font-medium">{topSymptom?.title || "ไม่ระบุ"}</p>
+                    <p className="text-[0.8125rem] font-bold text-amber-600">{topSymptomCount > 0 ? `${topSymptomCount} ครั้ง` : "-"}</p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
                   <div className="flex items-center gap-2 mb-2">
                     <BookOpen className="size-4 text-emerald-500" />
-                    <span className="font-bold text-[14px] text-emerald-600">สาเหตุ/การวินิจฉัยที่พบบ่อยที่สุด</span>
+                    <span className="font-bold text-sm text-emerald-600">สาเหตุ/การวินิจฉัยที่พบบ่อยที่สุด</span>
                   </div>
                   <div className="flex justify-between items-end pl-6">
-                    <p className="text-[14px] text-foreground font-medium">{topGuide?.title || "ไม่ระบุ"}</p>
-                    <p className="text-[13px] font-bold text-emerald-600">{topGuideCount > 0 ? `${topGuideCount} ครั้ง` : "-"}</p>
+                    <p className="text-sm text-foreground font-medium">{topGuide?.title || "ไม่ระบุ"}</p>
+                    <p className="text-[0.8125rem] font-bold text-emerald-600">{topGuideCount > 0 ? `${topGuideCount} ครั้ง` : "-"}</p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
                   <div className="flex items-center gap-2 mb-2">
                     <Activity className="size-4 text-blue-500" />
-                    <span className="font-bold text-[14px] text-blue-600">ประวัติการซ่อมทั้งหมด</span>
+                    <span className="font-bold text-sm text-blue-600">ประวัติการซ่อมทั้งหมด</span>
                   </div>
                   <div className="flex justify-between items-end pl-6">
-                    <p className="text-[14px] text-foreground font-medium">รวมการบันทึกการซ่อม</p>
-                    <p className="text-[13px] font-bold text-blue-600">{fbs.length} ครั้ง</p>
+                    <p className="text-sm text-foreground font-medium">รวมการบันทึกการซ่อม</p>
+                    <p className="text-[0.8125rem] font-bold text-blue-600">{fbs.length} ครั้ง</p>
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react"
 import { useTheme } from "next-themes"
 import { useAppSettings } from "@/components/settings-provider"
 import { cn } from "@/lib/utils"
@@ -10,11 +10,15 @@ import {
   Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes, Moon, Sun, 
   Settings, Type, TextSelect, ShowerHead, Filter, Factory, GlassWater, 
   Fan, Wind, Cpu, Sparkles, Zap, ArrowUpRight, Activity, Calculator, Scan,
-  Star, Clock, Stethoscope, AlertTriangle, CheckCircle2
+  AlertTriangle, Stethoscope, History, Star, Clock, CheckCircle2, BookOpen, Layers, ChevronLeft
 } from "lucide-react"
 import {
   type Category,
   type DeviceModel,
+  type Symptom,
+  type SymptomType,
+  type MasterDataMapping,
+  type Guide,
 } from "@/lib/types"
 
 interface CategoryTheme {
@@ -164,31 +168,128 @@ const themeFor = (slug: Category["slug"]): CategoryTheme => {
   }
 }
 
-export function TechnicianHome({
-  categories,
-  models,
-  preview = false,
-  onSelectCategory,
-  onSelectModel,
-}: {
+export interface DiagnosticOption {
+  symptom: Symptom
+  symptomType?: SymptomType
+  code: string
+  codeDisplay: string
+  symptomTypeName: string
+  guides: Guide[]
+  categoryName?: string
+}
+
+export interface DiagnosticGroup {
+  id: string
+  title: string
+  description: string
+  severity: "Low" | "Medium" | "High" | "Critical"
+  options: DiagnosticOption[]
+}
+
+function extractCleanCode(code: string, sTypeName?: string): string {
+  const combined = `${code} ${sTypeName || ""}`.toUpperCase()
+  if (combined.includes("1R")) return "1R"
+  if (combined.includes("2R")) return "2R"
+  if (combined.includes("3R")) return "3R"
+  if (code.startsWith("WH-")) return code.replace("WH-", "")
+  if (code.startsWith("EL-")) return code.replace("EL-", "")
+  return code || sTypeName || "ทั่วไป"
+}
+
+export interface TechnicianHomeRef {
+  handleBack: () => boolean
+  resetHome?: () => void
+}
+
+export const TechnicianHome = forwardRef<TechnicianHomeRef, {
   categories: Category[]
   models: DeviceModel[]
+  symptoms?: Symptom[]
+  symptomTypes?: SymptomType[]
+  mappings?: MasterDataMapping[]
+  guides?: Guide[]
   preview?: boolean
+  activeTab?: "categories" | "diagnostics" | "favorites" | "recents"
+  onTabChange?: (tab: "categories" | "diagnostics" | "favorites" | "recents") => void
+  selectedDiagnosticGroup?: DiagnosticGroup | null
+  onSelectDiagnosticGroup?: (group: DiagnosticGroup | null) => void
   onSelectCategory: (categoryId: string) => void
   onSelectModel: (model: DeviceModel) => void
-}) {
+  onSelectDiagnostic?: (categoryId: string) => void
+  onSelectGuide?: (guide: Guide, fromQuickDiagnostic?: boolean) => void
+}>(function TechnicianHome({
+  categories,
+  models,
+  symptoms = [],
+  symptomTypes = [],
+  mappings = [],
+  guides = [],
+  preview = false,
+  activeTab = "categories",
+  onTabChange,
+  selectedDiagnosticGroup: propDiagnosticGroup,
+  onSelectDiagnosticGroup,
+  onSelectCategory,
+  onSelectModel,
+  onSelectDiagnostic,
+  onSelectGuide,
+}, ref) {
   const [query, setQuery] = useState("")
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
-  const [mainView, setMainView] = useState<"categories" | "diagnostics" | "favorites" | "recents">("categories")
+  const [mainView, setMainView] = useState<"categories" | "diagnostics" | "favorites" | "recents">(activeTab || "categories")
   const [favorites, setFavorites] = useState<string[]>([])
   const [recents, setRecents] = useState<string[]>([])
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [showTools, setShowTools] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [localDiagnosticGroup, setLocalDiagnosticGroup] = useState<DiagnosticGroup | null>(null)
+  const selectedDiagnosticGroup = propDiagnosticGroup !== undefined ? propDiagnosticGroup : localDiagnosticGroup
+  const setSelectedDiagnosticGroup = (group: DiagnosticGroup | null) => {
+    setLocalDiagnosticGroup(group)
+    onSelectDiagnosticGroup?.(group)
+  }
+  const [showSettings, setShowSettings] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    handleBack: () => {
+      if (selectedDiagnosticGroup) {
+        setSelectedDiagnosticGroup(null)
+        return true
+      }
+      if (showTools) {
+        setShowTools(false)
+        return true
+      }
+      if (showScanner) {
+        setShowScanner(false)
+        return true
+      }
+      if (showSettings) {
+        setShowSettings(false)
+        return true
+      }
+      if (query) {
+        setQuery("")
+        return true
+      }
+      return false
+    },
+    resetHome: () => {
+      setSelectedDiagnosticGroup(null)
+      setShowTools(false)
+      setShowScanner(false)
+      setShowSettings(false)
+      setQuery("")
+    }
+  }))
+
+  useEffect(() => {
+    if (activeTab) setMainView(activeTab)
+  }, [activeTab])
 
   const { theme, setTheme, systemTheme } = useTheme()
   const { fontSize, setFontSize, fontFamily, setFontFamily } = useAppSettings()
   const [mounted, setMounted] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
 
   const filterGroups = [
     { id: "all", label: "ทั้งหมด", icon: Sparkles },
@@ -199,64 +300,116 @@ export function TechnicianHome({
     { id: "smart_pump", label: "ปั๊มน้ำ / Smart", icon: Zap, slugs: ["FD", "FF"] },
   ]
 
-  const quickSearches = [
-    { label: "LINEAR", query: "LINEAR" },
-    { label: "AQ-50UF", query: "AQ-50UF" },
-    { label: "POWER 3500", query: "POWER" },
-    { label: "RO PURE", query: "RO" },
-    { label: "SUPERIOR", query: "SUPERIOR" },
-  ]
+  // Dynamically generate quick searches from recent searches and available models
+  const quickSearches = useMemo(() => {
+    const list: {label: string, query: string}[] = []
+    
+    // 1. Add recent search history first
+    if (recentSearches && recentSearches.length > 0) {
+      recentSearches.forEach(q => {
+        list.push({ 
+          label: q.length > 15 ? q.substring(0, 15) + "..." : q, 
+          query: q 
+        })
+      })
+    }
 
-  const diagnosticTopics = [
-    {
-      id: "no_heat",
-      title: "น้ำไม่ร้อน / ไม่ทำความร้อน",
-      desc: "ไฟไม่เข้า, ฮีตเตอร์ไม่ทำงาน, เทอร์โมสตัทตัด",
-      icon: Flame,
-      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-      query: "F1",
-    },
-    {
-      id: "water_leak",
-      title: "น้ำรั่วซึม / น้ำหยด",
-      desc: "รอยต่อท่อ, โอริงเสื่อม, ตัวเรือนแตกร้าว",
-      icon: Droplets,
-      color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
-      query: "F2",
-    },
-    {
-      id: "slow_flow",
-      title: "น้ำไหลช้า / ไส้กรองตัน",
-      desc: "แรงดันน้ำลดลง, น้ำมีกลิ่นหรือสีผิดปกติ",
-      icon: Filter,
-      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-      query: "F3",
-    },
-    {
-      id: "elcb_trip",
-      title: "ไฟ ELCB ทริป / ไฟกะพริบ",
-      desc: "ตรวจพบไฟรั่ว, บอร์ดตัดการทำงาน, ไฟเตือน",
-      icon: Zap,
-      color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-      query: "F1",
-    },
-    {
-      id: "pump_issue",
-      title: "ปั๊มไม่ตัด / ปั๊มไม่เดิน",
-      desc: "แรงดันตก, สวิตช์แรงดันชำรุด, ถังลมรั่ว",
-      icon: Gauge,
-      color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
-      query: "FD",
-    },
-    {
-      id: "fan_air",
-      title: "ลมไม่แรง / มีกลิ่นอับ",
-      desc: "มอเตอร์ไม่หมุน, แผ่นฟอกตัน, แผ่นรังผึ้งแห้ง",
-      icon: Wind,
-      color: "text-teal-500 bg-teal-500/10 border-teal-500/20",
-      query: "FC",
-    },
-  ]
+    // 2. If we need more items, fill with models
+    if (models && models.length > 0 && list.length < 5) {
+      const selected: typeof models = []
+      const seenCategories = new Set<string>()
+      
+      for (const m of models) {
+        if (!seenCategories.has(m.categoryId)) {
+          selected.push(m)
+          seenCategories.add(m.categoryId)
+        }
+        if (selected.length + list.length >= 5) break
+      }
+      
+      if (selected.length + list.length < 5) {
+        for (const m of models) {
+          if (!selected.some(s => s.id === m.id)) {
+            selected.push(m)
+          }
+          if (selected.length + list.length >= 5) break
+        }
+      }
+      
+      selected.forEach(m => {
+        const label = m.code.length <= 12 ? m.code : (m.name.split(' ')[0] || m.code)
+        // Only add if we don't already have a very similar search query
+        if (!list.some((item: any) => item.query === m.code)) {
+          list.push({ 
+            label: label.substring(0, 15).trim(), 
+            query: m.code 
+          })
+        }
+      })
+    }
+    
+    return list.slice(0, 5) // ensure max 5 chips
+  }, [models, recentSearches])
+
+  // Filter symptoms that have published guides and group by identical symptom title
+  const quickDiagnostics = useMemo(() => {
+    if (!symptoms || !guides) return []
+    
+    const groupMap = new Map<string, {
+      title: string
+      description: string
+      severity: "Low" | "Medium" | "High" | "Critical"
+      options: DiagnosticOption[]
+    }>()
+
+    symptoms.forEach((sym) => {
+      // Find published guides for this symptom
+      const symGuides = guides.filter(g => g.symptomId === sym.id && (g.status === "published" || !g.status))
+      if (symGuides.length === 0) return
+
+      const cleanTitle = (sym.title || sym.description || "").trim()
+      if (!cleanTitle) return
+
+      const sType = symptomTypes.find(st => st.id === sym.symptomTypeId || st.subcategoryId === sym.symptomTypeId)
+      
+      const rawCode = sym.symptomTypeId || sym.id || ""
+      const codeDisplay = extractCleanCode(rawCode, sType?.name)
+
+      // Category name
+      const guideCatId = symGuides[0]?.categoryId
+      const cat = categories.find(c => c.id === guideCatId || c.slug === guideCatId)
+
+      const option: DiagnosticOption = {
+        symptom: sym,
+        symptomType: sType,
+        code: rawCode,
+        codeDisplay: codeDisplay,
+        symptomTypeName: sType?.name || (cat ? `หมวด ${cat.name}` : `รหัส ${codeDisplay}`),
+        guides: symGuides,
+        categoryName: cat?.name
+      }
+
+      if (!groupMap.has(cleanTitle)) {
+        groupMap.set(cleanTitle, {
+          title: cleanTitle,
+          description: sym.description || "",
+          severity: sym.severity || "Medium",
+          options: [option]
+        })
+      } else {
+        const existing = groupMap.get(cleanTitle)!
+        // Avoid duplicate options with exact same symptom id
+        if (!existing.options.some(o => o.symptom.id === sym.id)) {
+          existing.options.push(option)
+        }
+      }
+    })
+
+    return Array.from(groupMap.entries()).map(([id, group]) => ({
+      id,
+      ...group
+    }))
+  }, [symptoms, guides, symptomTypes, categories])
 
   useEffect(() => {
     setMounted(true)
@@ -265,6 +418,8 @@ export function TechnicianHome({
       if (savedFavs) setFavorites(JSON.parse(savedFavs))
       const savedRecents = localStorage.getItem("mazuma_tech_recents")
       if (savedRecents) setRecents(JSON.parse(savedRecents))
+      const savedSearches = localStorage.getItem("mazuma_tech_searches")
+      if (savedSearches) setRecentSearches(JSON.parse(savedSearches))
     } catch (e) {
       console.error(e)
     }
@@ -286,6 +441,16 @@ export function TechnicianHome({
       const next = [m.id, ...recents.filter((id) => id !== m.id)].slice(0, 15)
       setRecents(next)
       localStorage.setItem("mazuma_tech_recents", JSON.stringify(next))
+      
+      // Track search query history if it was a search
+      if (query.trim()) {
+        const q = query.trim()
+        const savedSearches = localStorage.getItem("mazuma_tech_searches")
+        const currentSearches = savedSearches ? JSON.parse(savedSearches) : []
+        const nextSearches = [q, ...currentSearches.filter((s: string) => s.toLowerCase() !== q.toLowerCase())].slice(0, 5)
+        setRecentSearches(nextSearches)
+        localStorage.setItem("mazuma_tech_searches", JSON.stringify(nextSearches))
+      }
     } catch (e) {}
     onSelectModel(m)
   }
@@ -307,15 +472,12 @@ export function TechnicianHome({
   const currentTheme = theme === "system" ? systemTheme : theme
 
   return (
-    <div className="mx-auto w-full max-w-[480px]">
-      {/* Permanently Locked Fixed Header */}
-      <div className={cn(
-        "fixed inset-x-0 z-30 flex justify-center pointer-events-none transition-all",
-        preview ? "top-[41px]" : "top-0"
-      )}>
+    <div className="mx-auto w-full max-w-3xl">
+      {/* Permanently Locked Sticky Header */}
+      <div className="sticky top-0 z-30 transition-all w-full">
         <div className={cn(
-          "w-full max-w-[480px] pointer-events-auto bg-background/95 backdrop-blur-2xl px-4 border-b border-border/40 shadow-xs pb-3",
-          preview ? "pt-3" : "pt-10"
+          "w-full bg-background/95 backdrop-blur-2xl px-4 border-b border-border/40 shadow-xs pb-3",
+          preview ? "pt-3.5" : "pt-8 sm:pt-4"
         )}>
           {/* Top Status & Tool Buttons */}
           <div className="flex items-center justify-between pb-3 px-0.5">
@@ -324,7 +486,7 @@ export function TechnicianHome({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
               </span>
-              <span className="text-[10.5px] font-semibold text-emerald-700 dark:text-emerald-400 tracking-wide uppercase">
+              <span className="text-[0.6875rem] font-semibold text-emerald-700 dark:text-emerald-400 tracking-wide uppercase">
                 Online Database
               </span>
             </div>
@@ -333,7 +495,7 @@ export function TechnicianHome({
               {/* Tech Tools Button */}
               <button
                 onClick={() => setShowTools(true)}
-                className="flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all text-[11px] font-bold shadow-2xs"
+                className="flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all text-[0.6875rem] font-bold shadow-2xs"
                 title="เครื่องมือ & คำนวณช่าง"
                 aria-label="เครื่องมือช่าง"
               >
@@ -363,15 +525,15 @@ export function TechnicianHome({
                 </div>
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="font-display text-[21px] font-extrabold leading-none tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-primary bg-clip-text text-transparent pb-0.5">
+                <h1 className="font-display text-xl font-extrabold leading-none tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-primary bg-clip-text text-transparent pb-0.5">
                   Mazuma Repair
                 </h1>
-                <p className="text-[10.5px] font-semibold text-muted-foreground/90 tracking-wider uppercase">Technical Service Guide</p>
+                <p className="text-[0.6875rem] font-semibold text-muted-foreground/90 tracking-wider uppercase">Technical Service Guide</p>
               </div>
             </div>
           </div>
 
-          {/* Global search with QR Scanner Button */}
+          {/* Global search */}
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 via-sky-500/20 to-primary/30 rounded-2xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 -z-10"></div>
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -380,11 +542,11 @@ export function TechnicianHome({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="ค้นหาชื่อรุ่น หรือรหัสสินค้าด่วน..."
-              className="w-full rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl py-2.5 pl-10.5 pr-14 text-[14px] outline-none shadow-xs transition-all duration-300 focus:bg-background focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl py-2.5 pl-10.5 pr-10 text-sm outline-none shadow-xs transition-all duration-300 focus:bg-background focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             />
             
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {query ? (
+            {query && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setQuery("")}
@@ -393,31 +555,21 @@ export function TechnicianHome({
                 >
                   <X className="size-3.5" />
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowScanner(true)}
-                  className="flex size-7 items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-all border border-primary/20 shadow-2xs"
-                  title="สแกน QR / บาร์โค้ด"
-                  aria-label="สแกน QR"
-                >
-                  <Scan className="size-3.5" />
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Search Shortcut Chips */}
           {!query && (
             <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar no-scrollbar pt-2 pb-1 -mx-1 px-1">
-              <span className="text-[10px] font-semibold text-muted-foreground/70 shrink-0 flex items-center gap-1 mr-0.5">
+              <span className="text-[0.625rem] font-semibold text-muted-foreground/70 shrink-0 flex items-center gap-1 mr-0.5">
                 <Zap className="size-3 text-amber-500 fill-amber-500 animate-pulse" /> ค้นหาด่วน:
               </span>
               {quickSearches.map((item) => (
                 <button
                   key={item.label}
                   onClick={() => setQuery(item.query)}
-                  className="shrink-0 rounded-full bg-muted/50 hover:bg-primary/10 border border-border/40 hover:border-primary/30 px-2.5 py-0.5 text-[10.5px] font-medium text-muted-foreground hover:text-primary transition-all duration-200 shadow-2xs"
+                  className="shrink-0 rounded-full bg-muted/50 hover:bg-primary/10 border border-border/40 hover:border-primary/30 px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground hover:text-primary transition-all duration-200 shadow-2xs"
                 >
                   {item.label}
                 </button>
@@ -440,9 +592,12 @@ export function TechnicianHome({
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setMainView(tab.id as any)}
+                      onClick={() => {
+                        setMainView(tab.id as any)
+                        onTabChange?.(tab.id as any)
+                      }}
                       className={cn(
-                        "shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold transition-all duration-300 shadow-2xs",
+                        "shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all duration-300 shadow-2xs",
                         isActive
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02]"
                           : "bg-muted/40 hover:bg-card border border-border/40 text-muted-foreground hover:text-foreground"
@@ -466,7 +621,7 @@ export function TechnicianHome({
                         key={group.id}
                         onClick={() => setSelectedGroup(group.id)}
                         className={cn(
-                          "shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-200",
+                          "shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold transition-all duration-200",
                           isActive
                             ? "bg-foreground text-background shadow-xs font-bold"
                             : "bg-card/70 hover:bg-card border border-border/50 text-muted-foreground"
@@ -484,15 +639,8 @@ export function TechnicianHome({
         </div>
       </div>
 
-      {/* Content Area with Dynamic Padding */}
-      <div className={cn(
-        "px-4 pb-24 transition-all",
-        query
-          ? (preview ? "pt-[210px]" : "pt-[240px]")
-          : mainView === "categories"
-            ? (preview ? "pt-[370px]" : "pt-[400px]")
-            : (preview ? "pt-[335px]" : "pt-[365px]")
-      )}>
+      {/* Content Area */}
+      <div className="px-4 pt-4 pb-24 transition-all">
         {/* Search results view */}
         {query.trim() ? (
           <div className="mb-6">
@@ -552,7 +700,7 @@ export function TechnicianHome({
 
         {/* TAB 1: Categories View */}
         {!query && mainView === "categories" && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {filteredCategories.map((cat) => {
               const theme = themeFor(cat.slug)
               const Icon = theme.icon
@@ -588,7 +736,7 @@ export function TechnicianHome({
                     </div>
                     
                     <div className="flex flex-col items-end gap-1">
-                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
                         {cat.slug}
                       </span>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mr-0.5">
@@ -599,21 +747,21 @@ export function TechnicianHome({
 
                   {/* Middle: Title & Tag */}
                   <div className="relative z-10 w-full mb-3">
-                    <p className="font-display text-[13.5px] font-bold leading-tight line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                    <p className="font-display text-sm font-bold leading-tight line-clamp-2 text-foreground group-hover:text-primary transition-colors">
                       {cat.name}
                     </p>
-                    <p className="text-[10.5px] font-medium text-muted-foreground/80 mt-1 line-clamp-1">
+                    <p className="text-[0.6875rem] font-medium text-muted-foreground/80 mt-1 line-clamp-1">
                       {theme.tag}
                     </p>
                   </div>
 
                   {/* Bottom: Model count badge */}
                   <div className="relative z-10 mt-auto pt-1 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/50 border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground group-hover:border-primary/30 group-hover:text-foreground transition-all shadow-2xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/50 border border-border/60 px-2.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground group-hover:border-primary/30 group-hover:text-foreground transition-all shadow-2xs">
                       <span className="size-1.5 rounded-full bg-primary/60 group-hover:bg-primary group-hover:animate-ping" />
                       {catModelsCount} รุ่น
                     </span>
-                    <span className="text-[10.5px] font-semibold text-primary opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-300">
+                    <span className="text-[0.6875rem] font-semibold text-primary opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-300">
                       เปิดดู →
                     </span>
                   </div>
@@ -634,34 +782,85 @@ export function TechnicianHome({
             </div>
 
             <div className="grid grid-cols-1 gap-2.5">
-              {diagnosticTopics.map((topic) => {
-                const Icon = topic.icon
-                return (
-                  <button
-                    key={topic.id}
-                    onClick={() => setQuery(topic.query)}
-                    className="group flex items-center justify-between rounded-2xl bg-card border border-border/60 p-4 text-left shadow-2xs hover:border-primary/40 hover:bg-muted/40 transition-all"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-2xl border", topic.color)}>
-                        <Icon className="size-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-display text-[14px] font-bold text-foreground group-hover:text-primary transition-colors">
-                          {topic.title}
-                        </h3>
-                        <p className="text-[11.5px] text-muted-foreground mt-0.5">
-                          {topic.desc}
-                        </p>
-                      </div>
-                    </div>
+              {quickDiagnostics.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-[0.875rem] text-muted-foreground">
+                  ยังไม่มีข้อมูลอาการเสียในขณะนี้
+                </div>
+              ) : (
+                quickDiagnostics.map((topic) => {
+                  let Icon = Stethoscope
+                  let colorClass = "text-blue-500 bg-blue-500/10 border-blue-500/20"
+                  
+                  if (topic.severity === "Critical") {
+                    Icon = AlertTriangle
+                    colorClass = "text-rose-500 bg-rose-500/10 border-rose-500/20"
+                  } else if (topic.severity === "High") {
+                    Icon = Flame
+                    colorClass = "text-amber-500 bg-amber-500/10 border-amber-500/20"
+                  } else if (topic.severity === "Low") {
+                    Icon = Activity
+                    colorClass = "text-cyan-500 bg-cyan-500/10 border-cyan-500/20"
+                  }
 
-                    <div className="flex size-7.5 shrink-0 items-center justify-center rounded-full bg-muted/60 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                      <ChevronRight className="size-4" />
-                    </div>
-                  </button>
-                )
-              })}
+                  const hasMultipleCodes = topic.options.length > 1
+
+                  return (
+                    <button
+                      key={topic.id}
+                      onClick={() => {
+                        if (topic.options.length === 1 && topic.options[0].guides.length > 0 && onSelectGuide) {
+                          onSelectGuide(topic.options[0].guides[0], true)
+                        } else if (topic.options.length > 1) {
+                          setSelectedDiagnosticGroup(topic)
+                        }
+                      }}
+                      className="group flex items-center justify-between rounded-2xl bg-card border border-border/60 p-4 text-left shadow-2xs hover:border-primary/40 hover:bg-muted/40 transition-all"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                        <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-2xl border", colorClass)}>
+                          <Icon className="size-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-display text-[0.875rem] font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            {topic.title}
+                          </h3>
+                          <p className="text-[0.71875rem] text-muted-foreground mt-0.5 truncate">
+                            {topic.description || "ระบุอาการเพิ่มเติม..."}
+                          </p>
+
+                          {/* Multiple Code Tags */}
+                          {hasMultipleCodes && (
+                            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                              <span className="text-[0.625rem] font-semibold text-muted-foreground">
+                                เลือกรหัส:
+                              </span>
+                              {topic.options.map((opt, i) => (
+                                <span
+                                  key={`${opt.code}-${i}`}
+                                  className="inline-flex items-center rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[0.625rem] font-bold text-primary"
+                                >
+                                  {opt.codeDisplay}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+  
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {hasMultipleCodes && (
+                          <span className="hidden sm:inline-block text-[0.6875rem] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {topic.options.length} รหัส
+                          </span>
+                        )}
+                        <div className="flex size-7.5 shrink-0 items-center justify-center rounded-full bg-muted/60 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                          <ChevronRight className="size-4" />
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
         )}
@@ -922,7 +1121,100 @@ export function TechnicianHome({
           </div>
         </div>
       )}
+
+      {/* Symptom Code Selection Modal (e.g. 1R vs 2R) */}
+      {selectedDiagnosticGroup && (
+        <div 
+          onClick={() => setSelectedDiagnosticGroup(null)}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg max-h-[85vh] flex flex-col bg-card border border-border/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6 duration-300"
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 flex items-start justify-between px-5 py-4 border-b border-border/40">
+              <div className="min-w-0 pr-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[0.6875rem] font-bold text-primary">
+                    <Stethoscope className="size-3.5" />
+                    เลือกรหัสอาการเสีย
+                  </span>
+                  <span className="text-[0.6875rem] text-muted-foreground">
+                    ({selectedDiagnosticGroup.options.length} รูปแบบ)
+                  </span>
+                </div>
+                <h2 className="text-base font-display font-bold text-foreground leading-snug">
+                  {selectedDiagnosticGroup.title}
+                </h2>
+                <p className="text-[0.71875rem] text-muted-foreground mt-0.5 line-clamp-1">
+                  เลือกรูปแบบเครื่องหรือรหัสอาการเสียเพื่อเปิดดูวิธีซ่อม
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedDiagnosticGroup(null)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted/60 hover:bg-muted text-foreground transition-colors"
+                title="ปิด"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* List of symptom code options */}
+            <div className="p-4 space-y-2.5 overflow-y-auto max-h-[calc(85vh-130px)]">
+              {selectedDiagnosticGroup.options.map((opt, idx) => (
+                <button
+                  key={`${opt.code}-${idx}`}
+                  onClick={() => {
+                    if (opt.guides.length > 0 && onSelectGuide) {
+                      onSelectGuide(opt.guides[0], true)
+                    }
+                  }}
+                  className="w-full group flex items-center justify-between p-3.5 rounded-2xl border border-border/70 bg-gradient-to-r from-card to-muted/20 hover:border-primary/50 hover:bg-primary/5 hover:shadow-md transition-all text-left active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                    {/* Big Code Pill */}
+                    <div className="flex flex-col items-center justify-center min-w-[3.25rem] px-2.5 py-2 rounded-xl bg-primary/10 border border-primary/25 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all shrink-0">
+                      <span className="text-[0.625rem] uppercase font-medium opacity-75">รหัส</span>
+                      <span className="text-base font-black tracking-tight leading-none mt-0.5">
+                        {opt.codeDisplay}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-display font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                          {opt.symptomTypeName || `กลุ่มรหัส ${opt.codeDisplay}`}
+                        </span>
+                        {opt.categoryName && (
+                          <span className="text-[0.625rem] bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full font-medium">
+                            {opt.categoryName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted/60 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                    <ChevronRight className="size-4" />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-muted/20 border-t border-border/30 text-center">
+              <button
+                onClick={() => setSelectedDiagnosticGroup(null)}
+                className="w-full py-2 rounded-xl border border-border/60 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
+})
 

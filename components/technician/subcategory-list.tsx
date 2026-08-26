@@ -51,15 +51,10 @@ export function SubCategoryList({
     : []
 
   return (
-    <div className="mx-auto w-full max-w-[480px]">
-      {/* Permanently Fixed Top Header */}
-      <div
-        className={cn(
-          "fixed inset-x-0 z-30 flex justify-center pointer-events-none transition-all duration-300",
-          preview ? "top-[41px]" : "top-0"
-        )}
-      >
-        <div className="w-full max-w-[480px] pointer-events-auto px-4 pt-3 pb-2.5 bg-background/85 backdrop-blur-2xl border-b border-border/40 shadow-xs">
+    <div className="mx-auto w-full max-w-3xl">
+      {/* Permanently Sticky Top Header */}
+      <div className="sticky top-0 z-30 flex justify-center transition-all duration-300 w-full">
+        <div className="w-full bg-background/85 backdrop-blur-2xl px-4 pt-3 pb-2.5 border-b border-border/40 shadow-xs">
           {/* Top Header Card */}
           <div className="relative overflow-hidden rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-xl p-3.5 shadow-sm">
             {/* Background Ambient Glow */}
@@ -75,7 +70,7 @@ export function SubCategoryList({
                   <h1 className="font-display text-base font-bold leading-tight tracking-tight text-foreground truncate">
                     {category.name}
                   </h1>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
+                  <p className="text-[0.6875rem] text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
                     <span>เลือกประเภทสินค้าย่อย</span>
                     <span className="opacity-40">•</span>
                     <span className="font-medium text-foreground/80">{catSubCategories.length} ประเภท</span>
@@ -83,7 +78,7 @@ export function SubCategoryList({
                 </div>
               </div>
 
-              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
+              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
                 {category.slug}
               </span>
             </div>
@@ -112,8 +107,8 @@ export function SubCategoryList({
         </div>
       </div>
 
-      {/* Scrollable Subcategories List with Calibrated Top Clearance */}
-      <div className={cn("px-4 pb-24 space-y-2.5", preview ? "pt-[190px]" : "pt-[150px]")}>
+      {/* Scrollable Subcategories List */}
+      <div className="px-4 pt-4 pb-24 space-y-2.5">
         {results.length > 0 && (
           <div className="flex items-center justify-between px-1">
             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
@@ -161,14 +156,14 @@ export function SubCategoryList({
 
                   {/* Left: Code badge & Name */}
                   <div className="relative z-10 flex items-center gap-3 min-w-0 pr-2">
-                    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl font-mono text-[11px] font-bold border transition-transform duration-300 group-hover:scale-105", theme.badgeBg, theme.badgeText)}>
+                    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl font-mono text-[0.6875rem] font-bold border transition-transform duration-300 group-hover:scale-105", theme.badgeBg, theme.badgeText)}>
                       {subCode ? subCode.replace(`${category.slug}-`, "") : "01"}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-display text-[14px] font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      <p className="font-display text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-1">
                         {sc.name}
                       </p>
-                      <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                      <p className="text-[0.6875rem] font-mono text-muted-foreground mt-0.5">
                         {subCode}
                       </p>
                     </div>
@@ -176,7 +171,7 @@ export function SubCategoryList({
 
                   {/* Right: Model Count & Chevron */}
                   <div className="relative z-10 flex items-center gap-2.5 shrink-0">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/60 border border-border/60 px-2.5 py-1 text-[11px] font-semibold text-foreground/80 group-hover:border-primary/40 group-hover:text-primary transition-colors shadow-2xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/60 border border-border/60 px-2.5 py-1 text-[0.6875rem] font-semibold text-foreground/80 group-hover:border-primary/40 group-hover:text-primary transition-colors shadow-2xs">
                       <span className="size-1.5 rounded-full bg-primary/70 group-hover:bg-primary group-hover:animate-ping" />
                       {numModels} รุ่น
                     </span>
@@ -214,7 +209,7 @@ export function SubCategoryList({
                           <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
                             {m.name}
                           </p>
-                          <p className="text-[10.5px] font-mono text-muted-foreground mt-0.5 truncate">
+                          <p className="text-[0.65625rem] font-mono text-muted-foreground mt-0.5 truncate">
                             {m.code}
                           </p>
                         </div>

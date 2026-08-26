@@ -153,8 +153,8 @@ export function AdminApp({
               <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="48px" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-bold text-foreground">{user.name}</p>
-              <p className="truncate text-[13px] text-muted-foreground">{user.title}</p>
+              <p className="truncate text-[0.9375rem] font-bold text-foreground">{user.name}</p>
+              <p className="truncate text-[0.8125rem] text-muted-foreground">{user.title}</p>
             </div>
             <button
               onClick={onLogout}
@@ -179,7 +179,7 @@ export function AdminApp({
                     <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", item.bg, item.color)}>
                       <Icon className="size-5" />
                     </div>
-                    <span className="font-medium text-[15px] text-foreground">{item.label}</span>
+                    <span className="font-medium text-[0.9375rem] text-foreground">{item.label}</span>
                   </div>
                   <ChevronLeft className="size-5 rotate-180 text-muted-foreground/40" />
                 </button>
@@ -235,7 +235,7 @@ export function AdminApp({
                     className={`group flex items-center w-full rounded-xl transition-all ${isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'} justify-center h-12 px-0 lg:justify-start lg:h-auto lg:py-2.5 lg:px-3 lg:gap-3`}
                   >
                     <Icon className="size-5 shrink-0" />
-                    <span className="font-medium text-[14px] hidden lg:block whitespace-nowrap">{item.label}</span>
+                    <span className="font-medium text-sm hidden lg:block whitespace-nowrap">{item.label}</span>
                   </button>
                 )
               });
@@ -313,7 +313,7 @@ export function AdminApp({
                 className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-foreground transition-colors"
               >
                 <ChevronLeft className="size-6" strokeWidth={2} />
-                <span className="text-[10px] font-medium tracking-wide">ย้อนกลับ</span>
+                <span className="text-[0.625rem] font-medium tracking-wide">ย้อนกลับ</span>
               </button>
             )}
             {availableTopNavItems.map((item) => {
@@ -326,7 +326,7 @@ export function AdminApp({
                   className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className={`size-6 ${isActive ? "fill-primary/20" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+                  <span className="text-[0.625rem] font-medium tracking-wide">{item.label}</span>
                 </button>
               )
             })}
@@ -341,7 +341,7 @@ function PlaceholderView({ title, desc }: { title: string, desc: string }) {
   return (
     <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/50 bg-muted/30 px-4 text-center mx-4 mt-6">
       <h2 className="mb-2 font-display text-xl font-semibold">{title}</h2>
-      <p className="text-[13px] text-muted-foreground">{desc}</p>
+      <p className="text-[0.8125rem] text-muted-foreground">{desc}</p>
     </div>
   )
 }

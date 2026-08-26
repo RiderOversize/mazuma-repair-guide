@@ -27,14 +27,14 @@ export function LoginView() {
             M
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-white drop-shadow-sm">Mazuma</h1>
-          <p className="mt-2 text-[14px] font-medium text-zinc-400">ระบบจัดการและคู่มือซ่อมสำหรับทีมงาน</p>
+          <p className="mt-2 text-sm font-medium text-zinc-400">ระบบจัดการและคู่มือซ่อมสำหรับทีมงาน</p>
         </div>
 
         {/* Login card - Glassmorphism */}
         <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
           <div className="mb-6 text-center">
             <h2 className="font-display text-lg font-semibold text-white">เข้าสู่ระบบ</h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-400">
+            <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-zinc-400">
               เข้าสู่ระบบด้วยบัญชี LINE ของคุณเพื่อเริ่มใช้งานระบบคู่มือซ่อม
             </p>
           </div>
@@ -60,13 +60,13 @@ export function LoginView() {
             )}
           </button>
 
-          <div className="mt-6 flex items-center justify-center gap-2 text-[12px] font-medium text-zinc-400">
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-zinc-400">
             <ShieldCheck className="size-4 text-emerald-400" />
             ยืนยันตัวตนพนักงานผ่านระบบความปลอดภัยสูง
           </div>
         </div>
 
-        <p className="mt-8 text-center text-[11px] font-medium text-zinc-500">
+        <p className="mt-8 text-center text-[0.6875rem] font-medium text-zinc-500">
           © {new Date().getFullYear()} Mazuma. สงวนลิขสิทธิ์เนื้อหาและวิดีโอทั้งหมด.
         </p>
       </div>

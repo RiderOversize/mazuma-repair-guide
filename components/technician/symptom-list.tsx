@@ -61,8 +61,9 @@ export function SymptomList({
 
   const symptomGroup = symptomTypes.find((t) => t.id === resolvedSymptomTypeId)
 
-  // Filter symptoms strictly for this symptomType
-  const applicableSymptoms = resolvedSymptomTypeId
+  // Filter symptoms strictly for this symptomType if model exists
+  // If NO model, show ALL symptoms for this category!
+  const applicableSymptoms = model && resolvedSymptomTypeId
     ? symptoms.filter((s) => {
         if (s.symptomTypeId !== resolvedSymptomTypeId) return false
         if (s.specificModelIds && s.specificModelIds.length > 0 && model) {
@@ -72,87 +73,96 @@ export function SymptomList({
         }
         return true
       })
-    : []
+    : symptoms.filter((s) => {
+        // Find if this symptom belongs to a symptomType that belongs to this category
+        const sType = symptomTypes.find(t => t.id === s.symptomTypeId)
+        
+        // 1. Check direct property
+        if (sType && (sType.categoryId === category.id || sType.categoryId === category.slug || sType.subcategoryId === category.id)) {
+          return true
+        }
+        
+        // 2. Check mappings (MasterData)
+        if (mappings && mappings.length > 0) {
+          const isMapped = mappings.some(m => 
+            (m.matCategoryCode?.toLowerCase() === category.slug.toLowerCase() || 
+             m.matCategoryCode?.toLowerCase() === category.id.toLowerCase()) && 
+            m.symptomTypeCode === s.symptomTypeId
+          )
+          if (isMapped) return true
+        }
+
+        // 3. Check guides (if there's a guide for this symptom and this category)
+        const hasGuideInCat = guides.some(g => 
+          g.symptomId === s.id && 
+          (g.categoryId === category.id || g.categoryId === category.slug)
+        )
+        if (hasGuideInCat) return true
+
+        return false
+      })
 
   return (
-    <div className="mx-auto w-full max-w-[480px]">
-      {/* Permanently Fixed Top Header */}
-      <div
-        className={cn(
-          "fixed inset-x-0 z-30 flex justify-center pointer-events-none transition-all duration-300",
-          preview ? "top-[41px]" : "top-0"
-        )}
-      >
-        <div className="w-full max-w-[480px] pointer-events-auto px-4 pt-3 pb-2.5 bg-background/85 backdrop-blur-2xl border-b border-border/40 shadow-xs">
+    <div className="mx-auto w-full max-w-3xl">
+      {/* Permanently Sticky Top Header */}
+      <div className="sticky top-0 z-30 flex justify-center transition-all duration-300 w-full">
+        <div className="w-full bg-background/85 backdrop-blur-2xl px-4 pt-3 pb-2.5 border-b border-border/40 shadow-xs">
           {/* Top Header Card */}
           <div className="relative overflow-hidden rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-xl p-3.5 shadow-sm">
             <div className={cn("absolute -top-12 -right-12 size-36 rounded-full blur-2xl pointer-events-none opacity-60", theme.accentGlow)} />
 
             {/* Model / Category Details with Category Slug Badge */}
-            {model ? (
-              <div className="relative z-10 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-11 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background flex items-center justify-center shadow-md">
-                    {model.thumbnail ? (
-                      <img src={model.thumbnail} alt="" className="size-full object-cover" />
-                    ) : (
-                      <CategoryIcon className="size-5 text-primary" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9.5px] font-bold text-primary mb-0.5 border border-primary/20">
-                      <Tag className="size-2.5" />
-                      <span>รุ่นที่เลือกซ่อม</span>
-                    </div>
-                    <h1 className="font-display text-base font-bold leading-tight tracking-tight text-foreground truncate">
-                      {model.name}
-                    </h1>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate font-mono">
-                      <span className="font-semibold text-foreground/80">{model.code}</span> <span className="opacity-40 mx-1">•</span> {category.name}
-                    </p>
-                  </div>
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-11 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background flex items-center justify-center shadow-md">
+                  {model && model.thumbnail && model.thumbnail.trim() !== "" ? (
+                    <img src={model.thumbnail} alt="" className="size-full object-cover" />
+                  ) : (
+                    <CategoryIcon className="size-5 text-primary" />
+                  )}
                 </div>
-
-                <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                  {category.slug}
-                </span>
-              </div>
-            ) : (
-              <div className="relative z-10 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={cn("flex size-10.5 shrink-0 items-center justify-center rounded-xl shadow-md", theme.iconBg)}>
-                    <CategoryIcon className="size-5 stroke-[1.8]" />
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="font-display text-base font-bold leading-tight tracking-tight text-foreground">
-                      {category.name}
-                    </h1>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      เลือกอาการเสียเพื่อดูคู่มือ
-                    </p>
-                  </div>
+                <div className="flex flex-col items-start pt-1">
+                  <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-bold tracking-wider mb-1", theme.badgeBg, theme.badgeText)}>
+                    {category.slug}
+                  </span>
+                  <h1 className="font-display text-[1.125rem] font-bold leading-none text-foreground truncate max-w-[200px]">
+                    {model ? model.name : category.name}
+                  </h1>
+                  <p className="text-xs font-semibold text-muted-foreground mt-1 truncate">
+                    {model ? model.code : "วินิจฉัยรวมทุกรุ่น"}
+                  </p>
                 </div>
-
-                <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                  {category.slug}
-                </span>
               </div>
-            )}
+
+              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
+                {category.slug}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Scrollable Symptoms List with Calibrated Top Clearance */}
-      <div className={cn("px-4 pb-24 space-y-2.5", preview ? "pt-[166px]" : "pt-[126px]")}>
+      {/* Scrollable Symptoms List */}
+      <div className="px-4 pt-4 pb-24 space-y-2.5">
         {/* Symptom Group Card (if available) */}
-        {model && symptomGroup && (
-          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-md p-3 flex items-center gap-3 shadow-2xs">
+        {symptomGroup ? (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 flex items-center gap-3 mb-2 shadow-xs">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
               <Activity className="size-4" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-foreground truncate">{symptomGroup.name}</p>
-              <p className="text-[10.5px] font-mono text-muted-foreground mt-0.5">รหัสกลุ่มอาการ: {symptomGroup.id}</p>
+              <p className="text-[0.65625rem] font-mono text-muted-foreground mt-0.5">รหัสกลุ่มอาการ: {symptomGroup.id}</p>
+            </div>
+          </div>
+        ) : !model && (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 flex items-center gap-3 mb-2 shadow-xs">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+              <Activity className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground truncate">หมวดหมู่: {category.name}</p>
+              <p className="text-[0.65625rem] font-medium text-muted-foreground mt-0.5">แสดงอาการเสียทั้งหมดของสินค้านี้</p>
             </div>
           </div>
         )}
@@ -209,15 +219,15 @@ export function SymptomList({
                       </div>
 
                       <div className="min-w-0">
-                        <p className="font-display text-[13.5px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                        <p className="font-display text-[0.84375rem] font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                           {sym.title || sym.description}
                         </p>
                         {hasGuide ? (
-                          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
+                          <p className="text-[0.6875rem] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
                             <BookOpen className="size-3" /> มีคู่มือแก้ไขปัญหา
                           </p>
                         ) : (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-[0.6875rem] text-muted-foreground mt-0.5">
                             ยังไม่มีคู่มือ
                           </p>
                         )}
