@@ -77,7 +77,7 @@ export function GuideWizard({
     return idx >= 0 ? idx : 0
   })
   const [maxReachedIndex, setMaxReachedIndex] = useState(currentIndex)
-  
+
   const currentGuide = symGuides[currentIndex]
   const hasMultipleGuides = symGuides.length > 1
   const isFirstGuide = currentIndex === 0
@@ -121,7 +121,7 @@ export function GuideWizard({
         totalSteps: symGuides.length,
         note: feedbackNote
       })
-      
+
       await logActivity(
         user,
         "update",
@@ -226,7 +226,7 @@ export function GuideWizard({
               </p>
             </div>
           )}
-          
+
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-chart-3" />
             <div className="flex-1 min-w-0">
@@ -260,8 +260,8 @@ export function GuideWizard({
                 <span>{Math.round(((currentIndex + 1) / symGuides.length) * 100)}%</span>
               </div>
               <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div 
-                  className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                <div
+                  className="h-full bg-primary transition-all duration-500 ease-in-out"
                   style={{ width: `${((currentIndex + 1) / symGuides.length) * 100}%` }}
                 />
               </div>
@@ -282,8 +282,8 @@ export function GuideWizard({
                         isActive
                           ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                           : isReached
-                          ? "bg-primary/20 text-primary hover:bg-primary/30"
-                          : "bg-muted text-muted-foreground/40 cursor-not-allowed"
+                            ? "bg-primary/20 text-primary hover:bg-primary/30"
+                            : "bg-muted text-muted-foreground/40 cursor-not-allowed"
                       )}
                     >
                       {i + 1}
@@ -294,14 +294,14 @@ export function GuideWizard({
             </div>
           )}
 
-          <SecureVideoPlayer 
+          <SecureVideoPlayer
             key={`guide-step-${currentIndex}-${currentGuide.id || currentIndex}-${currentGuide.mediaUrl || ''}-${currentGuide.pdfUrl || ''}`}
-            stepNum={currentIndex + 1} 
-            label={currentGuide.title} 
+            stepNum={currentIndex + 1}
+            label={currentGuide.title}
             mediaUrl={currentGuide.mediaUrl}
             pdfUrl={currentGuide.pdfUrl}
           />
-          
+
           {hasMultipleGuides && (
             <div className="flex items-center gap-3">
               <button
@@ -345,9 +345,9 @@ export function GuideWizard({
               className="flex flex-[2] items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-display text-sm font-bold text-white shadow-sm transition-transform active:scale-[0.98] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20 cursor-pointer"
             >
               <CheckCircle2 className="size-5 shrink-0" />
-              <span className="truncate">จบงาน (บันทึกผลการซ่อม)</span>
+              <span className="truncate">จบงาน</span>
             </button>
-            
+
             <button
               type="button"
               onClick={() => setShowContact(true)}
@@ -368,14 +368,14 @@ export function GuideWizard({
               <h2 className="text-xl font-display font-bold text-foreground">
                 เลือกหัวหน้าช่างที่ต้องการติดต่อ
               </h2>
-              <button 
+              <button
                 onClick={() => setShowContact(false)}
                 className="p-2 rounded-full hover:bg-muted text-muted-foreground"
               >
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-3">
               {dbSupervisors.filter(sup => sup && sup.employeeCode && user.assignedSupervisors?.includes(sup.employeeCode)).map((sup, idx) => (
                 <div key={sup.employeeCode || `sup-wiz-${idx}`} className="flex items-center justify-between p-3 rounded-2xl border border-border bg-background hover:border-primary/50 transition-colors">
@@ -433,7 +433,7 @@ export function GuideWizard({
                 การรายงานผลจะช่วยให้เราปรับปรุงคู่มือให้ดีขึ้น
               </p>
             </div>
-            
+
             <div className="w-full">
               <textarea
                 value={feedbackNote}
@@ -442,7 +442,7 @@ export function GuideWizard({
                 className="w-full min-h-[80px] p-3 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 disabled={isSubmitting}
@@ -462,9 +462,9 @@ export function GuideWizard({
               </button>
             </div>
 
-            <button 
+            <button
               disabled={isSubmitting}
-              onClick={() => setShowFeedback(false)} 
+              onClick={() => setShowFeedback(false)}
               className="mt-2 text-sm font-semibold text-muted-foreground hover:text-foreground text-center flex justify-center items-center gap-2"
             >
               {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "ยังไม่เสร็จ ขอดูต่อ"}
