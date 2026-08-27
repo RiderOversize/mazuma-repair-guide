@@ -23,7 +23,8 @@ import {
   ArrowLeft,
   Calendar,
   Sparkles,
-  Tag
+  Tag,
+  RefreshCw
 } from "lucide-react"
 import type { Category, SubCategory, MasterDataMapping, DeviceModel, SymptomType } from "@/lib/types"
 import {
@@ -42,6 +43,7 @@ import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { GuideForm } from "./guide-form"
+import { UnmappedCategoriesBanner } from "./unmapped-categories-banner"
 
 interface GuidesManagementProps {
   user: AuthUser
@@ -64,6 +66,7 @@ export function GuidesManagement({
   const [mappings, setMappings] = useState<MasterDataMapping[]>([])
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncingSftp, setSyncingSftp] = useState(false)
 
   // Navigation & View state
   const [selectedModelId, setSelectedModelId] = useState<string | null>(initialModelId || null)
@@ -130,6 +133,28 @@ export function GuidesManagement({
       showAlert("โหลดข้อมูลไม่สำเร็จ", err.message, "error")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleManualSync = async () => {
+    setSyncingSftp(true)
+    try {
+      showToast("กำลังเริ่มดึงข้อมูลจาก SFTP...", "info")
+      const res = await fetch("/api/sync-sftp-to-sheets")
+      const json = await res.json()
+      if (json.success) {
+        showToast(
+          `Sync สำเร็จ! (อัปเดต: ${json.stats?.updated || 0}, เพิ่มใหม่: ${json.stats?.inserted || 0})`,
+          "success"
+        )
+        await loadData()
+      } else {
+        showAlert("Sync ไม่สำเร็จ", json.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ", "error")
+      }
+    } catch (err: any) {
+      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+    } finally {
+      setSyncingSftp(false)
     }
   }
 
@@ -548,6 +573,17 @@ export function GuidesManagement({
                     </div>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleManualSync}
+                  disabled={syncingSftp}
+                  title="ดึงข้อมูลรุ่นสินค้าล่าสุดจาก SFTP"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card hover:bg-muted active:scale-95 px-3.5 py-2 text-[0.8125rem] font-semibold text-foreground shadow-xs transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={cn("size-3.5", syncingSftp && "animate-spin text-primary")} />
+                  <span>{syncingSftp ? "กำลัง Sync..." : "Sync SFTP ทันที"}</span>
+                </button>
                 
                 <button
                   type="button"
@@ -589,8 +625,7 @@ export function GuidesManagement({
                     </button>
                   )}
                 </div>
-
-                <div className="relative sm:w-60 shrink-0">
+                <div className="relative sm:w-64 shrink-0">
                   <Filter className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <select
                     value={filterSubCategory}
@@ -659,6 +694,13 @@ export function GuidesManagement({
               </div>
             </div>
           </div>
+
+          {/* Unmapped Categories Alert Banner from SFTP */}
+          <UnmappedCategoriesBanner
+            categories={categories}
+            onCategoryCreated={loadData}
+            onManualSyncRequest={handleManualSync}
+          />
 
           {/* Model List */}
           <div className="flex flex-col gap-3">

@@ -1,6 +1,6 @@
 "use server"
 
-import { readSheet, appendRow, updateRowById, deleteRowById, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
+import { readSheet, appendRow, updateRowById, deleteRowById, deleteRowsByFilter, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
 import { type AuthUser } from "./auth";
 import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./types";
 
@@ -335,8 +335,60 @@ export async function updateCategory(id: string, data: Partial<Category>): Promi
   return merged;
 }
 
-export async function deleteCategory(id: string): Promise<void> {
-  await deleteRowById(SHEETS.CATEGORIES, id);
+export async function deleteCategory(id: string): Promise<{
+  deletedSubCategoriesCount: number;
+  deletedModelsCount: number;
+}> {
+  const cats = await getCategories();
+  const targetCat = cats.find(c => c.id === id || c.slug === id);
+  const catSlug = (targetCat?.slug || id).trim().toUpperCase();
+  const catId = (targetCat?.id || id).trim();
+
+  // 1. Collect and delete subcategories belonging to this category
+  const subCatIdsToDelete = new Set<string>();
+  const subCatIndexesToDelete = new Set<string>();
+  const subCatNamesToDelete = new Set<string>();
+
+  const deletedSubCatsCount = await deleteRowsByFilter(SHEETS.SUBCATEGORIES, (obj) => {
+    const scCatId = (obj.Index || obj.categoryId || '').trim().toUpperCase();
+    const scMatCode = (obj['MAT Category Code'] || obj.MATCategoryCode || obj.index || '').trim().toUpperCase();
+    const scId = (obj.ID || obj.id || '').trim();
+    const scName = (obj.Description || obj.name || '').trim();
+
+    const isMatch = scCatId === catSlug || scCatId === catId || (catSlug && scMatCode.startsWith(`${catSlug}-`));
+    if (isMatch) {
+      if (scId) subCatIdsToDelete.add(scId);
+      if (scMatCode) subCatIndexesToDelete.add(scMatCode);
+      if (scName) subCatNamesToDelete.add(scName);
+      return true;
+    }
+    return false;
+  });
+
+  // 2. Delete models belonging to this category or its subcategories
+  const deletedModelsCount = await deleteRowsByFilter(SHEETS.MODELS, (obj) => {
+    const mCatId = (obj.categoryId || '').trim().toUpperCase();
+    const mSubCatId = (obj.subcategoryId || '').trim();
+
+    const isDirectMatch = mCatId === catSlug || mCatId === catId;
+    const isSubCatMatch = subCatIdsToDelete.has(mSubCatId) || 
+                          subCatIndexesToDelete.has(mSubCatId.toUpperCase()) || 
+                          subCatNamesToDelete.has(mSubCatId);
+
+    return Boolean(isDirectMatch || isSubCatMatch);
+  });
+
+  // 3. Delete category from ProductGroup
+  await deleteRowsByFilter(SHEETS.CATEGORIES, (obj) => {
+    const cId = (obj.ID || obj.id || '').trim();
+    const cSlug = (obj.Index || obj.slug || '').trim().toUpperCase();
+    return Boolean(cId === catId || cSlug === catSlug);
+  });
+
+  return {
+    deletedSubCategoriesCount: deletedSubCatsCount,
+    deletedModelsCount: deletedModelsCount,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -385,8 +437,34 @@ export async function createSubCategory(subCat: Partial<SubCategory>): Promise<S
   return { ...subCat, id: nextId } as SubCategory;
 }
 
-export async function deleteSubCategory(id: string): Promise<void> {
-  await deleteRowById(SHEETS.SUBCATEGORIES, id);
+export async function deleteSubCategory(id: string): Promise<{
+  deletedModelsCount: number;
+}> {
+  const subCats = await getSubCategories();
+  const targetSubCat = subCats.find(sc => sc.id === id);
+  const subCatId = (targetSubCat?.id || id).trim();
+  const subCatIndex = (targetSubCat?.index || '').trim().toUpperCase();
+  const subCatName = (targetSubCat?.name || '').trim();
+
+  // 1. Delete models belonging to this subcategory
+  const deletedModelsCount = await deleteRowsByFilter(SHEETS.MODELS, (obj) => {
+    const mSubCatId = (obj.subcategoryId || '').trim();
+    return Boolean(
+      mSubCatId === subCatId || 
+      (subCatIndex && mSubCatId.toUpperCase() === subCatIndex) || 
+      (subCatName && mSubCatId === subCatName)
+    );
+  });
+
+  // 2. Delete the subcategory itself
+  await deleteRowsByFilter(SHEETS.SUBCATEGORIES, (obj) => {
+    const sId = (obj.ID || obj.id || '').trim();
+    return Boolean(sId === subCatId);
+  });
+
+  return {
+    deletedModelsCount,
+  };
 }
 
 export async function updateSubCategory(id: string, data: Partial<SubCategory>): Promise<SubCategory> {
@@ -406,6 +484,60 @@ export async function updateSubCategory(id: string, data: Partial<SubCategory>):
   
   await updateRowById(SHEETS.SUBCATEGORIES, id, mapObjectToRow(headers, objToSave));
   return merged as any;
+}
+
+export interface CreateFullCategoryInput {
+  isNewGroup: boolean;
+  groupIndex: string;  // e.g. FH or FA
+  groupName: string;   // e.g. เครื่องผลิตน้ำแข็ง
+  subCatIndex: string; // e.g. FH-01-00 (MAT Category Code)
+  subCatName: string;  // e.g. เครื่องผลิตน้ำแข็ง
+}
+
+export async function createFullCategory(input: CreateFullCategoryInput): Promise<{
+  group: Category;
+  subCategory: SubCategory;
+}> {
+  const { isNewGroup, groupIndex, groupName, subCatIndex, subCatName } = input;
+  const cleanGroupIndex = (groupIndex || '').trim().toUpperCase();
+  const cleanGroupName = (groupName || '').trim();
+  const cleanSubCatIndex = (subCatIndex || '').trim();
+  const cleanSubCatName = (subCatName || '').trim();
+
+  if (!cleanGroupIndex) throw new Error("กรุณาระบุรหัสกลุ่มสินค้าหลัก (Index เช่น FH, FA)");
+  if (!cleanSubCatIndex) throw new Error("กรุณาระบุรหัสหมวดหมู่ SFTP (MAT Category Code เช่น FH-01-00)");
+  if (!cleanSubCatName) throw new Error("กรุณาระบุชื่อหมวดหมู่ย่อย");
+
+  let group: Category;
+
+  if (isNewGroup) {
+    const allGroups = await getCategories();
+    const existingGroup = allGroups.find(g => (g.slug || '').toUpperCase() === cleanGroupIndex);
+    if (existingGroup) {
+      group = existingGroup;
+    } else {
+      group = await createCategory({
+        slug: cleanGroupIndex,
+        name: cleanGroupName || cleanSubCatName,
+      });
+    }
+  } else {
+    const allGroups = await getCategories();
+    const existingGroup = allGroups.find(g => (g.slug || '').toUpperCase() === cleanGroupIndex || g.id === cleanGroupIndex);
+    if (!existingGroup) {
+      throw new Error(`ไม่พบกลุ่มสินค้าหลักรหัส ${cleanGroupIndex}`);
+    }
+    group = existingGroup;
+  }
+
+  // Create Subcategory with FK (Index in ProductCategory = group.slug e.g. 'FH')
+  const subCategory = await createSubCategory({
+    categoryId: group.slug || cleanGroupIndex,
+    index: cleanSubCatIndex,
+    name: cleanSubCatName,
+  });
+
+  return { group, subCategory };
 }
 
 // ---------------------------------------------------------------------------

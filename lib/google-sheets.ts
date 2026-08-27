@@ -313,7 +313,18 @@ export async function readSheet(range: string, forceFetch: boolean = false) {
     }
   );
 
-  return getCachedData();
+  try {
+    return await getCachedData();
+  } catch (cacheError) {
+    // Fallback for standalone scripts or non-Next.js contexts where unstable_cache is unavailable
+    const sheets = await getSheetsClient();
+    const spreadsheetId = await getSpreadsheetId();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    return response.data.values || [];
+  }
 }
 
 // Batch read multiple sheets in a single API call
@@ -339,12 +350,7 @@ export async function readMultipleSheets(ranges: string[]): Promise<Record<strin
         }
         return result;
       } catch (error: any) {
-        console.warn("batchGet failed, falling back to individual reads:", error.message);
-        const result: Record<string, any[][]> = {};
-        for (const range of ranges) {
-          result[range] = await readSheet(range, true); // force fetch to bypass individual cache if batch fails
-        }
-        return result;
+        throw error;
       }
     },
     [key],
@@ -354,7 +360,22 @@ export async function readMultipleSheets(ranges: string[]): Promise<Record<strin
     }
   );
 
-  return getCachedBatch();
+  try {
+    return await getCachedBatch();
+  } catch (cacheError) {
+    const sheets = await getSheetsClient();
+    const spreadsheetId = await getSpreadsheetId();
+    const response = await sheets.spreadsheets.values.batchGet({
+      spreadsheetId,
+      ranges,
+    });
+    const result: Record<string, any[][]> = {};
+    const valueRanges = response.data.valueRanges || [];
+    for (let i = 0; i < ranges.length; i++) {
+      result[ranges[i]] = valueRanges[i]?.values || [];
+    }
+    return result;
+  }
 }
 
 export async function appendRows(range: string, values: any[][]) {
@@ -515,4 +536,53 @@ export async function deleteRowById(sheetName: string, id: string) {
       ]
     }
   });
+}
+
+export async function deleteRowsByFilter(
+  sheetName: string,
+  shouldDelete: (rowObj: Record<string, string>, rawRow: string[], headers: string[]) => boolean
+): Promise<number> {
+  clearCache(sheetName);
+  const sheets = await getSheetsClient();
+  const spreadsheetId = await getSpreadsheetId();
+
+  const allRows = await readSheet(`${sheetName}!A:Z`, true);
+  if (allRows.length <= 1) return 0;
+
+  const headers = allRows[0] || [];
+  const dataRows = allRows.slice(1);
+
+  let deletedCount = 0;
+  const remainingRows: string[][] = [];
+
+  for (const rawRow of dataRows) {
+    const rowObj = mapRowToObject(headers, rawRow);
+    if (shouldDelete(rowObj, rawRow, headers)) {
+      deletedCount++;
+    } else {
+      remainingRows.push(rawRow);
+    }
+  }
+
+  if (deletedCount === 0) return 0;
+
+  // Clear data range A2:Z
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `${sheetName}!A2:Z${Math.max(allRows.length + 10, 1000)}`,
+  });
+
+  // Rewrite remaining rows if any
+  if (remainingRows.length > 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A2`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: remainingRows,
+      },
+    });
+  }
+
+  return deletedCount;
 }

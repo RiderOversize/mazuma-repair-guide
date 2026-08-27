@@ -32,6 +32,7 @@ import {
   createSubCategory as _createSubCategory,
   updateSubCategory as _updateSubCategory,
   deleteSubCategory as _deleteSubCategory,
+  createFullCategory as _createFullCategory,
   getSymptomTypes as _getSymptomTypes,
   createSymptomType as _createSymptomType,
   updateSymptomType as _updateSymptomType,
@@ -43,7 +44,7 @@ import {
 } from "./sheets-db";
 import type { DeviceModel } from "./types";
 
-export { type ActiveSession, type RepairFeedback } from "./sheets-db";
+export { type ActiveSession, type RepairFeedback, type CreateFullCategoryInput } from "./sheets-db";
 
 export const getUsers = _getUsers;
 export const createUser = _createUser;
@@ -64,6 +65,7 @@ export const getSubCategories = _getSubCategories;
 export const createSubCategory = _createSubCategory;
 export const updateSubCategory = _updateSubCategory;
 export const deleteSubCategory = _deleteSubCategory;
+export const createFullCategory = _createFullCategory;
 export const getSymptomTypes = _getSymptomTypes;
 export const createSymptomType = _createSymptomType;
 export const updateSymptomType = _updateSymptomType;

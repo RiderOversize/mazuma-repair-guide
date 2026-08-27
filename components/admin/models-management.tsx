@@ -8,6 +8,7 @@ import { getLastSyncTime } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
+import { UnmappedCategoriesBanner } from "./unmapped-categories-banner"
 
 export function ModelsManagement({ user }: { user?: AuthUser }) {
   const [models, setModels] = useState<DeviceModel[]>([])
@@ -16,6 +17,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncingSftp, setSyncingSftp] = useState(false)
 
   // Filter and Pagination state
   const [searchQuery, setSearchQuery] = useState("")
@@ -148,6 +150,28 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
     setSaving(false)
   }
 
+  const handleManualSync = async () => {
+    setSyncingSftp(true)
+    try {
+      showToast("กำลังเริ่มดึงข้อมูลจาก SFTP...", "info")
+      const res = await fetch("/api/sync-sftp-to-sheets")
+      const json = await res.json()
+      if (json.success) {
+        showToast(
+          `Sync สำเร็จ! (อัปเดต: ${json.stats?.updated || 0}, เพิ่มใหม่: ${json.stats?.inserted || 0})`,
+          "success"
+        )
+        await loadData()
+      } else {
+        showAlert("Sync ไม่สำเร็จ", json.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ", "error")
+      }
+    } catch (err: any) {
+      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+    } finally {
+      setSyncingSftp(false)
+    }
+  }
+
   if (loading && models.length === 0) {
     return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
   }
@@ -163,7 +187,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               ข้อมูลรุ่นสินค้า รูปภาพประกอบ และสถานะ ({filteredModels.length} รุ่น)
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
             {lastSyncTime && (
               <div className="bg-chart-4/10 border border-chart-4/20 text-chart-4 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs">
                 <span className="relative flex h-2 w-2">
@@ -176,6 +200,17 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                 </div>
               </div>
             )}
+
+            <button
+              onClick={handleManualSync}
+              disabled={syncingSftp}
+              title="ดึงข้อมูลรุ่นสินค้าล่าสุดจาก SFTP"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card hover:bg-muted active:scale-95 px-3 py-2 text-[0.8125rem] font-semibold text-foreground shadow-xs transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-3.5", syncingSftp && "animate-spin text-primary")} />
+              <span>{syncingSftp ? "กำลัง Sync..." : "Sync SFTP"}</span>
+            </button>
+
             <button
               onClick={openCreate}
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
@@ -239,6 +274,13 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           </div>
         </div>
       </div>
+
+      {/* Unmapped Categories Alert Banner from SFTP */}
+      <UnmappedCategoriesBanner
+        categories={categories}
+        onCategoryCreated={loadData}
+        onManualSyncRequest={handleManualSync}
+      />
 
       {/* Mobile Card List / PC Grid List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

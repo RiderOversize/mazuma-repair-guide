@@ -198,16 +198,24 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
   const handleDeleteCategory = async (cat: Category, e: React.MouseEvent) => {
     e.stopPropagation()
-    const isConfirmed = await confirmDelete("ลบหมวดหมู่หลัก", `คุณต้องการลบ "${cat.name}" ใช่หรือไม่?`)
+    const isConfirmed = await confirmDelete(
+      "ลบหมวดหมู่หลัก",
+      `คุณต้องการลบ "${cat.name}" ใช่หรือไม่?\n⚠️ หมวดหมู่ย่อยและสินค้าทั้งหมดที่อยู่ในหมวดนี้จะถูกลบออกด้วย`
+    )
     if (isConfirmed) {
       try {
-        await deleteCategory(cat.id)
-        await logActivity(user, "delete", "category", `หมวดหมู่หลัก: ${cat.name}`)
+        const result = await deleteCategory(cat.id)
+        await logActivity(
+          user,
+          "delete",
+          "category",
+          `หมวดหมู่หลัก: ${cat.name} (ลบหมวดย่อย: ${result.deletedSubCategoriesCount}, สินค้า: ${result.deletedModelsCount})`
+        )
         if (activeCategoryId === cat.id) {
           setActiveCategoryId(null)
           setCurrentView('categories')
         }
-        showToast("ลบหมวดหมู่สำเร็จ", "success")
+        showToast("ลบหมวดหมู่และข้อมูลที่เกี่ยวข้องสำเร็จ", "success")
         loadData()
       } catch (err: any) {
         showAlert("เกิดข้อผิดพลาด", err.message, "error")
@@ -250,16 +258,24 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
   const handleDeleteSubCategory = async (subCat: SubCategory, e: React.MouseEvent) => {
     e.stopPropagation()
-    const isConfirmed = await confirmDelete("ลบหมวดหมู่ย่อย", `คุณต้องการลบ "${subCat.name}" ใช่หรือไม่?`)
+    const isConfirmed = await confirmDelete(
+      "ลบหมวดหมู่ย่อย",
+      `คุณต้องการลบ "${subCat.name}" ใช่หรือไม่?\n⚠️ สินค้าทั้งหมดที่อยู่ในหมวดนี้จะถูกลบออกด้วย`
+    )
     if (isConfirmed) {
       try {
-        await deleteSubCategory(subCat.id)
-        await logActivity(user, "delete", "subcategory", `หมวดหมู่ย่อย: ${subCat.name}`)
+        const result = await deleteSubCategory(subCat.id)
+        await logActivity(
+          user,
+          "delete",
+          "subcategory",
+          `หมวดหมู่ย่อย: ${subCat.name} (ลบสินค้า: ${result.deletedModelsCount})`
+        )
         if (activeSubCategoryId === subCat.id) {
           setActiveSubCategoryId(null)
           setCurrentView('subCategories')
         }
-        showToast("ลบหมวดหมู่ย่อยสำเร็จ", "success")
+        showToast("ลบหมวดหมู่ย่อยและสินค้าสำเร็จ", "success")
         loadData()
       } catch (err: any) {
         showAlert("เกิดข้อผิดพลาด", err.message, "error")

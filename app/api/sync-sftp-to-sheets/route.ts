@@ -129,6 +129,14 @@ export async function GET(request: Request) {
     const rowsToAdd: any[] = [];
     let updateCount = 0;
     
+    interface UnmappedCategoryItem {
+      categoryCode: string;
+      name: string;
+      count: number;
+      sampleCodes: string[];
+    }
+    const unmappedCategoriesMap = new Map<string, UnmappedCategoryItem>();
+    
     for (const item of dataArray) {
       // Mapping from the actual SFTP JSON structure
       const code = item.MATUnitUSERID || item.productCode || item.code || item.PRODUCT_CODE || item.matCode;
@@ -149,8 +157,25 @@ export async function GET(request: Request) {
       }
 
       if (!matchedInfo) {
-         // Skip if subcategory is not found in the DB (avoids junk categories)
-         continue;
+        // Collect unmapped categories to notify admin (Filter ONLY categories containing "เครื่อง" or "ตู้")
+        const isTargetCategory = rawCat.includes('เครื่อง') || rawCat.includes('ตู้');
+        if (rawCat && isTargetCategory) {
+          const existing = unmappedCategoriesMap.get(rawCat);
+          if (existing) {
+            existing.count += 1;
+            if (existing.sampleCodes.length < 3 && code) {
+              existing.sampleCodes.push(code);
+            }
+          } else {
+            unmappedCategoriesMap.set(rawCat, {
+              categoryCode: rawCat,
+              name: itemName,
+              count: 1,
+              sampleCodes: code ? [code] : [],
+            });
+          }
+        }
+        continue;
       }
       
       // Correct categoryId (Index like F1, F2, F3) and subcategoryId (ID like 1, 2, 27)
@@ -244,9 +269,12 @@ export async function GET(request: Request) {
       await sheet.addRows(rowsToAdd);
     }
     
+    const unmappedList = Array.from(unmappedCategoriesMap.values());
+
     try {
       const activitySheet = doc.sheetsByTitle['ActivityLogs'];
       if (activitySheet) {
+        // Log sync summary
         await activitySheet.addRow({
           id: `log-${Date.now()}`,
           action: 'update',
@@ -254,8 +282,21 @@ export async function GET(request: Request) {
           userCode: 'SYSTEM_CRON',
           userName: 'SFTP Auto Sync',
           timestamp: new Date().toISOString(),
-          details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length})`
+          details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length}, Unmapped Categories: ${unmappedList.length})`
         });
+
+        // Log unmapped categories alert if any found
+        if (unmappedList.length > 0) {
+          await activitySheet.addRow({
+            id: `log-unmapped-${Date.now()}`,
+            action: 'alert',
+            resource: 'unmapped_category_alert',
+            userCode: 'SYSTEM_CRON',
+            userName: 'SFTP Auto Sync',
+            timestamp: new Date().toISOString(),
+            details: JSON.stringify(unmappedList)
+          });
+        }
       }
     } catch (logError) {
       console.error('Failed to log sync activity:', logError);
@@ -275,7 +316,9 @@ export async function GET(request: Request) {
         totalReceived: dataArray.length,
         updated: updateCount,
         inserted: rowsToAdd.length,
-      }
+        unmappedCategoriesCount: unmappedList.length,
+      },
+      unmappedCategories: unmappedList
     });
 
   } catch (error: any) {
