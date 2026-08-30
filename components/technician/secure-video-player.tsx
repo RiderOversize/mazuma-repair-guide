@@ -310,7 +310,7 @@ export function SecureVideoPlayer({
                     <iframe
                       className="w-full h-full border-0 bg-white"
                       src={resolvedDocUrl || getDocumentEmbedUrl(pdfUrl)}
-                      allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+                      allow="autoplay; fullscreen"
                       allowFullScreen
                       loading="lazy"
                     ></iframe>
@@ -421,7 +421,7 @@ export function SecureVideoPlayer({
                 <iframe
                   className="w-full h-full border-0 bg-white min-h-[85vh]"
                   src={resolvedDocUrl || getDocumentEmbedUrl(pdfUrl)}
-                  allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+                  allow="autoplay; fullscreen"
                   allowFullScreen
                   loading="lazy"
                 ></iframe>

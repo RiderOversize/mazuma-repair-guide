@@ -1,21 +1,34 @@
 "use client"
 
-import { useState } from "react"
-import { Play, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Loader2 } from "lucide-react"
 
 interface CustomYouTubePlayerProps {
   videoUrl: string
 }
 
 /**
- * High-Security Direct YouTube Player for LINE In-App Browser & Mobile WebViews.
- * - Direct iframe embed on youtube-nocookie.com (passes mobile user gesture requirements 100%)
- * - Strict sandbox (blocks popups, external links, and navigation to youtube.com)
- * - Invisible shields block tapping 'Share' / 'Copy Link' (top bar) and YouTube logo (bottom right)
- * - Anti-leak: unlisted, modestbranding=1, rel=0, no context menu
+ * High-Security YouTube Player for LINE In-App Browser & Mobile WebViews.
+ * - Direct iframe embed on youtube-nocookie.com (plays 100% on iOS WKWebView / Android WebView)
+ * - Permissions-Policy blocks clipboard access ('clipboard-write' disabled)
+ * - Multi-layer Invisible Security Shields cover Top Bar (Title & Share button) and Bottom-Right (YouTube logo)
+ * - Global clipboard wipe listener prevents copying video links
+ * - Strict sandbox blocks popups, window.open, and external navigation
  */
 export function CustomYouTubePlayer({ videoUrl }: CustomYouTubePlayerProps) {
   const [isLoading, setIsLoading] = useState(true)
+
+  // Block clipboard copying globally while player is active
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault()
+      if (e.clipboardData) {
+        e.clipboardData.setData("text/plain", "")
+      }
+    }
+    document.addEventListener("copy", handleCopy, true)
+    return () => document.removeEventListener("copy", handleCopy, true)
+  }, [])
 
   // Extract clean video ID
   let videoId = ""
@@ -49,6 +62,7 @@ export function CustomYouTubePlayer({ videoUrl }: CustomYouTubePlayerProps) {
   return (
     <div
       className="relative w-full h-full bg-black select-none overflow-hidden"
+      style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none" }}
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Loading Spinner until Iframe is ready */}
@@ -58,29 +72,37 @@ export function CustomYouTubePlayer({ videoUrl }: CustomYouTubePlayerProps) {
         </div>
       )}
 
-      {/* Direct Sandboxed YouTube Player */}
+      {/* Direct Sandboxed YouTube Player (clipboard-write is strictly omitted to block copy) */}
       <iframe
         key={videoId}
         src={embedUrl}
         className="w-full h-full border-0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
-        // Strict Sandbox: allows video playback scripts & presentation, but BLOCKS all popups, window.open, and navigation to youtube.com
+        // Strict Sandbox: allows video playback, but BLOCKS all popups, window.open, and navigation to youtube.com
         sandbox="allow-scripts allow-same-origin allow-presentation"
         onLoad={() => setIsLoading(false)}
       />
 
-      {/* Security Shield 1: Top Bar Blocker (Blocks tapping video title, share button, and copy link) */}
+      {/* Security Shield 1: Full-Width Top Bar (64px) - Blocks Title & Channel Info */}
       <div
-        className="absolute top-0 inset-x-0 h-12 bg-transparent z-20 pointer-events-auto select-none"
+        className="absolute top-0 inset-x-0 h-16 bg-transparent z-20 pointer-events-auto select-none"
         title="เนื้อหาสงวนลิขสิทธิ์"
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Security Shield 2: Bottom-Right YouTube Logo Blocker (Blocks tapping the YouTube watermark/logo) */}
+      {/* Security Shield 2: Extra Top-Right Zone (180px x 96px) - Blocks Share Button, 3-Dots, and Copy Link */}
       <div
-        className="absolute bottom-0 right-10 w-24 h-11 bg-transparent z-20 pointer-events-auto select-none"
+        className="absolute top-0 right-0 w-44 h-24 bg-transparent z-20 pointer-events-auto select-none"
+        title="เนื้อหาสงวนลิขสิทธิ์"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+
+      {/* Security Shield 3: Bottom-Right YouTube Logo & Watch Later (140px x 56px) - Blocks YouTube logo click */}
+      <div
+        className="absolute bottom-0 right-8 w-36 h-14 bg-transparent z-20 pointer-events-auto select-none"
         title="เนื้อหาสงวนลิขสิทธิ์"
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
