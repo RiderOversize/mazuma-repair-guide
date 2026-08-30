@@ -145,25 +145,18 @@ export async function logActivity(
   }
   
   try {
-    let headers: string[]
-    try {
-      const allRows = await readSheet(`${SHEETS.ACTIVITY_LOGS}!A1:Z`)
-      headers = allRows[0] || ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"]
-    } catch {
-      // If sheet doesn't exist yet, use default headers
-      headers = ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"]
-    }
+    const headers = ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"];
     
     const obj = {
       ...newLog,
       resourceId: newLog.resourceId || "",
       resourceName: newLog.resourceName || "",
       details: newLog.details || "",
-    }
+    };
     
-    const row = mapObjectToRow(headers, obj)
-    await appendRow(SHEETS.ACTIVITY_LOGS, row)
+    const row = mapObjectToRow(headers, obj);
+    await appendRow(SHEETS.ACTIVITY_LOGS, row);
   } catch (error) {
-    console.error("Failed to log activity:", error)
+    console.error("Failed to log activity:", error);
   }
 }

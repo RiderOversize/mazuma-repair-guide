@@ -1,15 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
-import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { Loader2, ShieldCheck, CheckCircle2, AlertCircle } from "lucide-react"
 
 export function LoginView() {
   const [isConnecting, setIsConnecting] = useState(false)
+  const searchParams = useSearchParams()
+  const errorParam = searchParams.get("error")
+  const [authError, setAuthError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (errorParam) {
+      if (errorParam === "OAuthCallbackError" || errorParam === "Callback") {
+        setAuthError("การเชื่อมต่อกับ LINE หมดอายุหรือถูกขัดจังหวะ กรุณาลองกดเข้าสู่ระบบใหม่อีกครั้ง")
+      } else if (errorParam === "OAuthSignin") {
+        setAuthError("ไม่สามารถเริ่มการยืนยันตัวตนกับ LINE ได้ กรุณาลองใหม่อีกครั้ง")
+      } else {
+        setAuthError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง")
+      }
+    }
+  }, [errorParam])
 
   function startLineLogin() {
+    if (isConnecting) return
     setIsConnecting(true)
-    signIn("line")
+    setAuthError(null)
+    signIn("line", { callbackUrl: "/" }).catch(() => {
+      setIsConnecting(false)
+      setAuthError("ไม่สามารถเชื่อมต่อกับ LINE ได้")
+    })
   }
 
   return (
@@ -39,11 +60,23 @@ export function LoginView() {
             </p>
           </div>
 
+          {authError && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-left text-xs text-rose-200">
+              <AlertCircle className="size-4 shrink-0 text-rose-400 mt-0.5" />
+              <div>
+                <p className="font-medium text-rose-300">{authError}</p>
+                <p className="mt-1 text-[11px] text-rose-300/80">
+                  (หากเปิดจากแอป LINE ให้แตะปุ่มจุด 3 จุด และเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น")
+                </p>
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={startLineLogin}
             disabled={isConnecting}
-            className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-4 font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
+            className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-4 font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 cursor-pointer"
             style={{ backgroundColor: "#06C755" }}
           >
             <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />

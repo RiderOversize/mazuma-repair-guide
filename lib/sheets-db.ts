@@ -3,6 +3,18 @@
 import { readSheet, appendRow, updateRowById, deleteRowById, deleteRowsByFilter, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
 import { type AuthUser } from "./auth";
 import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./types";
+import {
+  parseUsersFromRows,
+  parseModelsFromRows,
+  parseCategoriesFromRows,
+  parseSubCategoriesFromRows,
+  parseSymptomTypesFromRows,
+  parseSymptomsFromRows,
+  parseGuidesFromRows,
+  parseRepairStatsFromRows,
+  parseTopModelsFromRows,
+  parseMasterDataMappingsFromRows,
+} from "./sheet-parsers";
 
 // Optional: check if sheet ID is configured
 const useSheets = !!process.env.GOOGLE_SHEETS_ID;
@@ -20,44 +32,7 @@ const safeParse = (str: string, fallback: any) => {
 // ---------------------------------------------------------------------------
 export async function getUsers(forceFetch: boolean = false): Promise<AuthUser[]> {
   const allRows = await readSheet(`${SHEETS.USERS}!A1:Z`, forceFetch);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  const empCodeIdx = getIndexCaseInsensitive(headers, 'employeeCode');
-
-  // Filter out blank rows or rows without employeeCode
-  const validRows = rows.filter(r => {
-    if (!r || !Array.isArray(r) || r.length === 0) return false;
-    const code = empCodeIdx !== -1 ? r[empCodeIdx] : r[0];
-    return typeof code === 'string' ? code.trim() !== '' : !!code;
-  });
-
-  const uniqueRows = Array.from(new Map(validRows.map(r => {
-    const code = String((empCodeIdx !== -1 ? r[empCodeIdx] : r[0]) || '').trim();
-    return [code, r];
-  })).values());
-  
-  const users: AuthUser[] = [];
-  for (const r of uniqueRows) {
-    const obj = mapRowToObject(headers, r);
-    const code = String(obj.employeeCode || '').trim();
-    if (!code) continue;
-    users.push({
-      employeeCode: code,
-      name: obj.name || "",
-      phone: obj.phone || "",
-      role: (obj.role as any) || "technician",
-      title: obj.role === "admin" ? "ผู้ดูแลระบบ" : obj.role === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค",
-      status: (obj.status as any) || "active",
-      createdAt: obj.createdAt || "",
-      initials: obj.name ? obj.name.substring(0, 2) : "",
-      avatar: obj.avatarUrl || (obj.role === "admin" ? "/avatars/admin.png" : "/avatars/technician.png"),
-      lineName: obj.LineName || obj.lineName || "-",
-      lineUserId: obj.lineUserId || "",
-      assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-    });
-  }
-  return users;
+  return parseUsersFromRows(allRows);
 }
 
 export async function createUser(user: AuthUser): Promise<AuthUser> {
@@ -127,28 +102,7 @@ export async function deleteUser(employeeCode: string): Promise<void> {
 // ---------------------------------------------------------------------------
 export async function getModels(): Promise<DeviceModel[]> {
   const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  const idIdx = getIndexCaseInsensitive(headers, 'id');
-  const uniqueRows = Array.from(new Map(rows.map(r => [r[idIdx !== -1 ? idIdx : 0], r])).values());
-  
-  return uniqueRows.map((r, index) => {
-    const obj = mapRowToObject(headers, r);
-    
-    return {
-      id: obj.id || obj.ID || `m-${index}`,
-      subcategoryId: obj.subcategoryId || "",
-      symptomTypeId: obj.symptomTypeId || "",
-      categoryId: obj.categoryId || "",
-      name: obj.name || "ระบุชื่อรุ่น",
-      code: obj.code || "",
-      status: obj.status || "active",
-      thumbnail: obj.thumbnail || "",
-      createdAt: obj.createdAt || new Date().toISOString(),
-      updatedAt: obj.updatedAt || new Date().toISOString(),
-      lastSyncAt: obj.lastSyncAt || ""
-    };
-  });
+  return parseModelsFromRows(allRows);
 }
 
 export async function createModel(model: DeviceModel): Promise<DeviceModel> {
@@ -240,22 +194,7 @@ export async function deleteModel(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 export async function getCategories(): Promise<Category[]> {
   const allRows = await readSheet(`${SHEETS.CATEGORIES}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  const idIdx = getIndexCaseInsensitive(headers, 'id');
-  const uniqueCatRows = Array.from(new Map(rows.map(r => [r[idIdx !== -1 ? idIdx : 0], r])).values());
-  
-  return uniqueCatRows.map(r => {
-    const obj = mapRowToObject(headers, r);
-    return {
-      id: obj.ID || obj.id || obj.Index || `cat-${Date.now()}`,
-      name: obj.Description || obj.name || "",
-      slug: obj.Index || obj.slug || "",
-      description: obj.description || "",
-      status: (obj.status as any) || "active",
-      createdAt: obj.createdAt || new Date().toISOString()
-    };
-  });
+  return parseCategoriesFromRows(allRows);
 }
 
 export async function createCategory(cat: Partial<Category>): Promise<Category> {
@@ -396,19 +335,7 @@ export async function deleteCategory(id: string): Promise<{
 // ---------------------------------------------------------------------------
 export async function getSubCategories(): Promise<SubCategory[]> {
   const allRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  const idIdx = getIndexCaseInsensitive(headers, 'id');
-  const uniqueRows = Array.from(new Map(rows.map(r => [r[idIdx !== -1 ? idIdx : 0], r])).values());
-  return uniqueRows.map(r => {
-    const obj = mapRowToObject(headers, r);
-    return {
-      id: obj.ID || obj.id || `sub-${Date.now()}-${Math.random()}`,
-      categoryId: obj.Index || obj.categoryId || "",
-      index: obj['MAT Category Code'] || obj.index || "",
-      name: obj.Description || obj.name || ""
-    };
-  });
+  return parseSubCategoriesFromRows(allRows);
 }
 
 export async function createSubCategory(subCat: Partial<SubCategory>): Promise<SubCategory> {
@@ -545,30 +472,7 @@ export async function createFullCategory(input: CreateFullCategoryInput): Promis
 // ---------------------------------------------------------------------------
 export async function getSymptomTypes(): Promise<SymptomType[]> {
   const allRows = await readSheet(`${SHEETS.SYMPTOM_TYPES}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  
-  // Find ID column index, default to generating if not found
-  const idColIndex = getIndexCaseInsensitive(headers, 'id');
-  const hasIdCol = idColIndex !== -1;
-  
-  const mapped = rows.map((r, index) => {
-    const obj = mapRowToObject(headers, r);
-    return {
-      id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `type-${index}`,
-      categoryId: obj.categoryId || "",
-      subcategoryId: obj['รหัสอาการเสีย'] || obj.ID || obj.id || "",
-      name: obj['ชื่อกลุ่มอาการเสีย'] || obj.name || "ไม่มีชื่อกลุ่มอาการ",
-      description: obj['คำอธิบาย'] || obj.description || ""
-    };
-  }).filter(t => t.id && t.name);
-  
-  // Deduplicate by ID
-  const unique = new Map();
-  mapped.forEach(t => {
-    if (!unique.has(t.id)) unique.set(t.id, t);
-  });
-  return Array.from(unique.values());
+  return parseSymptomTypesFromRows(allRows);
 }
 
 export async function createSymptomType(data: Partial<SymptomType>): Promise<SymptomType> {
@@ -632,32 +536,7 @@ export async function deleteSymptomType(id: string): Promise<void> {
 
 export async function getSymptoms(): Promise<Symptom[]> {
   const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  
-  const idColIndex = getIndexCaseInsensitive(headers, 'id');
-  const hasIdCol = idColIndex !== -1 || headers.some((h: string) => h && (h.toLowerCase().includes('id') || h.includes('รหัสอาการ')));
-
-  const mapped = rows.map((r, index) => {
-    const obj = mapRowToObject(headers, r);
-    // Find column positions of keys case-insensitively
-    return {
-      id: obj['รหัสอาการเสีย'] || obj.ID || obj.id || `sym-${index}`,
-      symptomTypeId: obj['รหัสประเภทอาการ'] || obj.symptomTypeId || obj.SymptomTypesID || "",
-      title: obj['อาการเสีย'] || obj.title || obj.name || "ระบุชื่ออาการ",
-      description: obj['คำอธิบาย'] || obj.description || "",
-      severity: (obj.severity as any) || "Medium",
-      tags: obj.tags ? obj.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
-      specificModelIds: obj.specificModelIds ? obj.specificModelIds.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined
-    } as Symptom;
-  }).filter(s => s.description || s.title);
-  
-  // Deduplicate by ID
-  const unique = new Map();
-  mapped.forEach(s => {
-    if (!unique.has(s.id)) unique.set(s.id, s);
-  });
-  return Array.from(unique.values());
+  return parseSymptomsFromRows(allRows);
 }
 
 export async function createSymptom(data: Partial<Symptom>): Promise<Symptom> {
@@ -738,36 +617,7 @@ export async function deleteSymptom(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 export async function getGuides(): Promise<Guide[]> {
   const guideAllRows = await readSheet(`${SHEETS.GUIDES}!A1:Z`);
-  const guideHeaders = guideAllRows[0] || [];
-  const guideRows = guideAllRows.slice(1);
-  
-  const guideIdIdx = getIndexCaseInsensitive(guideHeaders, 'id');
-  const uniqueGuideRows = Array.from(new Map(guideRows.map(r => [r[guideIdIdx !== -1 ? guideIdIdx : 0], r])).values());
-
-  return uniqueGuideRows.map((r, index) => {
-    const obj = mapRowToObject(guideHeaders, r);
-    return {
-      id: obj['รหัสหัวขัอการตรวจสอบ'] || obj.ID || obj.id || `guide-${index}`,
-      title: obj['หัวข้อการตรวจสอบ'] || obj.title || obj.specificCause || "",
-      categoryId: obj.categoryId || "",
-      subcategoryId: obj.subcategoryId || "",
-      modelIds: obj.modelIds ? obj.modelIds.split(',').filter(Boolean) : [],
-      symptomTypeId: obj.symptomTypeId || "",
-      symptomId: obj['รหัสอาการเสีย'] || obj.symptomId || "",
-      description: obj.description || "",
-      difficulty: obj.difficulty as any,
-      timeEstimated: obj.timeEstimated || "",
-      status: "published",
-      tags: obj.tags ? obj.tags.split(',').filter(Boolean) : [],
-      toolsRequired: obj.toolsRequired ? obj.toolsRequired.split(',').filter(Boolean) : [],
-      partsRequired: obj.partsRequired ? obj.partsRequired.split(',').filter(Boolean) : [],
-      createdAt: obj.createdAt || new Date().toISOString(),
-      updatedAt: obj.updatedAt || new Date().toISOString(),
-      steps: safeParse(obj.steps, []),
-      mediaUrl: obj['ลิงค์ VDO'] || obj.mediaUrl || "",
-      pdfUrl: obj['ลิงค์ PDF'] || obj.pdfUrl || ""
-    } as Guide;
-  });
+  return parseGuidesFromRows(guideAllRows);
 }
 
 export async function getGuideById(id: string): Promise<Guide | null> {
@@ -907,64 +757,35 @@ export interface ActiveSession {
 }
 
 export async function logRepairFeedback(feedback: Omit<RepairFeedback, "id" | "timestamp">) {
-  const timestamp = new Date().toISOString();
-  const id = `fb-${Date.now()}`;
-  
-  const allRows = await readSheet(`${SHEETS.FEEDBACKS}!A1:Z`);
-  const headers = allRows[0] || [];
-  
-  const objToSave = {
-    id,
-    guideId: feedback.guideId,
-    modelId: feedback.modelId || "",
-    userId: feedback.userId,
-    userName: feedback.userName,
-    isSuccess: feedback.isSuccess ? "TRUE" : "FALSE",
-    stepsViewed: feedback.stepsViewed,
-    totalSteps: feedback.totalSteps,
-    timestamp,
-    note: feedback.note || ""
-  };
-  
-  await appendRow(`${SHEETS.FEEDBACKS}!A2:Z`, mapObjectToRow(headers, objToSave));
+  try {
+    const timestamp = new Date().toISOString();
+    const id = `fb-${Date.now()}`;
+    
+    // Standard headers for feedbacks sheet to avoid redundant readSheet API call
+    const headers = ['id', 'guideId', 'modelId', 'userId', 'userName', 'isSuccess', 'stepsViewed', 'totalSteps', 'timestamp', 'note'];
+    
+    const objToSave = {
+      id,
+      guideId: feedback.guideId,
+      modelId: feedback.modelId || "",
+      userId: feedback.userId,
+      userName: feedback.userName,
+      isSuccess: feedback.isSuccess ? "TRUE" : "FALSE",
+      stepsViewed: feedback.stepsViewed,
+      totalSteps: feedback.totalSteps,
+      timestamp,
+      note: feedback.note || ""
+    };
+    
+    await appendRow(`${SHEETS.FEEDBACKS}!A2:Z`, mapObjectToRow(headers, objToSave));
+  } catch (err) {
+    console.error("Non-blocking error logging repair feedback:", err);
+  }
 }
 
 export async function getRepairStats() {
   const allRows = await readSheet(`${SHEETS.FEEDBACKS}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  
-  const total = rows.length;
-  const isSuccessIndex = getIndexCaseInsensitive(headers, 'isSuccess');
-  const stepsViewedIndex = getIndexCaseInsensitive(headers, 'stepsViewed');
-  
-  const successRows = rows.filter(r => isSuccessIndex !== -1 && r[isSuccessIndex] === "TRUE");
-  const successCount = successRows.length;
-  const successRate = total > 0 ? Math.round((successCount / total) * 100) : 0;
-  
-  const avgStepsSuccess = successRows.length > 0 && stepsViewedIndex !== -1
-    ? (successRows.reduce((sum, r) => sum + parseInt(r[stepsViewedIndex] || "0"), 0) / successRows.length).toFixed(1)
-    : "0";
-
-  const failedCount = total - successCount;
-
-  const feedbacks = rows.map(r => {
-    const obj = mapRowToObject(headers, r);
-    return {
-      id: obj.id || `fb-${Math.random()}`,
-      guideId: obj.guideId,
-      modelId: obj.modelId,
-      userId: obj.userId,
-      userName: obj.userName,
-      isSuccess: obj.isSuccess === "TRUE",
-      stepsViewed: parseInt(obj.stepsViewed || "0"),
-      totalSteps: parseInt(obj.totalSteps || "0"),
-      timestamp: obj.timestamp,
-      note: obj.note
-    } as RepairFeedback
-  });
-
-  return { total, successRate, avgStepsSuccess, successCount, failedCount, feedbacks: feedbacks.reverse() };
+  return parseRepairStatsFromRows(allRows);
 }
 
 export async function logSessionActivity(userId: string, userName: string, action: string) {
@@ -980,46 +801,14 @@ export async function getActiveSessions(): Promise<ActiveSession[]> {
 
 export async function getTopModels() {
   const allRows = await readSheet(`${SHEETS.FEEDBACKS}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  
-  const modelIdIndex = getIndexCaseInsensitive(headers, 'modelId');
-  const modelCounts: Record<string, number> = {};
-  
-  rows.forEach(r => {
-    const modelId = modelIdIndex !== -1 ? r[modelIdIndex] : null;
-    if (modelId) {
-      modelCounts[modelId] = (modelCounts[modelId] || 0) + 1;
-    }
-  });
-  
-  const sorted = Object.entries(modelCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([modelId, count]) => ({ modelId, count }))
-    .slice(0, 5);
-    
-  return sorted;
+  return parseTopModelsFromRows(allRows);
 }
 
 import { MasterDataMapping } from './types';
 
 export async function getMasterDataMappings(): Promise<MasterDataMapping[]> {
   const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);
-  const headers = allRows[0] || [];
-  const rows = allRows.slice(1);
-  return rows.map((r, i) => {
-    const obj = mapRowToObject(headers, r);
-    return {
-      id: obj.ID || obj.id || `map-${i}`,
-      modelCode: obj['รหัสสินค้า'] || obj.modelCode || "",
-      modelName: obj['ชื่อสินค้า'] || obj.modelName || "",
-      matCategoryCode: obj['MAT Category Code'] || obj.matCategoryCode || "",
-      matCategoryName: obj['MAT Category'] || obj.matCategoryName || "",
-      symptomTypeCode: obj['รหัสประเภทอาการ'] || obj.symptomTypeCode || "",
-      symptomTypeName: obj['ประเภทอาการอาการ'] || obj.symptomTypeName || "",
-      createdAt: obj.createdAt || new Date().toISOString()
-    } as MasterDataMapping;
-  });
+  return parseMasterDataMappingsFromRows(allRows);
 }
 export async function createMasterDataMapping(data: Partial<MasterDataMapping>): Promise<MasterDataMapping> {
   const allRows = await readSheet(`${SHEETS.MASTERDATA}!A1:Z`);

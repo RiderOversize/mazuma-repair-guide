@@ -42,9 +42,10 @@ import {
   updateSymptom as _updateSymptom,
   deleteSymptom as _deleteSymptom
 } from "./sheets-db";
-import type { DeviceModel } from "./types";
+import type { DeviceModel, ActiveSession, RepairFeedback } from "./types";
 
-export { type ActiveSession, type RepairFeedback, type CreateFullCategoryInput } from "./sheets-db";
+export { type ActiveSession, type RepairFeedback } from "./types";
+export { type CreateFullCategoryInput } from "./sheets-db";
 
 export const getUsers = _getUsers;
 export const createUser = _createUser;
@@ -97,6 +98,18 @@ export const getTopModels = _getTopModels;
 // Preload: Fetch all data in a single batchGet call for faster page loads
 // ---------------------------------------------------------------------------
 import { readMultipleSheets, SHEETS } from "./google-sheets";
+import {
+  parseUsersFromRows,
+  parseModelsFromRows,
+  parseCategoriesFromRows,
+  parseSubCategoriesFromRows,
+  parseSymptomTypesFromRows,
+  parseSymptomsFromRows,
+  parseGuidesFromRows,
+  parseMasterDataMappingsFromRows,
+  parseRepairStatsFromRows,
+  parseTopModelsFromRows,
+} from "./sheet-parsers";
 
 export async function preloadTechnicianData() {
   const ranges = [
@@ -109,19 +122,16 @@ export async function preloadTechnicianData() {
     `${SHEETS.MODELS}!A1:Z`,
   ];
 
-  // This single batchGet call populates the cache for all ranges
-  await readMultipleSheets(ranges);
+  // This single batchGet call fetches and populates cache for all ranges in ONE API call
+  const batchData = await readMultipleSheets(ranges);
 
-  // Now these calls will all hit cache (instant)
-  const [cats, gds, subCats, symTypes, syms, mappings, rawMods] = await Promise.all([
-    _getCategories(),
-    _getGuides(),
-    _getSubCategories(),
-    _getSymptomTypes(),
-    _getSymptoms(),
-    _getMasterDataMappings(),
-    _getModels(),
-  ]);
+  const cats = parseCategoriesFromRows(batchData[`${SHEETS.CATEGORIES}!A1:Z`] || []);
+  const gds = parseGuidesFromRows(batchData[`${SHEETS.GUIDES}!A1:Z`] || []);
+  const subCats = parseSubCategoriesFromRows(batchData[`${SHEETS.SUBCATEGORIES}!A1:Z`] || []);
+  const symTypes = parseSymptomTypesFromRows(batchData[`${SHEETS.SYMPTOM_TYPES}!A1:Z`] || []);
+  const syms = parseSymptomsFromRows(batchData[`${SHEETS.SYMPTOMS}!A1:Z`] || []);
+  const mappings = parseMasterDataMappingsFromRows(batchData[`${SHEETS.MASTERDATA}!A1:Z`] || []);
+  const rawMods = parseModelsFromRows(batchData[`${SHEETS.MODELS}!A1:Z`] || []);
 
   // ดึง Thumbnail จากชีต Models (ถ้ามี) มาประกอบกับ MasterData
   const thumbByCode = new Map<string, string>();
@@ -235,19 +245,17 @@ export async function preloadAdminData() {
     `${SHEETS.USERS}!A1:Z`,
   ];
 
-  await readMultipleSheets(ranges);
+  const batchData = await readMultipleSheets(ranges);
 
-  const [cats, maps, mods, repStats, sessions, top, syms, gds, users] = await Promise.all([
-    _getCategories(),
-    _getMasterDataMappings(),
-    _getModels(),
-    _getRepairStats(),
-    _getActiveSessions(),
-    _getTopModels(),
-    _getSymptoms(),
-    _getGuides(),
-    _getUsers(),
-  ]);
+  const cats = parseCategoriesFromRows(batchData[`${SHEETS.CATEGORIES}!A1:Z`] || []);
+  const maps = parseMasterDataMappingsFromRows(batchData[`${SHEETS.MASTERDATA}!A1:Z`] || []);
+  const mods = parseModelsFromRows(batchData[`${SHEETS.MODELS}!A1:Z`] || []);
+  const repStats = parseRepairStatsFromRows(batchData[`${SHEETS.FEEDBACKS}!A1:Z`] || []);
+  const sessions: ActiveSession[] = [];
+  const top = parseTopModelsFromRows(batchData[`${SHEETS.FEEDBACKS}!A1:Z`] || []);
+  const syms = parseSymptomsFromRows(batchData[`${SHEETS.SYMPTOMS}!A1:Z`] || []);
+  const gds = parseGuidesFromRows(batchData[`${SHEETS.GUIDES}!A1:Z`] || []);
+  const users = parseUsersFromRows(batchData[`${SHEETS.USERS}!A1:Z`] || []);
 
   return { categories: cats, mappings: maps, models: mods, repairStats: repStats, activeSessions: sessions, topModels: top, symptoms: syms, guides: gds, users };
 }

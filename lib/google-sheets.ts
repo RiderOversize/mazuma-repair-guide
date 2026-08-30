@@ -195,14 +195,11 @@ export async function initSheets() {
 
 export function clearCache(sheetName?: string) {
   if (sheetName) {
-    // @ts-expect-error Next.js 15 canary types issue
-    revalidateTag(`sheet-${sheetName}`);
+    revalidateTag(`sheet-${sheetName}`, 'max');
   } else {
-    // @ts-expect-error Next.js 15 canary types issue
-    revalidateTag('all-sheets');
+    revalidateTag('all-sheets', 'max');
     Object.values(SHEETS).forEach((sheet) => {
-      // @ts-expect-error Next.js 15 canary types issue
-      revalidateTag(`sheet-${sheet}`);
+      revalidateTag(`sheet-${sheet}`, 'max');
     });
   }
 }
@@ -276,8 +273,7 @@ export async function readSheet(range: string, forceFetch: boolean = false) {
   const sheetName = range.split('!')[0];
   
   if (forceFetch) {
-    // @ts-expect-error Next.js 15 canary types issue
-    revalidateTag(`sheet-${sheetName}`);
+    revalidateTag(`sheet-${sheetName}`, 'max');
   }
 
   const getCachedData = unstable_cache(

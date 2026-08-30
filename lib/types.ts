@@ -95,3 +95,24 @@ export interface MasterDataMapping {
   symptomTypeName: string
   createdAt?: string
 }
+
+export interface RepairFeedback {
+  id: string
+  guideId: string
+  modelId: string | null
+  userId: string
+  userName: string
+  isSuccess: boolean
+  stepsViewed: number
+  totalSteps: number
+  timestamp: string
+  note?: string
+}
+
+export interface ActiveSession {
+  userId: string
+  userName: string
+  action: string
+  lastActive: string
+}
+

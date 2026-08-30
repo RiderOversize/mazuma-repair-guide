@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
           "Accept-Ranges": "bytes",
           "Content-Length": chunkSize.toString(),
           "Content-Type": mimeType,
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
         },
       });
     } else {
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       const headers: Record<string, string> = {
         "Content-Type": mimeType,
         "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       };
       if (fileSize > 0) {
         headers["Content-Length"] = fileSize.toString();
