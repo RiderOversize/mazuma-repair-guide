@@ -1,6 +1,6 @@
 "use server"
 
-import { readSheet, appendRow, updateRowById, deleteRowById, deleteRowsByFilter, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
+import { readSheet, appendRow, appendRows, updateRowById, deleteRowById, deleteRowsByFilter, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
 import { type AuthUser } from "./auth";
 import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./types";
 import {
@@ -56,7 +56,9 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
     avatarUrl: newUser.avatar || "",
     LineName: newUser.lineName || "-",
     assignedHeads: (newUser.assignedSupervisors || []).join(','),
-    accessibleMenus: (newUser.accessibleMenus || []).join(',')
+    accessibleMenus: Array.isArray(newUser.accessibleMenus) 
+      ? (newUser.accessibleMenus.length === 0 ? "none" : newUser.accessibleMenus.join(',')) 
+      : (newUser.accessibleMenus || "")
   };
   
   const rowToAppend = mapObjectToRow(headers, objToSave);
@@ -85,7 +87,9 @@ export async function updateUser(employeeCode: string, data: Partial<AuthUser>):
     avatarUrl: merged.avatar || "",
     LineName: merged.lineName || "-",
     assignedHeads: (merged.assignedSupervisors || []).join(','),
-    accessibleMenus: (merged.accessibleMenus || []).join(',')
+    accessibleMenus: Array.isArray(merged.accessibleMenus) 
+      ? (merged.accessibleMenus.length === 0 ? "none" : merged.accessibleMenus.join(',')) 
+      : (merged.accessibleMenus || "")
   };
   
   const rowToUpdate = mapObjectToRow(headers, objToSave);
@@ -151,8 +155,6 @@ export async function bulkCreateModels(models: DeviceModel[]): Promise<DeviceMod
     return mapObjectToRow(headers, objToSave);
   });
   
-  // Need to import appendRows from google-sheets
-  const { appendRows } = require('./google-sheets');
   await appendRows(`${SHEETS.MODELS}!A2:Z`, rowsToAppend);
   return models;
 }
@@ -247,7 +249,6 @@ export async function bulkCreateCategories(categories: Partial<Category>[]): Pro
     return mapObjectToRow(headers, objToSave);
   });
   
-  const { appendRows } = require('./google-sheets');
   await appendRows(`${SHEETS.CATEGORIES}!A2:Z`, rowsToAppend);
   return createdCats;
 }
@@ -879,7 +880,6 @@ export async function bulkCreateMasterDataMappings(mappings: Partial<MasterDataM
     return mapObjectToRow(headers, objToSave);
   });
   
-  const { appendRows } = require('./google-sheets');
   await appendRows(`${SHEETS.MASTERDATA}!A2:Z`, rowsToAppend);
 
   // Auto-sync symptomTypeId to Models

@@ -5,7 +5,7 @@ import { getUsers } from "@/lib/data-service"
 const useSecureCookies = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     LineProvider({
       clientId: process.env.LINE_CLIENT_ID!,

@@ -30,7 +30,7 @@ export type AdminView =
   | "preview"
 
 import { AdminDashboard } from "./admin-dashboard"
-import { UserManagement } from "./user-management"
+import { UserManagement, getEffectiveMenus } from "./user-management"
 import { ModelsManagement } from "./models-management"
 import { GuidesManagement } from "./guides-management"
 import { MasterDataManagement } from "./master-data"
@@ -40,6 +40,10 @@ import { TechnicianApp } from "@/components/technician/technician-app"
 import { UserMenu } from "@/components/user-menu"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
+import { getUsers } from "@/lib/data-service"
+import { showToast } from "@/lib/swal"
+import { useEffect } from "react"
+import { ShieldAlert } from "lucide-react"
 
 const topNavItems = [
   { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
@@ -56,18 +60,39 @@ const moreItems = [
 ]
 
 export function AdminApp({
-  user,
+  user: initialUser,
   onLogout,
 }: {
   user: AuthUser
   onLogout: () => void
 }) {
-  const allowedMenus = user.accessibleMenus || [];
+  const [user, setUser] = useState<AuthUser>(initialUser);
+
+  // Sync fresh permissions from server on mount
+  useEffect(() => {
+    async function syncPermissions() {
+      try {
+        const allUsers = await getUsers();
+        const fresh = allUsers.find(u => u.employeeCode === initialUser.employeeCode);
+        if (fresh) {
+          setUser(fresh);
+        }
+      } catch (err) {
+        console.error("Failed to sync fresh user permissions:", err);
+      }
+    }
+    syncPermissions();
+  }, [initialUser.employeeCode]);
+
+  const effectiveMenus = getEffectiveMenus(user);
+
   const hasAccess = (menuId: string) => {
     if (menuId === "more") return true;
-    if (user.role === "admin" && allowedMenus.length === 0) return true;
-    if (menuId === "guides" && (allowedMenus.includes("guides") || allowedMenus.includes("models"))) return true;
-    return allowedMenus.includes(menuId);
+    if (menuId === "create" || menuId === "models") return hasAccess("guides");
+    if (menuId === "guides") {
+      return effectiveMenus.includes("guides") || effectiveMenus.includes("models");
+    }
+    return effectiveMenus.includes(menuId);
   }
 
   const availableTopNavItems = topNavItems.filter(item => hasAccess(item.id));
@@ -78,10 +103,13 @@ export function AdminApp({
   }
 
   const [view, setView] = useState<AdminView | "more">(() => {
-    if (user.role === "admin" && allowedMenus.length === 0) return "dashboard";
-    if (allowedMenus.includes("dashboard")) return "dashboard";
-    if (allowedMenus.length > 0) return allowedMenus[0] as AdminView;
-    return "dashboard";
+    const eff = getEffectiveMenus(initialUser);
+    if (eff.includes("dashboard")) return "dashboard";
+    if (eff.length > 0) {
+      const first = eff.find(id => id !== "dashboard") || eff[0];
+      if (first) return first as AdminView;
+    }
+    return "more";
   })
   const [editGuideId, setEditGuideId] = useState<string | null>(null)
   const [guidesSearch, setGuidesSearch] = useState("")
@@ -92,6 +120,10 @@ export function AdminApp({
   const [globalBack, setGlobalBack] = useState<(() => void) | null>(null)
   
   const go = (v: AdminView | "more") => {
+    if (v !== "more" && !hasAccess(v)) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     if (view === v) {
       setResetKey(prev => prev + 1)
       if (v === "master-data") setMasterDataSubView("mainMenu")
@@ -103,18 +135,30 @@ export function AdminApp({
   }
 
   const handleNavigateToGuides = (search: string) => {
+    if (!hasAccess("guides")) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     setGuidesSearch(search)
     setGuidesInitialModelId(undefined)
     setView("guides")
   }
 
   const handleNavigateToCreateGuideForModel = (modelId: string) => {
+    if (!hasAccess("guides")) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     setGuidesSearch("")
     setGuidesInitialModelId(modelId)
     setView("guides")
   }
 
   const handleNavigateTo = (targetView: AdminView, subView?: string) => {
+    if (!hasAccess(targetView)) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     if (targetView === "master-data" && subView) {
       setMasterDataSubView(subView)
     }
@@ -122,11 +166,19 @@ export function AdminApp({
   }
 
   const handleCreateGuide = () => {
+    if (!hasAccess("guides")) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     setEditGuideId(null)
     setView("create")
   }
 
   const handleEditGuide = (id: string) => {
+    if (!hasAccess("guides")) {
+      showToast("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้", "warning");
+      return;
+    }
     setEditGuideId(id)
     setView("create")
   }
@@ -137,7 +189,11 @@ export function AdminApp({
       <TechnicianApp
         user={user}
         preview
-        onExitPreview={() => setView("dashboard")}
+        onExitPreview={() => {
+          if (hasAccess("dashboard")) setView("dashboard");
+          else if (effectiveMenus.length > 0) setView(effectiveMenus[0] as AdminView);
+          else setView("more");
+        }}
       />
     )
   }
@@ -190,13 +246,37 @@ export function AdminApp({
       )
     }
 
+    if (!hasAccess(view)) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+          <div className="size-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+            <ShieldAlert className="size-8" />
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-1">ไม่ได้รับอนุญาตให้เข้าถึง</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            บัญชีของคุณไม่ได้รับสิทธิ์ในการใช้งานเมนูนี้ กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เพิ่มเติม
+          </p>
+          <button
+            onClick={() => {
+              if (hasAccess("dashboard")) setView("dashboard");
+              else if (effectiveMenus.length > 0) setView(effectiveMenus[0] as AdminView);
+              else setView("more");
+            }}
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            กลับหน้าหลัก
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="pb-24 pt-4">
         {view === "dashboard" && <AdminDashboard key={resetKey} user={user} onCreate={handleCreateGuide} onNavigateToGuides={handleNavigateToGuides} onNavigateTo={handleNavigateTo} onNavigateToCreateGuideForModel={handleNavigateToCreateGuideForModel} />}
         {(view === "guides" || view === "models") && <GuidesManagement key={`guides-${guidesInitialModelId || 'none'}-${resetKey}`} user={user} initialSearch={guidesSearch} initialModelId={guidesInitialModelId} setGlobalBack={setGlobalBack} />}
         {view === "master-data" && <MasterDataManagement key={resetKey} user={user} initialView={masterDataSubView} setGlobalBack={setGlobalBack} />}
         {view === "media" && <MediaLibrary key={resetKey} user={user} />}
-        {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} onLogout={onLogout} />}
+        {view === "users" && <UserManagement key={resetKey} user={user} setGlobalBack={setGlobalBack} onLogout={onLogout} onUserUpdate={(updated) => setUser(updated)} />}
         {view === "settings" && <SettingsManagement key={resetKey} user={user} />}
       </div>
     )

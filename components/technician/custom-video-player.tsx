@@ -82,11 +82,26 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
       videoRef.current.pause()
       setIsPlaying(false)
     } else {
-      videoRef.current.play().then(() => {
-        setIsPlaying(true)
-      }).catch(err => {
-        console.warn("Play error:", err)
-      })
+      const playPromise = videoRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true)
+          })
+          .catch((err) => {
+            console.warn("Direct play blocked in mobile webview, attempting muted fallback:", err)
+            if (videoRef.current) {
+              videoRef.current.muted = true
+              setIsMuted(true)
+              videoRef.current.play().then(() => {
+                setIsPlaying(true)
+              }).catch((e) => {
+                console.error("Video play completely blocked:", e)
+                setHasError(true)
+              })
+            }
+          })
+      }
     }
     resetControlsTimer()
   }
@@ -192,6 +207,9 @@ export function CustomVideoPlayer({ videoUrl, label, fallbackDriveUrl }: CustomV
         src={videoUrl}
         className="w-full h-full object-contain"
         playsInline
+        webkit-playsinline="true"
+        x5-playsinline="true"
+        crossOrigin="anonymous"
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}

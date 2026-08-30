@@ -53,6 +53,19 @@ export function parseUsersFromRows(allRows: any[][]): AuthUser[] {
     const obj = mapRowToObject(headers, r);
     const code = String(obj.employeeCode || '').trim();
     if (!code) continue;
+    let accessibleMenus: string[] | undefined = undefined;
+    if (obj.accessibleMenus !== undefined && obj.accessibleMenus !== null) {
+      const raw = String(obj.accessibleMenus).trim();
+      if (raw === "none" || raw === "-") {
+        accessibleMenus = [];
+      } else if (raw !== "") {
+        accessibleMenus = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+      } else if (obj.role !== "technician") {
+        // If the accessibleMenus field is explicitly blank for admin/head
+        accessibleMenus = [];
+      }
+    }
+
     users.push({
       employeeCode: code,
       name: obj.name || "",
@@ -66,7 +79,7 @@ export function parseUsersFromRows(allRows: any[][]): AuthUser[] {
       lineName: obj.LineName || obj.lineName || "-",
       lineUserId: obj.lineUserId || "",
       assignedSupervisors: obj.assignedHeads ? obj.assignedHeads.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      accessibleMenus: obj.accessibleMenus ? obj.accessibleMenus.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+      accessibleMenus,
     });
   }
   return users;

@@ -18,7 +18,25 @@ export const AVAILABLE_MENUS = [
   { id: "preview", label: "ดูหน้าแอปช่าง" },
 ]
 
-export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthUser, setGlobalBack?: (fn: (() => void) | null) => void, onLogout?: () => void }) {
+export const getEffectiveMenus = (u?: AuthUser | null): string[] => {
+  if (!u) return [];
+  if (Array.isArray(u.accessibleMenus)) return u.accessibleMenus;
+  if (u.role === "admin") return AVAILABLE_MENUS.map(m => m.id);
+  if (u.role === "head") return ["dashboard", "guides"];
+  return [];
+};
+
+export function UserManagement({ 
+  user, 
+  setGlobalBack, 
+  onLogout,
+  onUserUpdate 
+}: { 
+  user?: AuthUser, 
+  setGlobalBack?: (fn: (() => void) | null) => void, 
+  onLogout?: () => void,
+  onUserUpdate?: (updatedUser: AuthUser) => void
+}) {
   const [users, setUsers] = useState<AuthUser[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -94,17 +112,23 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
 
   const toggleMenu = async (menuId: string) => {
     if (!selectedUser) return
-    const menus = selectedUser.accessibleMenus || []
-    const newMenus = menus.includes(menuId) 
-      ? menus.filter(m => m !== menuId) 
-      : [...menus, menuId]
+    const currentMenus = getEffectiveMenus(selectedUser)
+    const newMenus = currentMenus.includes(menuId) 
+      ? currentMenus.filter(m => m !== menuId) 
+      : [...currentMenus, menuId]
     
+    const updatedUser = { ...selectedUser, accessibleMenus: newMenus }
     setUsers(prev => prev.map(u => 
-      u.employeeCode === selectedUserId ? { ...u, accessibleMenus: newMenus } : u
+      u.employeeCode === selectedUserId ? updatedUser : u
     ))
+
+    if (user && selectedUser.employeeCode === user.employeeCode && onUserUpdate) {
+      onUserUpdate(updatedUser)
+    }
 
     try {
       await updateUser(selectedUser.employeeCode, { accessibleMenus: newMenus })
+      showToast("อัปเดตสิทธิ์เมนูสำเร็จ", "success")
     } catch (error) {
       console.error(error)
       showToast("เกิดข้อผิดพลาดในการบันทึก", "error")
@@ -153,15 +177,27 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
     if (!selectedUser || selectedUser.role === newRole) return
     
     const newTitle = newRole === "admin" ? "ผู้ดูแลระบบ" : newRole === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค";
-    let updates: Partial<AuthUser> = { role: newRole, title: newTitle }
+    const newMenus = newRole === "admin" 
+      ? AVAILABLE_MENUS.map(m => m.id)
+      : newRole === "head" 
+        ? ["dashboard", "guides"] 
+        : [];
     
-    if (newRole !== "technician" && (!selectedUser.accessibleMenus || selectedUser.accessibleMenus.length === 0)) {
-      updates.accessibleMenus = ["dashboard", "guides", "models"]
+    const updates: Partial<AuthUser> = { 
+      role: newRole, 
+      title: newTitle,
+      accessibleMenus: newMenus
     }
     
+    const updatedUser = { ...selectedUser, ...updates }
     setUsers(prev => prev.map(u => 
-      u.employeeCode === selectedUserId ? { ...u, ...updates } : u
+      u.employeeCode === selectedUserId ? updatedUser : u
     ))
+
+    if (user && selectedUser.employeeCode === user.employeeCode && onUserUpdate) {
+      onUserUpdate(updatedUser)
+    }
+
     try {
       await updateUser(selectedUser.employeeCode, updates)
       showToast("เปลี่ยนระดับสิทธิ์สำเร็จ", "success")
@@ -535,7 +571,17 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
             <label className="text-[0.8125rem] font-semibold text-foreground">ระดับสิทธิ์ (Role)</label>
             <select
               value={newRole}
-              onChange={e => setNewRole(e.target.value as Role)}
+              onChange={e => {
+                const r = e.target.value as Role;
+                setNewRole(r);
+                if (r === "admin") {
+                  setNewAccessibleMenus(AVAILABLE_MENUS.map(m => m.id));
+                } else if (r === "head") {
+                  setNewAccessibleMenus(["dashboard", "guides"]);
+                } else {
+                  setNewAccessibleMenus([]);
+                }
+              }}
               className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-all focus:border-primary shadow-sm"
             >
               <option value="technician">ช่างเทคนิค (Technician)</option>
@@ -847,7 +893,8 @@ export function UserManagement({ user, setGlobalBack, onLogout }: { user?: AuthU
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {AVAILABLE_MENUS.map(menu => {
-                    const hasAccess = (selectedUser.accessibleMenus || []).includes(menu.id)
+                    const effective = getEffectiveMenus(selectedUser)
+                    const hasAccess = effective.includes(menu.id)
                     return (
                       <label
                         key={menu.id}

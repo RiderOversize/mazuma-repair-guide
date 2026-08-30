@@ -27,6 +27,7 @@ import { preloadAdminData, type ActiveSession, type RepairFeedback } from "@/lib
 import { getActivities, type ActivityLog } from "@/lib/activity-service"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { getEffectiveMenus } from "./user-management"
 
 export function AdminDashboard({ 
   user, 
@@ -49,7 +50,15 @@ export function AdminDashboard({
   const [users, setUsers] = useState<AuthUser[]>([])
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [totalSymptoms, setTotalSymptoms] = useState(0)
-  
+
+  const effectiveMenus = getEffectiveMenus(user);
+  const hasAccess = (menuId: string) => {
+    if (menuId === "guides") {
+      return effectiveMenus.includes("guides") || effectiveMenus.includes("models");
+    }
+    return effectiveMenus.includes(menuId);
+  };
+
   const [repairStats, setRepairStats] = useState({ total: 0, successRate: 0, avgStepsSuccess: "0", successCount: 0, failedCount: 0, feedbacks: [] as RepairFeedback[] })
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [topModels, setTopModels] = useState<{modelId: string, count: number}[]>([])
@@ -92,10 +101,10 @@ export function AdminDashboard({
   }
 
   const stats = [
-    { label: "การจับคู่ทั้งหมด", value: mappings.length, icon: BookOpen, tone: "text-blue-500 bg-blue-500/10 border-blue-500/20", onClick: () => onNavigateTo?.("guides") },
-    { label: "รุ่นสินค้า", value: models.length, icon: Smartphone, tone: "text-purple-500 bg-purple-500/10 border-purple-500/20", onClick: () => onNavigateTo?.("models") },
-    { label: "หมวดหมู่สินค้า", value: categories.length, icon: Boxes, tone: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20", onClick: () => onNavigateTo?.("master-data", "categories") },
-    { label: "กลุ่มอาการ", value: totalSymptoms, icon: Stethoscope, tone: "text-amber-500 bg-amber-500/10 border-amber-500/20", onClick: () => onNavigateTo?.("master-data", "symptomTypesRoot") },
+    { label: "การจับคู่ทั้งหมด", value: mappings.length, icon: BookOpen, tone: "text-blue-500 bg-blue-500/10 border-blue-500/20", onClick: hasAccess("guides") ? () => onNavigateTo?.("guides") : undefined },
+    { label: "รุ่นสินค้า", value: models.length, icon: Smartphone, tone: "text-purple-500 bg-purple-500/10 border-purple-500/20", onClick: hasAccess("guides") ? () => onNavigateTo?.("models") : undefined },
+    { label: "หมวดหมู่สินค้า", value: categories.length, icon: Boxes, tone: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20", onClick: hasAccess("master-data") ? () => onNavigateTo?.("master-data", "categories") : undefined },
+    { label: "กลุ่มอาการ", value: totalSymptoms, icon: Stethoscope, tone: "text-amber-500 bg-amber-500/10 border-amber-500/20", onClick: hasAccess("master-data") ? () => onNavigateTo?.("master-data", "symptomTypesRoot") : undefined },
   ]
 
   const formatTimeAgo = (dateStr: string) => {
@@ -189,14 +198,16 @@ export function AdminDashboard({
             ยินดีต้อนรับ {user.name}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => window.location.href = '/?preview=true'}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-        >
-          <ExternalLink className="size-4" />
-          ดูแอพช่าง
-        </button>
+        {hasAccess("preview") && (
+          <button
+            type="button"
+            onClick={() => window.location.href = '/?preview=true'}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+          >
+            <ExternalLink className="size-4" />
+            ดูแอพช่าง
+          </button>
+        )}
       </div>
 
       {/* Alert for missing guides */}
@@ -640,15 +651,17 @@ export function AdminDashboard({
                     <p className="font-semibold text-sm text-foreground truncate">{m.code} - {m.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">หมวดหมู่: {categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)?.name || m.categoryId}</p>
                   </div>
-                  <button 
-                    onClick={() => {
-                      setShowMissingMappingsModal(false)
-                      onNavigateToCreateGuideForModel?.(m.id)
-                    }}
-                    className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <Plus className="size-3.5" /> ไปผูกคู่มือ
-                  </button>
+                  {hasAccess("guides") && (
+                    <button 
+                      onClick={() => {
+                        setShowMissingMappingsModal(false)
+                        onNavigateToCreateGuideForModel?.(m.id)
+                      }}
+                      className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <Plus className="size-3.5" /> ไปผูกคู่มือ
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

@@ -116,6 +116,9 @@ export function CustomYouTubePlayer({ videoUrl }: { videoUrl: string }) {
           modestbranding: 1,
           playsinline: 1,
           iv_load_policy: 3,
+          enablejsapi: 1,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
+          widget_referrer: typeof window !== "undefined" ? window.location.href : undefined,
         },
         events: {
           onReady: (e: any) => {
