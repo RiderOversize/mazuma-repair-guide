@@ -18,10 +18,14 @@ export const AVAILABLE_MENUS = [
   { id: "preview", label: "ดูหน้าแอปช่าง" },
 ]
 
+export const VALID_MENU_IDS = AVAILABLE_MENUS.map(m => m.id);
+
 export const getEffectiveMenus = (u?: AuthUser | null): string[] => {
   if (!u) return [];
-  if (Array.isArray(u.accessibleMenus)) return u.accessibleMenus;
-  if (u.role === "admin") return AVAILABLE_MENUS.map(m => m.id);
+  if (Array.isArray(u.accessibleMenus)) {
+    return u.accessibleMenus.filter(m => VALID_MENU_IDS.includes(m));
+  }
+  if (u.role === "admin") return [...VALID_MENU_IDS];
   if (u.role === "head") return ["dashboard", "guides"];
   return [];
 };
@@ -116,8 +120,9 @@ export function UserManagement({
     const newMenus = currentMenus.includes(menuId) 
       ? currentMenus.filter(m => m !== menuId) 
       : [...currentMenus, menuId]
+    const sanitizedMenus = newMenus.filter(m => VALID_MENU_IDS.includes(m))
     
-    const updatedUser = { ...selectedUser, accessibleMenus: newMenus }
+    const updatedUser = { ...selectedUser, accessibleMenus: sanitizedMenus }
     setUsers(prev => prev.map(u => 
       u.employeeCode === selectedUserId ? updatedUser : u
     ))
@@ -127,7 +132,7 @@ export function UserManagement({
     }
 
     try {
-      await updateUser(selectedUser.employeeCode, { accessibleMenus: newMenus })
+      await updateUser(selectedUser.employeeCode, { accessibleMenus: sanitizedMenus })
       showToast("อัปเดตสิทธิ์เมนูสำเร็จ", "success")
     } catch (error) {
       console.error(error)
@@ -334,7 +339,7 @@ export function UserManagement({
       setNewEmpCode("")
       setNewPhone("")
       setNewAssignedSupervisors([])
-      setNewAccessibleMenus(["dashboard", "guides", "models"])
+      setNewAccessibleMenus(["dashboard", "guides"])
       await loadUsers()
       setCurrentView('list')
       showToast("สร้างผู้ใช้งานใหม่สำเร็จ", "success")

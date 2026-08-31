@@ -37,7 +37,7 @@ export const MOCK_USERS: Record<string, AuthUser> = {
     avatar: "/avatars/admin.png",
     lineName: "Panudet.T",
     employeeCode: "MZ-001",
-    accessibleMenus: ["dashboard", "create", "guides", "models", "users", "preview", "master-data", "media", "settings"], // Full access
+    accessibleMenus: ["dashboard", "guides", "master-data", "media", "users", "settings", "preview"], // Full access
     status: "active",
     createdAt: new Date("2023-11-01").toISOString(),
   },

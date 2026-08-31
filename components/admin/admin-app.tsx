@@ -68,33 +68,61 @@ export function AdminApp({
 }) {
   const [user, setUser] = useState<AuthUser>(initialUser);
 
-  // Sync fresh permissions from server on mount
+  // Sync fresh permissions from server on mount, on window focus, and periodically (Cached via Next.js Data Cache)
   useEffect(() => {
+    let isMounted = true;
+
     async function syncPermissions() {
       try {
-        const allUsers = await getUsers(true);
+        const allUsers = await getUsers();
+        if (!isMounted) return;
         const fresh = allUsers.find(u => 
           (initialUser.employeeCode && u.employeeCode?.trim().toLowerCase() === initialUser.employeeCode?.trim().toLowerCase()) ||
           (initialUser.lineUserId && u.lineUserId && u.lineUserId === initialUser.lineUserId)
         );
-        if (fresh) {
+        if (fresh && isMounted) {
+          if (fresh.status === "inactive") {
+            onLogout();
+            return;
+          }
+          if (fresh.role !== "admin" && fresh.role !== "head") {
+            window.location.href = "/";
+            return;
+          }
           setUser(fresh);
         }
       } catch (err) {
         console.error("Failed to sync fresh user permissions:", err);
       }
     }
+
     syncPermissions();
-  }, [initialUser.employeeCode, initialUser.lineUserId]);
+
+    // Re-check permissions when returning to the tab (0 Sheet API calls via Data Cache)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncPermissions();
+      }
+    };
+    window.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", syncPermissions);
+
+    // Periodic background check every 60 seconds (reads from Next.js cache in <2ms)
+    const interval = setInterval(syncPermissions, 60000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", syncPermissions);
+      clearInterval(interval);
+    };
+  }, [initialUser.employeeCode, initialUser.lineUserId, onLogout]);
 
   const effectiveMenus = getEffectiveMenus(user);
 
   const hasAccess = (menuId: string) => {
     if (menuId === "more") return true;
-    if (menuId === "create" || menuId === "models") return hasAccess("guides");
-    if (menuId === "guides") {
-      return effectiveMenus.includes("guides") || effectiveMenus.includes("models");
-    }
+    if (menuId === "create" || menuId === "models") return effectiveMenus.includes("guides");
     return effectiveMenus.includes(menuId);
   }
 

@@ -56,10 +56,11 @@ export function parseUsersFromRows(allRows: any[][]): AuthUser[] {
     let accessibleMenus: string[] | undefined = undefined;
     if (obj.accessibleMenus !== undefined && obj.accessibleMenus !== null) {
       const raw = String(obj.accessibleMenus).trim();
+      const VALID_MENU_IDS = ["dashboard", "guides", "master-data", "media", "users", "settings", "preview"];
       if (raw === "none" || raw === "-") {
         accessibleMenus = [];
       } else if (raw !== "") {
-        accessibleMenus = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+        accessibleMenus = raw.split(',').map((s: string) => s.trim()).filter(m => VALID_MENU_IDS.includes(m));
       } else if (obj.role !== "technician") {
         // If the accessibleMenus field is explicitly blank for admin/head
         accessibleMenus = [];
