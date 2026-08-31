@@ -72,8 +72,11 @@ export function AdminApp({
   useEffect(() => {
     async function syncPermissions() {
       try {
-        const allUsers = await getUsers();
-        const fresh = allUsers.find(u => u.employeeCode === initialUser.employeeCode);
+        const allUsers = await getUsers(true);
+        const fresh = allUsers.find(u => 
+          (initialUser.employeeCode && u.employeeCode?.trim().toLowerCase() === initialUser.employeeCode?.trim().toLowerCase()) ||
+          (initialUser.lineUserId && u.lineUserId && u.lineUserId === initialUser.lineUserId)
+        );
         if (fresh) {
           setUser(fresh);
         }
@@ -82,7 +85,7 @@ export function AdminApp({
       }
     }
     syncPermissions();
-  }, [initialUser.employeeCode]);
+  }, [initialUser.employeeCode, initialUser.lineUserId]);
 
   const effectiveMenus = getEffectiveMenus(user);
 
@@ -111,6 +114,21 @@ export function AdminApp({
     }
     return "more";
   })
+
+  // Auto-switch view if current view is not accessible after user state updates
+  useEffect(() => {
+    if (view !== "more" && !hasAccess(view)) {
+      if (hasAccess("dashboard")) {
+        setView("dashboard");
+      } else if (effectiveMenus.length > 0) {
+        const first = effectiveMenus.find(id => id !== "dashboard") || effectiveMenus[0];
+        setView(first as AdminView);
+      } else {
+        setView("more");
+      }
+    }
+  }, [user, effectiveMenus, view])
+
   const [editGuideId, setEditGuideId] = useState<string | null>(null)
   const [guidesSearch, setGuidesSearch] = useState("")
   const [guidesInitialModelId, setGuidesInitialModelId] = useState<string | undefined>()
