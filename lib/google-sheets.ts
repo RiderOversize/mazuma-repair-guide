@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { cacheManager } from "./cache-manager";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
@@ -195,12 +196,16 @@ export async function initSheets() {
 
 export function clearCache(sheetName?: string) {
   if (sheetName) {
-    revalidateTag(`sheet-${sheetName}`, 'max');
+    cacheManager.invalidate(`sheet-${sheetName}`);
+    try { revalidateTag(`sheet-${sheetName}`, 'max'); } catch {}
   } else {
-    revalidateTag('all-sheets', 'max');
-    Object.values(SHEETS).forEach((sheet) => {
-      revalidateTag(`sheet-${sheet}`, 'max');
-    });
+    cacheManager.invalidate();
+    try {
+      revalidateTag('all-sheets', 'max');
+      Object.values(SHEETS).forEach((sheet) => {
+        revalidateTag(`sheet-${sheet}`, 'max');
+      });
+    } catch {}
   }
 }
 
@@ -269,109 +274,76 @@ export function mapObjectToRow(headers: string[], obj: Record<string, any>): any
 // CRUD Helpers
 // ---------------------------------------------------------------------------
 
-export async function readSheet(range: string, forceFetch: boolean = false) {
+export async function readSheet(range: string, forceFetch: boolean = false): Promise<any[][]> {
   const sheetName = range.split('!')[0];
+  const cacheKey = `sheet-range-${range}`;
   
   if (forceFetch) {
-    revalidateTag(`sheet-${sheetName}`, 'max');
+    clearCache(sheetName);
   }
 
-  const getCachedData = unstable_cache(
+  return cacheManager.getOrFetch(
+    cacheKey,
     async () => {
       const sheets = await getSheetsClient();
       const spreadsheetId = await getSpreadsheetId();
       
-      let response;
       try {
-        response = await sheets.spreadsheets.values.get({
+        const response = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range,
         });
+        return response.data.values || [];
       } catch (error: any) {
         if (error.message && error.message.includes("Unable to parse range")) {
           console.log(`Sheet missing for range ${range}. Initializing sheets...`);
           await initSheets();
-          response = await sheets.spreadsheets.values.get({
+          const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range,
           });
-        } else {
-          throw error;
+          return response.data.values || [];
         }
+        throw error;
       }
-      
-      return response.data.values || [];
     },
-    [`sheet-range-${range}`],
     {
-      tags: [`sheet-${sheetName}`, 'all-sheets'],
-      revalidate: 3600 // Cache for 1 hour, invalidated manually on mutation
+      tag: `sheet-${sheetName}`,
+      forceRefresh: forceFetch,
+      freshMs: 5 * 60 * 1000,
+      staleMs: 60 * 60 * 1000,
     }
   );
-
-  try {
-    return await getCachedData();
-  } catch (cacheError) {
-    // Fallback for standalone scripts or non-Next.js contexts where unstable_cache is unavailable
-    const sheets = await getSheetsClient();
-    const spreadsheetId = await getSpreadsheetId();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
-    return response.data.values || [];
-  }
 }
 
-// Batch read multiple sheets in a single API call
+// Batch read multiple sheets in a single API call with Single-Flight In-Memory Cache
 export async function readMultipleSheets(ranges: string[]): Promise<Record<string, any[][]>> {
-  const tags = ranges.map(r => `sheet-${r.split('!')[0]}`);
   const key = `batch-${ranges.slice().sort().join('-')}`;
   
-  const getCachedBatch = unstable_cache(
+  return cacheManager.getOrFetch(
+    key,
     async () => {
       const sheets = await getSheetsClient();
       const spreadsheetId = await getSpreadsheetId();
 
-      try {
-        const response = await sheets.spreadsheets.values.batchGet({
-          spreadsheetId,
-          ranges,
-        });
+      const response = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId,
+        ranges,
+      });
 
-        const result: Record<string, any[][]> = {};
-        const valueRanges = response.data.valueRanges || [];
-        for (let i = 0; i < ranges.length; i++) {
-          result[ranges[i]] = valueRanges[i]?.values || [];
-        }
-        return result;
-      } catch (error: any) {
-        throw error;
+      const result: Record<string, any[][]> = {};
+      const valueRanges = response.data.valueRanges || [];
+      for (let i = 0; i < ranges.length; i++) {
+        result[ranges[i]] = valueRanges[i]?.values || [];
       }
+      return result;
     },
-    [key],
     {
-      tags: [...tags, 'all-sheets'],
-      revalidate: 3600
+      tag: `batch-sheets`,
+      freshMs: 5 * 60 * 1000,
+      staleMs: 60 * 60 * 1000,
     }
   );
-
-  try {
-    return await getCachedBatch();
-  } catch (cacheError) {
-    const sheets = await getSheetsClient();
-    const spreadsheetId = await getSpreadsheetId();
-    const response = await sheets.spreadsheets.values.batchGet({
-      spreadsheetId,
-      ranges,
-    });
-    const result: Record<string, any[][]> = {};
-    const valueRanges = response.data.valueRanges || [];
-    for (let i = 0; i < ranges.length; i++) {
-      result[ranges[i]] = valueRanges[i]?.values || [];
-    }
-    return result;
-  }
 }
 
 export async function appendRows(range: string, values: any[][]) {
@@ -447,11 +419,10 @@ export async function appendRow(range: string, values: any[]) {
 
 // In Google Sheets, updating a specific row requires knowing its row number.
 export async function updateRowById(sheetName: string, id: string, updatedValues: any[]) {
-  clearCache(sheetName); // Invalidate cache before/after updates
   const sheets = await getSheetsClient();
   const spreadsheetId = await getSpreadsheetId();
   
-  // Read all rows to find the index
+  // Read rows to find the index
   const data = await readSheet(`${sheetName}!A:Z`);
   const headers = data[0] || [];
   let idIndex = -1;
@@ -465,7 +436,11 @@ export async function updateRowById(sheetName: string, id: string, updatedValues
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'employeeCode');
   if (idIndex === -1) idIndex = 0; // Fallback to first column
 
-  const rowIndex = data.findIndex(row => row[idIndex] === id);
+  const targetIdClean = String(id || '').trim().toLowerCase();
+  const rowIndex = data.findIndex(row => {
+    const cellVal = String(row[idIndex] || '').trim().toLowerCase();
+    return cellVal === targetIdClean;
+  });
   
   if (rowIndex === -1) {
     throw new Error(`Row with ID ${id} not found in ${sheetName}`);
@@ -483,10 +458,12 @@ export async function updateRowById(sheetName: string, id: string, updatedValues
       values: [updatedValues]
     }
   });
+
+  // Invalidate cache AFTER successful update
+  clearCache(sheetName);
 }
 
 export async function deleteRowById(sheetName: string, id: string) {
-  clearCache(sheetName); // Invalidate cache for this sheet
   const sheets = await getSheetsClient();
   const spreadsheetId = await getSpreadsheetId();
   
@@ -509,7 +486,11 @@ export async function deleteRowById(sheetName: string, id: string) {
   if (idIndex === -1) idIndex = getIndexCaseInsensitive(headers, 'employeeCode');
   if (idIndex === -1) idIndex = 0;
 
-  const rowIndex = data.findIndex(row => row[idIndex] === id);
+  const targetIdClean = String(id || '').trim().toLowerCase();
+  const rowIndex = data.findIndex(row => {
+    const cellVal = String(row[idIndex] || '').trim().toLowerCase();
+    return cellVal === targetIdClean;
+  });
   
   if (rowIndex === -1) {
     throw new Error(`Row with ID ${id} not found in ${sheetName}`);
@@ -532,6 +513,9 @@ export async function deleteRowById(sheetName: string, id: string) {
       ]
     }
   });
+
+  // Invalidate cache AFTER successful delete
+  clearCache(sheetName);
 }
 
 export async function deleteRowsByFilter(

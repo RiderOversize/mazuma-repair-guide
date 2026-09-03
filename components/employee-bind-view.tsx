@@ -15,7 +15,7 @@ export function EmployeeBindView({
   lineProfile: { lineName: string; avatar: string }
   lineUserId: string
   onCancel: () => void
-  onBound: () => void
+  onBound: (boundUser?: any) => void
 }) {
   const [code, setCode] = useState("")
   const [phone, setPhone] = useState("")
@@ -25,9 +25,9 @@ export function EmployeeBindView({
   async function confirm() {
     if (status !== "idle") return
     const normalizedCode = code.trim().toUpperCase()
-    const normalizedPhone = phone.trim()
+    const cleanInputPhone = phone.replace(/\D/g, '')
     
-    if (!normalizedCode || !normalizedPhone) {
+    if (!normalizedCode || !cleanInputPhone) {
       setError("กรุณากรอกรหัสพนักงานและเบอร์โทรศัพท์ให้ครบถ้วน")
       return
     }
@@ -36,7 +36,7 @@ export function EmployeeBindView({
 
     try {
       const users = await getUsers()
-      const user = users.find(u => u.employeeCode === normalizedCode)
+      const user = users.find(u => String(u.employeeCode || '').trim().toUpperCase() === normalizedCode)
 
       if (!user) {
         setStatus("idle")
@@ -44,20 +44,21 @@ export function EmployeeBindView({
         return
       }
 
-      if (user.status !== "active") {
+      if (String(user.status || 'active').trim().toLowerCase() !== "active") {
         setStatus("idle")
         setError("บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อแอดมิน")
         return
       }
 
-      if (user.phone !== normalizedPhone) {
+      const cleanDbPhone = String(user.phone || '').replace(/\D/g, '')
+      if (cleanDbPhone !== cleanInputPhone) {
         setStatus("idle")
         setError("เบอร์โทรศัพท์ไม่ถูกต้อง")
         return
       }
 
       // Bind the LINE ID to the user in the database
-      await updateUser(user.employeeCode, { 
+      const updatedUser = await updateUser(user.employeeCode, { 
         lineUserId, 
         avatar: lineProfile.avatar,
         lineName: lineProfile.lineName
@@ -66,12 +67,12 @@ export function EmployeeBindView({
       setStatus("success")
       
       setTimeout(() => {
-        onBound()
-      }, 1500)
+        onBound(updatedUser)
+      }, 1000)
 
-    } catch (err) {
+    } catch (err: any) {
       setStatus("idle")
-      setError("เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่")
+      setError(err?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่")
     }
   }
 

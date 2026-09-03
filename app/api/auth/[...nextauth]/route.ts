@@ -2,7 +2,8 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import LineProvider from "next-auth/providers/line"
 import { getUsers } from "@/lib/data-service"
 
-const useSecureCookies = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const isHttps = process.env.NEXTAUTH_URL?.startsWith("https://") || process.env.VERCEL === "1";
+const useSecureCookies = isHttps;
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 
 const authOptions: NextAuthOptions = {
@@ -70,8 +71,14 @@ const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user, account, trigger }: any) {
-      // 1. On initial login with LINE
+    async jwt({ token, user, account, trigger, session }: any) {
+      // 1. Instant update if boundUser was provided directly from client
+      if (trigger === "update" && session?.boundUser) {
+        token.dbUser = session.boundUser;
+        return token;
+      }
+
+      // 2. On initial login with LINE
       if (account && user) {
         token.lineUserId = token.sub || user.id;
         token.picture = token.picture || user.image;
@@ -79,42 +86,56 @@ const authOptions: NextAuthOptions = {
         
         try {
           const users = await getUsers();
-          const dbUser = users.find(u => u.lineUserId === token.lineUserId && u.status === "active");
-          token.dbUser = dbUser || null;
-
-          // Sync database avatar or lineName in background if needed
+          const cleanLineId = String(token.lineUserId || '').trim();
+          const dbUser = users.find(u => 
+            String(u.lineUserId || '').trim() === cleanLineId && 
+            String(u.status || 'active').trim().toLowerCase() === "active"
+          );
+          
           if (dbUser) {
+            token.dbUser = dbUser;
+
+            // Sync database avatar or lineName only if missing, to protect Google Sheets write quota
             let needsUpdate = false;
             const updateData: any = {};
             
-            if (token.picture && dbUser.avatar !== token.picture) {
+            if (token.picture && (!dbUser.avatar || dbUser.avatar.includes("/avatars/"))) {
               updateData.avatar = token.picture as string;
               needsUpdate = true;
             }
-            if (token.name && dbUser.lineName !== token.name) {
+            if (token.name && (!dbUser.lineName || dbUser.lineName === "-")) {
               updateData.lineName = token.name as string;
               needsUpdate = true;
             }
             
             if (needsUpdate) {
-               const { updateUser } = await import("@/lib/sheets-db");
-               updateUser(dbUser.employeeCode, updateData).catch(console.error);
+              const { updateUser } = await import("@/lib/sheets-db");
+              updateUser(dbUser.employeeCode, updateData).catch(() => {});
             }
+          } else {
+            token.dbUser = null;
           }
         } catch (err) {
           console.error("Failed to load user in jwt callback", err);
+          if (!token.dbUser) token.dbUser = null;
         }
       }
 
-      // 2. On explicit update (e.g. after employee binds their LINE ID)
+      // 3. On explicit update (e.g. session update trigger)
       if (trigger === "update" || (trigger === "manual" && !token.dbUser)) {
         try {
           const users = await getUsers(true);
-          const lineId = token.lineUserId || token.sub;
-          const dbUser = users.find(u => u.lineUserId === lineId && u.status === "active");
-          token.dbUser = dbUser || null;
+          const cleanLineId = String(token.lineUserId || token.sub || '').trim();
+          const dbUser = users.find(u => 
+            String(u.lineUserId || '').trim() === cleanLineId && 
+            String(u.status || 'active').trim().toLowerCase() === "active"
+          );
+          if (dbUser) {
+            token.dbUser = dbUser;
+          }
         } catch (err) {
           console.error("Failed to update user in jwt callback", err);
+          // Never erase an already authenticated user on a transient error!
         }
       }
 
@@ -122,8 +143,8 @@ const authOptions: NextAuthOptions = {
     },
     async session({ session, token }: any) {
       if (session.user) {
-         session.user.lineUserId = token.lineUserId || token.sub;
-         session.user.dbUser = token.dbUser || null;
+        session.user.lineUserId = token.lineUserId || token.sub;
+        session.user.dbUser = token.dbUser || null;
       }
       return session;
     }

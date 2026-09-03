@@ -47,9 +47,9 @@ function PageContent() {
           }}
           lineUserId={(session.user as any).lineUserId}
           onCancel={() => signOut()}
-          onBound={async () => {
-            // Force session update to fetch the newly bound DB user
-            await update();
+          onBound={async (boundUser?: any) => {
+            // Force session update with the newly bound DB user directly
+            await update({ boundUser });
           }}
         />
         <GlobalWatermark />

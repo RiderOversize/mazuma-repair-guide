@@ -68,8 +68,9 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
 
 export async function updateUser(employeeCode: string, data: Partial<AuthUser>): Promise<AuthUser> {
   const users = await getUsers();
-  const existing = users.find(u => u.employeeCode === employeeCode);
-  if (!existing) throw new Error("User not found");
+  const cleanCode = String(employeeCode || '').trim().toUpperCase();
+  const existing = users.find(u => String(u.employeeCode || '').trim().toUpperCase() === cleanCode);
+  if (!existing) throw new Error(`User ${employeeCode} not found`);
   
   const merged = { ...existing, ...data };
   
@@ -161,8 +162,12 @@ export async function bulkCreateModels(models: DeviceModel[]): Promise<DeviceMod
 
 export async function updateModel(id: string, data: Partial<DeviceModel>): Promise<DeviceModel> {
   const models = await getModels();
-  const existing = models.find(m => m.id === id || m.code === id);
-  if (!existing) throw new Error("Model not found");
+  const cleanId = String(id || '').trim().toLowerCase();
+  const existing = models.find(m => 
+    String(m.id || '').trim().toLowerCase() === cleanId || 
+    String(m.code || '').trim().toLowerCase() === cleanId
+  );
+  if (!existing) throw new Error(`Model ${id} not found`);
   
   const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
   
@@ -757,12 +762,47 @@ export interface ActiveSession {
   lastActive: string
 }
 
+// Global feedback queue to protect Google Sheets write quota (60 writes/min)
+const globalForFeedback = globalThis as unknown as {
+  feedbackQueue?: any[][];
+  feedbackFlushTimer?: NodeJS.Timeout;
+};
+
+const feedbackQueue: any[][] = globalForFeedback.feedbackQueue || [];
+globalForFeedback.feedbackQueue = feedbackQueue;
+
+let isFeedbackFlushing = false;
+
+export async function flushFeedbackQueue(): Promise<void> {
+  if (isFeedbackFlushing || feedbackQueue.length === 0) return;
+  isFeedbackFlushing = true;
+  const batch = feedbackQueue.splice(0, feedbackQueue.length);
+  try {
+    const { appendRows, SHEETS } = await import("./google-sheets");
+    await appendRows(`${SHEETS.FEEDBACKS}!A2:Z`, batch);
+  } catch (err) {
+    console.error("[FeedbackQueue] Failed to flush feedback batch to Google Sheets:", err);
+    feedbackQueue.unshift(...batch);
+  } finally {
+    isFeedbackFlushing = false;
+  }
+}
+
+// Auto-flush pending feedbacks every 10 seconds
+if (!globalForFeedback.feedbackFlushTimer) {
+  globalForFeedback.feedbackFlushTimer = setInterval(() => {
+    if (feedbackQueue.length > 0) {
+      flushFeedbackQueue().catch(() => {});
+    }
+  }, 10000);
+}
+
 export async function logRepairFeedback(feedback: Omit<RepairFeedback, "id" | "timestamp">) {
   try {
     const timestamp = new Date().toISOString();
-    const id = `fb-${Date.now()}`;
+    const id = `fb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     
-    // Standard headers for feedbacks sheet to avoid redundant readSheet API call
+    // Standard headers for feedbacks sheet
     const headers = ['id', 'guideId', 'modelId', 'userId', 'userName', 'isSuccess', 'stepsViewed', 'totalSteps', 'timestamp', 'note'];
     
     const objToSave = {
@@ -778,9 +818,13 @@ export async function logRepairFeedback(feedback: Omit<RepairFeedback, "id" | "t
       note: feedback.note || ""
     };
     
-    await appendRow(`${SHEETS.FEEDBACKS}!A2:Z`, mapObjectToRow(headers, objToSave));
+    feedbackQueue.push(mapObjectToRow(headers, objToSave));
+
+    if (feedbackQueue.length >= 50) {
+      flushFeedbackQueue().catch(() => {});
+    }
   } catch (err) {
-    console.error("Non-blocking error logging repair feedback:", err);
+    console.error("Non-blocking error queueing repair feedback:", err);
   }
 }
 
