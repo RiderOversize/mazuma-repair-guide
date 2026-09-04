@@ -3,13 +3,38 @@
 import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
-import { Loader2, ShieldCheck, CheckCircle2, AlertCircle } from "lucide-react"
+import { Loader2, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function LoginView() {
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
   const searchParams = useSearchParams()
   const errorParam = searchParams.get("error")
   const [authError, setAuthError] = useState<string | null>(null)
+
+  const handleHardResetCache = async () => {
+    try {
+      setIsResetting(true)
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const reg of registrations) {
+          await reg.unregister()
+        }
+      }
+      if (typeof window !== "undefined" && "caches" in window) {
+        const keys = await caches.keys()
+        for (const key of keys) {
+          await caches.delete(key)
+        }
+      }
+      sessionStorage.clear()
+      localStorage.clear()
+      window.location.href = "/?reset=" + Date.now()
+    } catch {
+      window.location.reload()
+    }
+  }
 
   useEffect(() => {
     if (errorParam) {
@@ -96,6 +121,18 @@ export function LoginView() {
           <div className="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-zinc-400">
             <ShieldCheck className="size-4 text-emerald-400" />
             ยืนยันตัวตนพนักงานผ่านระบบความปลอดภัยสูง
+          </div>
+
+          <div className="mt-4 flex justify-center border-t border-white/5 pt-4">
+            <button
+              type="button"
+              onClick={handleHardResetCache}
+              disabled={isResetting}
+              className="text-[0.6875rem] text-zinc-400 hover:text-zinc-200 underline transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-3", isResetting && "animate-spin")} />
+              {isResetting ? "กำลังล้างแคชและรีเซ็ต..." : "พบปัญหาเข้าสู่ระบบ? แตะเพื่อล้างแคชเครื่อง"}
+            </button>
           </div>
         </div>
 

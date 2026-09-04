@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import {
   LayoutDashboard,
@@ -42,7 +42,6 @@ import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
 import { getUsers } from "@/lib/data-service"
 import { showToast } from "@/lib/swal"
-import { useEffect } from "react"
 import { ShieldAlert } from "lucide-react"
 
 const topNavItems = [
@@ -68,6 +67,11 @@ export function AdminApp({
 }) {
   const [user, setUser] = useState<AuthUser>(initialUser);
 
+  const onLogoutRef = useRef(onLogout);
+  useEffect(() => {
+    onLogoutRef.current = onLogout;
+  }, [onLogout]);
+
   // Sync fresh permissions from server on mount, on window focus, and periodically (Cached via Next.js Data Cache)
   useEffect(() => {
     let isMounted = true;
@@ -82,14 +86,25 @@ export function AdminApp({
         );
         if (fresh && isMounted) {
           if (fresh.status === "inactive") {
-            onLogout();
+            onLogoutRef.current?.();
             return;
           }
-          if (fresh.role !== "admin" && fresh.role !== "head") {
-            window.location.href = "/";
+          const userRole = String(fresh.role || "").trim().toLowerCase();
+          if (userRole !== "admin" && userRole !== "head") {
+            onLogoutRef.current?.();
             return;
           }
-          setUser(fresh);
+          setUser(prev => {
+            if (
+              prev.role === fresh.role &&
+              prev.status === fresh.status &&
+              prev.name === fresh.name &&
+              JSON.stringify(prev.accessibleMenus) === JSON.stringify(fresh.accessibleMenus)
+            ) {
+              return prev;
+            }
+            return fresh;
+          });
         }
       } catch (err) {
         console.error("Failed to sync fresh user permissions:", err);
@@ -116,7 +131,7 @@ export function AdminApp({
       window.removeEventListener("focus", syncPermissions);
       clearInterval(interval);
     };
-  }, [initialUser.employeeCode, initialUser.lineUserId, onLogout]);
+  }, [initialUser.employeeCode, initialUser.lineUserId]);
 
   const effectiveMenus = getEffectiveMenus(user);
 

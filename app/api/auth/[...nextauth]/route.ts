@@ -41,7 +41,7 @@ const authOptions: NextAuthOptions = {
       },
     },
     csrfToken: {
-      name: `${useSecureCookies ? "__Host-" : ""}next-auth.csrf-token`,
+      name: `${cookiePrefix}next-auth.csrf-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
@@ -67,6 +67,15 @@ const authOptions: NextAuthOptions = {
         path: "/",
         secure: useSecureCookies,
         maxAge: 900,
+      },
+    },
+    nonce: {
+      name: `${cookiePrefix}next-auth.nonce`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
       },
     },
   },
