@@ -22,12 +22,16 @@ export function TechnicianApp({
   initialCategoryId,
   onExitPreview,
   onLogout,
+  canSwitchToAdmin,
+  onSwitchToAdmin,
 }: {
   user: AuthUser
   preview?: boolean
   initialCategoryId?: string
   onExitPreview?: () => void
   onLogout?: () => void
+  canSwitchToAdmin?: boolean
+  onSwitchToAdmin?: () => void
 }) {
   const [view, setView] = useState<View>("home")
   const [history, setHistory] = useState<View[]>(["home"])
@@ -185,7 +189,12 @@ export function TechnicianApp({
         </div>
       ) : onLogout ? (
         <div className="fixed right-4 top-4 z-[100]">
-          <UserMenu user={user} onLogout={onLogout} />
+          <UserMenu 
+            user={user} 
+            onLogout={onLogout} 
+            canSwitchToAdmin={canSwitchToAdmin} 
+            onSwitchToAdmin={onSwitchToAdmin} 
+          />
         </div>
       ) : null}
 

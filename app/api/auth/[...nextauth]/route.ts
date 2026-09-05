@@ -162,6 +162,21 @@ const authOptions: NextAuthOptions = {
     signIn: "/",
     error: "/",
   },
+  logger: {
+    error(code, metadata: any) {
+      const errorMsg = String(metadata?.message || metadata?.error?.message || metadata?.err?.message || "");
+      if (
+        (code === "OAUTH_CALLBACK_ERROR" || code === "OAUTH_CALLBACK_HANDLER_ERROR") &&
+        (errorMsg.includes("invalid_grant") || errorMsg.includes("invalid authorization code"))
+      ) {
+        return;
+      }
+      console.error(`[next-auth][error][${code}]`, metadata);
+    },
+    warn(code) {
+      console.warn(`[next-auth][warn][${code}]`);
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET,
 }
 

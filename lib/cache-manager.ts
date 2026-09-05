@@ -8,6 +8,8 @@
  * 4. Quota protection for Google Sheets API.
  */
 
+import { after } from "next/server";
+
 interface CacheEntry<T> {
   data: T;
   cachedAt: number;
@@ -53,9 +55,29 @@ class InMemoryCacheManager {
     if (existing && !forceRefresh && now < existing.staleUntil) {
       // Trigger background refresh if not already in flight
       if (!this.inFlight.has(key)) {
-        this.executeFetch(key, fetcher, freshMs, staleMs, options?.tag).catch((err) => {
-          console.warn(`[CacheManager] Background SWR refresh failed for ${key}:`, err?.message || err);
-        });
+        let scheduledWithAfter = false;
+        try {
+          after(async () => {
+            try {
+              await this.executeFetch(key, fetcher, freshMs, staleMs, options?.tag);
+            } catch (err: any) {
+              if (!err?.message?.includes("EPIPE") && !err?.message?.includes("ECONNRESET")) {
+                console.warn(`[CacheManager] Background SWR refresh failed for ${key}:`, err?.message || err);
+              }
+            }
+          });
+          scheduledWithAfter = true;
+        } catch {
+          // If called outside of a request scope (e.g. CLI scripts/build), fallback to standard promise
+        }
+
+        if (!scheduledWithAfter) {
+          this.executeFetch(key, fetcher, freshMs, staleMs, options?.tag).catch((err: any) => {
+            if (!err?.message?.includes("EPIPE") && !err?.message?.includes("ECONNRESET")) {
+              console.warn(`[CacheManager] Background SWR refresh failed for ${key}:`, err?.message || err);
+            }
+          });
+        }
       }
       return existing.data as T;
     }

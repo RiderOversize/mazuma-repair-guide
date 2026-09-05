@@ -9,7 +9,9 @@ import { EmployeeBindView } from "@/components/employee-bind-view"
 import { Loader2 } from "lucide-react"
 import { updateUser } from "@/lib/data-service"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Suspense, useCallback, useRef } from "react"
+import { Suspense, useCallback, useRef, useState } from "react"
+
+const BACKOFFICE_MENUS = ["dashboard", "guides", "master-data", "media", "users", "settings"]
 
 function PageContent() {
   const { data: session, status, update } = useSession()
@@ -17,6 +19,7 @@ function PageContent() {
   const router = useRouter()
   const isPreview = searchParams.get("preview") === "true"
   const initialCategoryId = searchParams.get("categoryId") || undefined
+  const [adminMode, setAdminMode] = useState(false)
 
   // Stable logout handler that doesn't change on every render
   const handleLogout = useCallback(() => {
@@ -70,20 +73,39 @@ function PageContent() {
   }
 
   const userRole = String(dbUser.role || "technician").trim().toLowerCase()
-  const isTechnician = userRole === "technician"
+  const isAdmin = userRole === "admin"
+  const isHead = userRole === "head"
+  
+  // Check if head has additional backoffice permissions explicitly granted
+  const grantedAdminMenus = Array.isArray(dbUser.accessibleMenus)
+    ? dbUser.accessibleMenus.filter((m: string) => BACKOFFICE_MENUS.includes(m))
+    : []
+  const canHeadSwitchToAdmin = isHead && grantedAdminMenus.length > 0
+
+  // Decision on whether to show AdminApp or TechnicianApp:
+  // 1. Admin: always AdminApp (unless previewing)
+  // 2. Head in adminMode (and has permissions): AdminApp
+  // 3. Otherwise (Technicians, Heads by default, or Admin in preview): TechnicianApp
+  const shouldShowAdmin = isAdmin ? !isPreview : (isHead && canHeadSwitchToAdmin && adminMode)
 
   return (
     <div className="min-h-screen bg-background">
-      {isTechnician || (!isTechnician && isPreview) ? (
+      {shouldShowAdmin ? (
+        <AdminApp 
+          user={dbUser} 
+          onLogout={handleLogout} 
+          onSwitchToTechnician={isHead ? () => setAdminMode(false) : undefined}
+        />
+      ) : (
         <TechnicianApp 
           user={dbUser} 
           onLogout={!isPreview ? handleLogout : undefined} 
-          preview={isPreview} 
+          preview={isAdmin && isPreview} 
           onExitPreview={() => router.push('/')} 
           initialCategoryId={initialCategoryId}
+          canSwitchToAdmin={canHeadSwitchToAdmin}
+          onSwitchToAdmin={() => setAdminMode(true)}
         />
-      ) : (
-        <AdminApp user={dbUser} onLogout={handleLogout} />
       )}
       <GlobalWatermark />
     </div>

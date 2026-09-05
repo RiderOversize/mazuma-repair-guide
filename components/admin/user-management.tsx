@@ -23,10 +23,9 @@ export const VALID_MENU_IDS = AVAILABLE_MENUS.map(m => m.id);
 export const getEffectiveMenus = (u?: AuthUser | null): string[] => {
   if (!u) return [];
   if (Array.isArray(u.accessibleMenus)) {
-    return u.accessibleMenus.filter(m => VALID_MENU_IDS.includes(m));
+    return u.accessibleMenus.filter(m => VALID_MENU_IDS.includes(m) && (u.role === "admin" ? true : m !== "preview"));
   }
   if (u.role === "admin") return [...VALID_MENU_IDS];
-  if (u.role === "head") return ["dashboard", "guides"];
   return [];
 };
 
@@ -184,9 +183,7 @@ export function UserManagement({
     const newTitle = newRole === "admin" ? "ผู้ดูแลระบบ" : newRole === "head" ? "หัวหน้าช่าง" : "ช่างเทคนิค";
     const newMenus = newRole === "admin" 
       ? AVAILABLE_MENUS.map(m => m.id)
-      : newRole === "head" 
-        ? ["dashboard", "guides"] 
-        : [];
+      : [];
     
     const updates: Partial<AuthUser> = { 
       role: newRole, 
@@ -581,8 +578,6 @@ export function UserManagement({
                 setNewRole(r);
                 if (r === "admin") {
                   setNewAccessibleMenus(AVAILABLE_MENUS.map(m => m.id));
-                } else if (r === "head") {
-                  setNewAccessibleMenus(["dashboard", "guides"]);
                 } else {
                   setNewAccessibleMenus([]);
                 }
@@ -676,9 +671,16 @@ export function UserManagement({
 
           {newRole !== "technician" && (
             <div className="mt-2 space-y-3">
-              <label className="text-[0.8125rem] font-semibold text-foreground">สิทธิ์การเข้าถึงเมนู (เลือกได้มากกว่า 1)</label>
+              <div>
+                <label className="text-[0.8125rem] font-semibold text-foreground">สิทธิ์การเข้าถึงเมนู (เลือกได้มากกว่า 1)</label>
+                {newRole === "head" && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    หัวหน้าช่างจะได้รับสิทธิ์เข้าใช้งานแอปช่างเป็นค่าเริ่มต้นอยู่แล้ว สามารถเลือกเปิดสิทธิ์เมนูระบบจัดการเพิ่มเติมได้ที่นี่
+                  </p>
+                )}
+              </div>
               <div className="flex flex-col gap-2">
-                {AVAILABLE_MENUS.map(menu => {
+                {AVAILABLE_MENUS.filter(menu => (newRole === "admin" ? true : menu.id !== "preview")).map(menu => {
                   const hasAccess = newAccessibleMenus.includes(menu.id)
                   return (
                     <label
@@ -894,10 +896,14 @@ export function UserManagement({
               <div className="mt-6 border-t border-border/40 pt-6">
                 <div className="mb-3">
                   <h4 className="font-display text-[0.9375rem] font-bold">สิทธิ์การเข้าถึงเมนู</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedUser.role === "head"
+                      ? "หัวหน้าช่างจะได้รับสิทธิ์เข้าใช้งานแอปช่างเป็นค่าเริ่มต้นอยู่แล้ว สามารถเลือกเปิดสิทธิ์เมนูระบบจัดการเพิ่มเติมได้ที่นี่ (บันทึกอัตโนมัติ)"
+                      : "แตะเพื่อเปิด/ปิดสิทธิ์การเข้าถึง (บันทึกอัตโนมัติ)"}
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {AVAILABLE_MENUS.map(menu => {
+                  {AVAILABLE_MENUS.filter(menu => (selectedUser.role === "admin" ? true : menu.id !== "preview")).map(menu => {
                     const effective = getEffectiveMenus(selectedUser)
                     const hasAccess = effective.includes(menu.id)
                     return (

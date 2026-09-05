@@ -16,6 +16,7 @@ import {
   Settings,
   Image as ImageIcon,
   MonitorSmartphone,
+  Wrench,
 } from "lucide-react"
 
 export type AdminView = 
@@ -61,9 +62,11 @@ const moreItems = [
 export function AdminApp({
   user: initialUser,
   onLogout,
+  onSwitchToTechnician,
 }: {
   user: AuthUser
   onLogout: () => void
+  onSwitchToTechnician?: () => void
 }) {
   const [user, setUser] = useState<AuthUser>(initialUser);
 
@@ -251,6 +254,10 @@ export function AdminApp({
         user={user}
         preview
         onExitPreview={() => {
+          if (onSwitchToTechnician) {
+            onSwitchToTechnician();
+            return;
+          }
           if (hasAccess("dashboard")) setView("dashboard");
           else if (effectiveMenus.length > 0) setView(effectiveMenus[0] as AdminView);
           else setView("more");
@@ -280,6 +287,25 @@ export function AdminApp({
               <LogOut className="size-4" />
             </button>
           </div>
+
+          {onSwitchToTechnician && (
+            <button
+              type="button"
+              onClick={onSwitchToTechnician}
+              className="w-full mb-6 flex items-center justify-between p-4 rounded-2xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 active:scale-[0.98] transition-all shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Wrench className="size-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-foreground">กลับไปหน้าแอปช่าง</p>
+                  <p className="text-xs text-muted-foreground">สลับกลับไปใช้งานแอปพลิเคชันช่าง</p>
+                </div>
+              </div>
+              <ChevronLeft className="size-5 rotate-180 text-muted-foreground/60" />
+            </button>
+          )}
 
           <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
             {availableMoreItems.map((item, i) => {
@@ -383,6 +409,20 @@ export function AdminApp({
             })()}
           </div>
           
+          {onSwitchToTechnician && (
+            <div className="px-3 lg:px-4 pb-2">
+              <button
+                type="button"
+                onClick={onSwitchToTechnician}
+                className="w-full flex items-center justify-center lg:justify-start gap-2.5 py-2 px-3 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all font-semibold text-xs"
+                title="กลับสู่หน้าแอปช่าง"
+              >
+                <Wrench className="size-4 shrink-0" />
+                <span className="hidden lg:inline">กลับสู่หน้าแอปช่าง</span>
+              </button>
+            </div>
+          )}
+
           <div className="border-t border-border/40 p-3 lg:p-4 shrink-0 flex flex-col lg:flex-row items-center gap-4 lg:gap-3">
             <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
               <Image src={user.avatar || "/placeholder.svg"} alt="" fill className="object-cover" sizes="40px" />
@@ -410,7 +450,19 @@ export function AdminApp({
               </div>
               <span className="font-display font-semibold text-foreground">Mazuma Admin</span>
             </div>
-            <UserMenu user={user} onLogout={onLogout} />
+            <div className="flex items-center gap-2">
+              {onSwitchToTechnician && (
+                <button
+                  type="button"
+                  onClick={onSwitchToTechnician}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-colors"
+                >
+                  <Wrench className="size-3.5" />
+                  <span>แอปช่าง</span>
+                </button>
+              )}
+              <UserMenu user={user} onLogout={onLogout} />
+            </div>
           </div>
         )}
 

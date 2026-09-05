@@ -1,5 +1,6 @@
 "use server"
 
+import { after } from "next/server"
 import { AuthUser } from "./auth"
 import { readSheet, appendRow, SHEETS, mapRowToObject, mapObjectToRow } from "./google-sheets"
 
@@ -153,8 +154,10 @@ export async function flushActivityLogs(): Promise<void> {
   try {
     const { appendRows, SHEETS } = await import("./google-sheets");
     await appendRows(`${SHEETS.ACTIVITY_LOGS}!A2:Z`, batch);
-  } catch (error) {
-    console.error("[ActivityService] Failed to flush activity batch to Google Sheets:", error);
+  } catch (error: any) {
+    if (!error?.message?.includes("EPIPE") && !error?.message?.includes("ECONNRESET")) {
+      console.error("[ActivityService] Failed to flush activity batch to Google Sheets:", error);
+    }
     // Put items back into queue if flush fails
     activityLogQueue.unshift(...batch);
   } finally {
@@ -197,8 +200,25 @@ export async function logActivity(
   activityLogQueue.push(row);
   activityLogEntries.unshift(newLog);
 
-  // If queue reaches 25 items, trigger immediate non-blocking flush
-  if (activityLogQueue.length >= 25) {
+  // Trigger flush using after() so Serverless Lambda stays alive until Google Sheets append finishes
+  let scheduledWithAfter = false;
+  try {
+    after(async () => {
+      try {
+        await flushActivityLogs();
+      } catch (err: any) {
+        if (!err?.message?.includes("EPIPE") && !err?.message?.includes("ECONNRESET")) {
+          console.error("[ActivityService] Background flush failed:", err);
+        }
+      }
+    });
+    scheduledWithAfter = true;
+  } catch {
+    // If called outside request context (e.g. background job/script), fallback
+  }
+
+  // If not scheduled via after() and queue reaches 25 items, trigger immediate flush
+  if (!scheduledWithAfter && activityLogQueue.length >= 25) {
     flushActivityLogs().catch(() => {});
   }
 }
