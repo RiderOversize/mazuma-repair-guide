@@ -191,6 +191,12 @@ export function UserMenu({
                   <span className="font-bold text-[0.9375rem]">ออกจากระบบ</span>
                 </div>
               </button>
+
+              <div className="pt-3 text-center">
+                <p className="text-[0.6875rem] font-medium text-muted-foreground/60 tracking-wide">
+                  Mazuma Repair Guide • v3.0 (Clean Cache)
+                </p>
+              </div>
             </div>
           </div>
         </div>,

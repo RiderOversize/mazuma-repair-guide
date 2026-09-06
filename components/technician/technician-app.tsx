@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { ArrowLeft, Home, ChevronLeft } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { ArrowLeft, Home, ChevronLeft, RefreshCw } from "lucide-react"
 import { TechnicianHome, type TechnicianHomeRef, type DiagnosticGroup } from "./technician-home"
 import { SymptomList } from "./symptom-list"
 import { GuideWizard } from "./guide-wizard"
@@ -53,41 +53,60 @@ export function TechnicianApp({
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [mappings, setMappings] = useState<MasterDataMapping[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const refreshTechnicianData = useCallback(async (showIndicator = false) => {
+    if (showIndicator) setRefreshing(true)
+    try {
+      const data = await preloadTechnicianData()
+      setCategories(data.categories)
+      setSubCategories(data.subCategories)
+      setModels(data.models)
+      setGuides(data.guides)
+      setSymptomTypes(data.symptomTypes)
+      setSymptoms(data.symptoms)
+      setMappings(data.mappings || [])
+      return data
+    } catch (err) {
+      console.error("Failed to load technician data", err)
+      return null
+    } finally {
+      if (showIndicator) setRefreshing(false)
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const data = await preloadTechnicianData()
-        setCategories(data.categories)
-        setSubCategories(data.subCategories)
-        setModels(data.models)
-        setGuides(data.guides)
-        setSymptomTypes(data.symptomTypes)
-        setSymptoms(data.symptoms)
-        setMappings(data.mappings || [])
-
-        if (initialCategoryId) {
-          const category = data.categories.find(
-            (c) => c.id === initialCategoryId || c.slug === initialCategoryId
+    async function initData() {
+      const data = await refreshTechnicianData(false)
+      if (data && initialCategoryId) {
+        const category = data.categories.find(
+          (c) => c.id === initialCategoryId || c.slug === initialCategoryId
+        )
+        if (category) {
+          setCategoryId(category.id)
+          const hasSubCats = data.subCategories.some(
+            (sc) => sc.categoryId === category.id || sc.categoryId === category.slug
           )
-          if (category) {
-            setCategoryId(category.id)
-            const hasSubCats = data.subCategories.some(
-              (sc) => sc.categoryId === category.id || sc.categoryId === category.slug
-            )
-            const targetView: View = hasSubCats ? "subcategories" : "models"
-            setView(targetView)
-            setHistory(["home", targetView])
-          }
+          const targetView: View = hasSubCats ? "subcategories" : "models"
+          setView(targetView)
+          setHistory(["home", targetView])
         }
-      } catch (err) {
-        console.error("Failed to load technician data", err)
-      } finally {
-        setLoading(false)
       }
     }
-    loadData()
-  }, [initialCategoryId])
+    initData()
+  }, [initialCategoryId, refreshTechnicianData])
+
+  // Quiet background refresh when returning to tab / unlocking phone
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshTechnicianData(false)
+      }
+    }
+    window.addEventListener("visibilitychange", handleVisibility)
+    return () => window.removeEventListener("visibilitychange", handleVisibility)
+  }, [refreshTechnicianData])
 
   const category = categoryId ? categories.find(c => c.id === categoryId || c.slug === categoryId) : undefined
 
@@ -188,7 +207,16 @@ export function TechnicianApp({
           </button>
         </div>
       ) : onLogout ? (
-        <div className="fixed right-4 top-4 z-[100]">
+        <div className="fixed right-4 top-4 z-[100] flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => refreshTechnicianData(true)}
+            disabled={refreshing || loading}
+            className="flex size-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-md border border-border/50 text-muted-foreground hover:text-foreground shadow-sm active:scale-95 transition-all"
+            title="อัปเดตข้อมูลคู่มือล่าสุด"
+          >
+            <RefreshCw className={cn("size-4", (refreshing || loading) && "animate-spin text-primary")} />
+          </button>
           <UserMenu 
             user={user} 
             onLogout={onLogout} 

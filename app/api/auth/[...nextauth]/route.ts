@@ -167,7 +167,11 @@ const authOptions: NextAuthOptions = {
       const errorMsg = String(metadata?.message || metadata?.error?.message || metadata?.err?.message || "");
       if (
         (code === "OAUTH_CALLBACK_ERROR" || code === "OAUTH_CALLBACK_HANDLER_ERROR") &&
-        (errorMsg.includes("invalid_grant") || errorMsg.includes("invalid authorization code"))
+        (
+          errorMsg.includes("invalid_grant") || 
+          errorMsg.includes("invalid authorization code") ||
+          errorMsg.includes("State cookie was missing")
+        )
       ) {
         return;
       }

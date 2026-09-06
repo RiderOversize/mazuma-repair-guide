@@ -47,7 +47,7 @@ import { ShieldAlert } from "lucide-react"
 
 const topNavItems = [
   { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
-  { id: "guides", label: "คู่มือและรุ่นสินค้า", icon: BookOpen },
+  { id: "guides", label: "ผูกรุ่นและกลุ่มอาการ", icon: BookOpen },
   { id: "master-data", label: "จัดการข้อมูล", icon: Database },
   { id: "more", label: "เพิ่มเติม", icon: Menu },
 ]
@@ -328,6 +328,12 @@ export function AdminApp({
                 </button>
               )
             })}
+          </div>
+
+          <div className="pt-6 pb-2 text-center">
+            <p className="text-[0.6875rem] font-medium text-muted-foreground/60 tracking-wide">
+              Mazuma Repair Guide • v3.0 (Clean Cache)
+            </p>
           </div>
         </div>
       )

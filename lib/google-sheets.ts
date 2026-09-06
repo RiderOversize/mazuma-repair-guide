@@ -196,8 +196,10 @@ export async function initSheets() {
 
 export function clearCache(sheetName?: string) {
   if (sheetName) {
-    cacheManager.invalidate(`sheet-${sheetName}`);
+    // Invalidate both individual sheet caches and batch caches containing this sheet
+    cacheManager.invalidate(sheetName);
     try { revalidateTag(`sheet-${sheetName}`, 'max'); } catch {}
+    try { revalidateTag('batch-sheets', 'max'); } catch {}
   } else {
     cacheManager.invalidate();
     try {
@@ -205,6 +207,7 @@ export function clearCache(sheetName?: string) {
       Object.values(SHEETS).forEach((sheet) => {
         revalidateTag(`sheet-${sheet}`, 'max');
       });
+      revalidateTag('batch-sheets', 'max');
     } catch {}
   }
 }

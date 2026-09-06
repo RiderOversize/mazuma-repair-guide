@@ -356,7 +356,7 @@ export function GuidesManagement({
     return (
       <div className="flex h-[70vh] flex-col items-center justify-center gap-3">
         <Loader2 className="size-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">กำลังโหลดคู่มือและรุ่นสินค้า...</p>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">กำลังโหลดผูกรุ่นและกลุ่มอาการ...</p>
       </div>
     )
   }
@@ -553,10 +553,10 @@ export function GuidesManagement({
               <div>
                 <h1 className="font-display text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                   <BookOpen className="size-6 text-primary" />
-                  จัดการคู่มือและรุ่นสินค้า
+                  ผูกรุ่นและกลุ่มอาการ
                 </h1>
                 <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
-                  ศูนย์รวมข้อมูลรุ่นสินค้าและคู่มือการซ่อม ({filteredModels.length} จาก {stats.totalModels} รุ่น)
+                  ศูนย์รวมข้อมูลการผูกรุ่นสินค้าและกลุ่มอาการเสีย ({filteredModels.length} จาก {stats.totalModels} รุ่น)
                 </p>
               </div>
 

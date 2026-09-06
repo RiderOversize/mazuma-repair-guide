@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { AuthUser } from "@/lib/auth"
 import { Category, SubCategory, SymptomType, Symptom, Guide } from "@/lib/types"
-import { 
-  getCategories, createCategory, updateCategory, deleteCategory, 
-  getSubCategories, createSubCategory, updateSubCategory, deleteSubCategory, 
+import {
+  getCategories, createCategory, updateCategory, deleteCategory,
+  getSubCategories, createSubCategory, updateSubCategory, deleteSubCategory,
   getSymptomTypes, createSymptomType, updateSymptomType, deleteSymptomType,
   getSymptoms, createSymptom, updateSymptom, deleteSymptom,
   getGuides, createGuide, updateGuide, deleteGuide
@@ -21,7 +21,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
   const [activeSubCategoryId, setActiveSubCategoryId] = useState<string | null>(null)
   const [activeSymptomTypeId, setActiveSymptomTypeId] = useState<string | null>(null)
@@ -49,7 +49,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const [uploadingPdf, setUploadingPdf] = useState(false)
   const [uploadingVdo, setUploadingVdo] = useState(false)
   const [videoDestination, setVideoDestination] = useState<'drive' | 'youtube'>('drive')
-  
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'vdo') => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -89,10 +89,10 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: file.name, mimeType: file.type }),
         })
-        
+
         const sessionData = await sessionRes.json()
         if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to initialize upload')
-        
+
         // 2. Upload directly to Google Drive (Bypassing Vercel's 4.5MB limit)
         const uploadRes = await fetch(sessionData.uploadUrl, {
           method: 'PUT',
@@ -101,11 +101,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         })
 
         if (!uploadRes.ok) throw new Error('Upload to Google Drive failed')
-        
+
         const data = await uploadRes.json()
         fileUrl = data.webViewLink
       }
-      
+
       if (type === 'pdf') {
         setGuideForm(prev => ({ ...prev, pdfUrl: fileUrl }))
         showToast('อัพโหลด PDF สำเร็จ', 'success')
@@ -238,7 +238,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const handleSaveSubCategory = async () => {
     if (!subCatForm.index) return showToast("กรุณากรอกรหัส MAT Category Code", "error")
     if (!subCatForm.name) return showToast("กรุณากรอกชื่อหมวดหมู่ย่อย", "error")
-    
+
     try {
       if (subCatForm.isEdit) {
         await updateSubCategory(subCatForm.id, { name: subCatForm.name })
@@ -298,7 +298,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const handleSaveSymptomType = async () => {
     if (!symForm.subcategoryId) return showToast("กรุณากรอกรหัสกลุ่มอาการ", "error")
     if (!symForm.name) return showToast("กรุณากรอกชื่อกลุ่มอาการ", "error")
-    
+
     try {
       if (symForm.isEdit) {
         await updateSymptomType(symForm.id, { subcategoryId: symForm.subcategoryId, name: symForm.name, description: symForm.description })
@@ -335,21 +335,21 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const handleSaveIssue = async () => {
     if (!issueForm.title) return showToast("กรุณากรอกชื่ออาการเสีย", "error")
     if (!activeSymptomTypeId) return showToast("กรุณาเลือกกลุ่มอาการก่อน", "error")
-    
+
     try {
       if (issueForm.isEdit) {
-        await updateSymptom(issueForm.id, { 
-          title: issueForm.title, 
-          description: issueForm.description, 
-          severity: issueForm.severity as any 
+        await updateSymptom(issueForm.id, {
+          title: issueForm.title,
+          description: issueForm.description,
+          severity: issueForm.severity as any
         })
         await logActivity(user, "update", "symptom", `อาการเสีย: ${issueForm.title}`)
         showToast("แก้ไขอาการเสียสำเร็จ", "success")
       } else {
-        await createSymptom({ 
+        await createSymptom({
           id: issueForm.id,
-          title: issueForm.title, 
-          description: issueForm.description, 
+          title: issueForm.title,
+          description: issueForm.description,
           severity: issueForm.severity as any,
           symptomTypeId: activeSymptomType?.subcategoryId || activeSymptomTypeId,
           tags: []
@@ -368,20 +368,20 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const handleSaveGuide = async () => {
     if (!guideForm.title) return showToast("กรุณากรอกหัวข้อการตรวจสอบ", "error")
     if (!activeSymptomId) return showToast("กรุณาเลือก Issue ก่อน", "error")
-    
+
     try {
       if (guideForm.isEdit) {
-        await updateGuide(guideForm.id, { 
-          title: guideForm.title, 
+        await updateGuide(guideForm.id, {
+          title: guideForm.title,
           mediaUrl: guideForm.mediaUrl,
           pdfUrl: guideForm.pdfUrl
         })
         await logActivity(user, "update", "guide", `หัวข้อ: ${guideForm.title}`)
         showToast("แก้ไขสำเร็จ", "success")
       } else {
-        await createGuide({ 
+        await createGuide({
           id: `gd-${Date.now()}`,
-          title: guideForm.title, 
+          title: guideForm.title,
           symptomId: activeSymptom?.id || '',
           mediaUrl: guideForm.mediaUrl,
           pdfUrl: guideForm.pdfUrl,
@@ -429,7 +429,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             <ChevronRight className="size-5 rotate-180" />
             <span>กลับ</span>
           </button>
-          
+
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground line-clamp-2">
             {currentView === 'categories' && "จัดการหมวดหมู่หลัก"}
             {currentView === 'subCategories' && (activeCategory?.name || "หมวดหมู่ย่อย")}
@@ -450,23 +450,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       {currentView === 'mainMenu' && (
         <div className="flex flex-col gap-6">
           <div className="mb-2">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">จัดการข้อมูล (Master Data)</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">กลุ่มอาการและวิธีการตรวจสอบ</h1>
             <p className="text-[0.8125rem] text-muted-foreground mt-1">เลือกส่วนที่ต้องการจัดการ</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div 
-              onClick={() => setCurrentView('categories')}
-              className="group cursor-pointer rounded-2xl border border-border/40 bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/50 flex flex-col items-center justify-center text-center gap-4"
-            >
-              <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-                <Boxes className="size-8" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-foreground">1. จัดการ Category / Subcategory</h3>
-                <p className="text-sm text-muted-foreground mt-1">เพิ่มลบแก้ไขหมวดหมู่หลักและหมวดหมู่ย่อย</p>
-              </div>
-            </div>
-            <div 
+            <div
               onClick={() => setCurrentView('symptomTypesRoot')}
               className="group cursor-pointer rounded-2xl border border-border/40 bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/50 flex flex-col items-center justify-center text-center gap-4"
             >
@@ -474,8 +462,20 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <Stethoscope className="size-8" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-bold text-foreground">2. จัดการอาการเสียและวิธีตรวจสอบ</h3>
+                <h3 className="font-display text-lg font-bold text-foreground">1. จัดการอาการเสียและวิธีตรวจสอบ</h3>
                 <p className="text-sm text-muted-foreground mt-1">จัดการกลุ่มอาการเสีย อาการเสียย่อย และดูคู่มือที่เกี่ยวข้อง</p>
+              </div>
+            </div>
+            <div
+              onClick={() => setCurrentView('categories')}
+              className="group cursor-pointer rounded-2xl border border-border/40 bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/50 flex flex-col items-center justify-center text-center gap-4"
+            >
+              <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+                <Boxes className="size-8" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-foreground">2. จัดการ Category / Subcategory</h3>
+                <p className="text-sm text-muted-foreground mt-1">เพิ่มลบแก้ไขหมวดหมู่หลักและหมวดหมู่ย่อย</p>
               </div>
             </div>
           </div>
@@ -554,7 +554,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             {(() => {
               const categoryIndex = activeCategory?.slug || '';
               const filteredSubCategories = subCategories.filter(sc => sc.categoryId === activeCategory?.id || sc.categoryId === categoryIndex);
-              
+
               if (filteredSubCategories.length === 0) {
                 return (
                   <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
@@ -642,8 +642,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         {currentView === 'symptoms' && (
           <div className="flex flex-col">
             {(() => {
-              const filteredSymptoms = symptoms.filter(s => 
-                s.symptomTypeId === activeSymptomType?.id || 
+              const filteredSymptoms = symptoms.filter(s =>
+                s.symptomTypeId === activeSymptomType?.id ||
                 s.symptomTypeId === activeSymptomType?.name ||
                 (activeSymptomType?.subcategoryId && s.symptomTypeId === activeSymptomType?.subcategoryId)
               );
@@ -685,7 +685,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                             await deleteSymptom(sym.id)
                             showToast("ลบข้อมูลสำเร็จ", "success")
                             loadData()
-                          } catch(err: any) { showAlert("Error", err.message, "error") }
+                          } catch (err: any) { showAlert("Error", err.message, "error") }
                         }
                       }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
                       <ChevronRight className="size-5 text-muted-foreground/40" />
@@ -747,7 +747,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button onClick={(e) => { e.stopPropagation(); setGuideForm({ id: guide.id, title: guide.title, mediaUrl: guide.mediaUrl || '', pdfUrl: guide.pdfUrl || '', isEdit: true }); setShowGuideModal(true) }} className="p-2 text-muted-foreground hover:bg-black/5 hover:text-foreground rounded-full transition-colors"><Edit className="size-4" /></button>
-                      <button onClick={async (e) => { e.stopPropagation(); const ok = await confirmDelete(guide.title); if (ok) { try { await deleteGuide(guide.id); showToast('ลบสำเร็จ', 'success'); loadData() } catch(err: any) { showAlert('เกิดข้อผิดพลาด', err.message, 'error') } } }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
+                      <button onClick={async (e) => { e.stopPropagation(); const ok = await confirmDelete(guide.title); if (ok) { try { await deleteGuide(guide.id); showToast('ลบสำเร็จ', 'success'); loadData() } catch (err: any) { showAlert('เกิดข้อผิดพลาด', err.message, 'error') } } }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
                     </div>
                   </div>
                 )
@@ -769,36 +769,36 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">Index</label>
-                <input 
+                <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น F1"
                   value={catForm.slug}
-                  onChange={e => setCatForm({...catForm, slug: e.target.value})}
+                  onChange={e => setCatForm({ ...catForm, slug: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveCategory()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">ชื่อหมวดหมู่</label>
-                <input 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                <input
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น เครื่องทำน้ำอุ่น"
                   value={catForm.name}
-                  onChange={e => setCatForm({...catForm, name: e.target.value})}
+                  onChange={e => setCatForm({ ...catForm, name: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveCategory()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
-                <textarea 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]" 
+                <textarea
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]"
                   placeholder="อธิบายเพิ่มเติม..."
                   value={catForm.description}
-                  onChange={e => setCatForm({...catForm, description: e.target.value})}
+                  onChange={e => setCatForm({ ...catForm, description: e.target.value })}
                 />
               </div>
             </div>
@@ -827,27 +827,27 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">รหัส MAT Category Code</label>
-                <input 
+                <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50 disabled:bg-muted" 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50 disabled:bg-muted"
                   placeholder="เช่น F1-01-00"
                   value={subCatForm.index}
                   disabled={subCatForm.isEdit}
-                  onChange={e => setSubCatForm({...subCatForm, index: e.target.value})}
+                  onChange={e => setSubCatForm({ ...subCatForm, index: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSubCategory()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">ชื่อหมวดหมู่ย่อย</label>
-                <input 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                <input
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น เครื่องทำน้ำอุ่นแบบ X"
                   value={subCatForm.name}
-                  onChange={e => setSubCatForm({...subCatForm, name: e.target.value})}
+                  onChange={e => setSubCatForm({ ...subCatForm, name: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSubCategory()}
                 />
               </div>
@@ -877,36 +877,36 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">รหัสกลุ่มอาการ</label>
-                <input 
+                <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น WH-EL1R"
                   value={symForm.subcategoryId}
-                  onChange={e => setSymForm({...symForm, subcategoryId: e.target.value})}
+                  onChange={e => setSymForm({ ...symForm, subcategoryId: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSymptomType()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">ชื่อกลุ่มอาการ</label>
-                <input 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                <input
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น อาการน้ำอุ่น 1R"
                   value={symForm.name}
-                  onChange={e => setSymForm({...symForm, name: e.target.value})}
+                  onChange={e => setSymForm({ ...symForm, name: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSymptomType()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
-                <textarea 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]" 
+                <textarea
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]"
                   placeholder="อธิบายเพิ่มเติม..."
                   value={symForm.description || ''}
-                  onChange={e => setSymForm({...symForm, description: e.target.value})}
+                  onChange={e => setSymForm({ ...symForm, description: e.target.value })}
                 />
               </div>
             </div>
@@ -935,26 +935,26 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">ชื่ออาการเสีย</label>
-                <input 
+                <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น เครื่องเปิดติด แต่เครื่องไม่ทำความร้อน"
                   value={issueForm.title}
-                  onChange={e => setIssueForm({...issueForm, title: e.target.value})}
+                  onChange={e => setIssueForm({ ...issueForm, title: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveIssue()}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
-                <textarea 
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]" 
+                <textarea
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]"
                   placeholder="อธิบายอาการเพิ่มเติม..."
                   value={issueForm.description}
-                  onChange={e => setIssueForm({...issueForm, description: e.target.value})}
+                  onChange={e => setIssueForm({ ...issueForm, description: e.target.value })}
                 />
               </div>
             </div>
@@ -983,16 +983,16 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">หัวข้อการตรวจสอบ</label>
-                <input 
+                <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น ขดลวดฮีตเตอร์"
                   value={guideForm.title}
-                  onChange={e => setGuideForm({...guideForm, title: e.target.value})}
+                  onChange={e => setGuideForm({ ...guideForm, title: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && handleSaveGuide()}
                 />
               </div>
@@ -1000,9 +1000,9 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Video className="size-4 text-blue-500" /> อัปโหลด VDO (ไม่บังคับ)
                 </label>
-                
+
                 <div className="flex gap-3">
-                  <div 
+                  <div
                     onClick={() => setVideoDestination('drive')}
                     className={`flex-1 relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'drive' ? 'border-blue-500 bg-blue-500/5' : 'border-border hover:border-border/80 bg-background'}`}
                   >
@@ -1015,7 +1015,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                     {videoDestination === 'drive' && <CheckCircle2 className="size-4 text-blue-500 absolute top-2 right-2" />}
                   </div>
 
-                  <div 
+                  <div
                     onClick={() => setVideoDestination('youtube')}
                     className={`flex-1 relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${videoDestination === 'youtube' ? 'border-red-500 bg-red-500/5' : 'border-border hover:border-border/80 bg-background'}`}
                   >
@@ -1030,20 +1030,20 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 </div>
 
                 <div className="flex gap-2">
-                  <input 
-                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  <input
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                     placeholder="https://..."
                     value={guideForm.mediaUrl}
-                    onChange={e => setGuideForm({...guideForm, mediaUrl: e.target.value})}
+                    onChange={e => setGuideForm({ ...guideForm, mediaUrl: e.target.value })}
                   />
                   <label className={`flex items-center justify-center gap-2 rounded-xl bg-muted px-4 hover:bg-muted/80 transition-colors shrink-0 text-sm font-medium text-foreground cursor-pointer ${uploadingVdo ? 'opacity-50 pointer-events-none' : ''}`}>
                     {uploadingVdo ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                     อัพโหลด
-                    <input 
-                      type="file" 
-                      accept="video/*" 
-                      className="hidden" 
-                      onChange={(e) => handleUpload(e, 'vdo')} 
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => handleUpload(e, 'vdo')}
                     />
                   </label>
                 </div>
@@ -1053,20 +1053,20 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                   <FileDown className="size-4 text-orange-500" /> ลิงก์เอกสาร PDF / Canva (ไม่บังคับ)
                 </label>
                 <div className="flex gap-2">
-                  <input 
-                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10" 
+                  <input
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                     placeholder="https://... (Google Drive PDF หรือ ลิงก์ Canva)"
                     value={guideForm.pdfUrl}
-                    onChange={e => setGuideForm({...guideForm, pdfUrl: e.target.value})}
+                    onChange={e => setGuideForm({ ...guideForm, pdfUrl: e.target.value })}
                   />
                   <label className={`flex items-center justify-center gap-2 rounded-xl bg-muted px-4 hover:bg-muted/80 transition-colors shrink-0 text-sm font-medium text-foreground cursor-pointer ${uploadingPdf ? 'opacity-50 pointer-events-none' : ''}`}>
                     {uploadingPdf ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                     อัพโหลด
-                    <input 
-                      type="file" 
-                      accept=".pdf" 
-                      className="hidden" 
-                      onChange={(e) => handleUpload(e, 'pdf')} 
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => handleUpload(e, 'pdf')}
                     />
                   </label>
                 </div>

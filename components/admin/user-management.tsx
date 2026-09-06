@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 export const AVAILABLE_MENUS = [
   { id: "dashboard", label: "ภาพรวม" },
-  { id: "guides", label: "คู่มือและรุ่นสินค้า" },
+  { id: "guides", label: "ผูกรุ่นและกลุ่มอาการ" },
   { id: "master-data", label: "จัดการข้อมูล" },
   { id: "media", label: "คลังสื่อ (Media)" },
   { id: "users", label: "ผู้ใช้งานและสิทธิ์" },
