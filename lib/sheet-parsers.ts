@@ -272,10 +272,16 @@ export function parseRepairStatsFromRows(allRows: any[][]) {
 
   const failedCount = total - successCount;
 
-  const feedbacks = rows.map(r => {
+  const seenFbIds = new Set<string>();
+  const feedbacks = rows.map((r, idx) => {
     const obj = mapRowToObject(headers, r);
+    let id = String(obj.id || `fb-${idx}`).trim();
+    if (seenFbIds.has(id)) {
+      id = `${id}-${idx}`;
+    }
+    seenFbIds.add(id);
     return {
-      id: obj.id || `fb-${Math.random()}`,
+      id,
       guideId: obj.guideId,
       modelId: obj.modelId,
       userId: obj.userId,

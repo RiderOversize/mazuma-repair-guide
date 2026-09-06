@@ -362,11 +362,11 @@ export function AdminDashboard({
                 )
               }
 
-              return uniqueUsers.slice(0, 5).map((act) => {
+              return uniqueUsers.slice(0, 5).map((act, idx) => {
                 const user = users.find(u => u.employeeCode === act.userCode)
                 
                 return (
-                  <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <div key={`${act.userCode || 'user'}-${idx}`} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[0.8125rem] overflow-hidden">
                        {user?.avatar ? (
                          // eslint-disable-next-line @next/next/no-img-element
@@ -457,8 +457,8 @@ export function AdminDashboard({
           </div>
           
           <div className="relative border-l border-border/60 ml-2 space-y-4 pb-2">
-            {activities.slice(0, 5).map((act) => (
-              <div key={act.id} className="relative pl-5">
+            {activities.slice(0, 5).map((act, idx) => (
+              <div key={`${act.id || 'act'}-${idx}`} className="relative pl-5">
                  <span className="absolute -left-1.5 top-1 size-2.5 rounded-full bg-primary ring-4 ring-card"></span>
                  <div className="flex flex-col gap-0.5">
                     <p className="text-[0.8125rem] font-medium text-foreground">
@@ -547,11 +547,11 @@ export function AdminDashboard({
               </button>
             </div>
             <div className="overflow-y-auto pr-2 space-y-4">
-              {uniqueUsers.map((act) => {
+              {uniqueUsers.map((act, idx) => {
                 const user = users.find(u => u.employeeCode === act.userCode)
 
                 return (
-                  <div key={act.userCode} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <div key={`${act.userCode || 'user'}-${idx}`} className="flex gap-3 items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[0.8125rem] overflow-hidden">
                        {user?.avatar ? (
                          // eslint-disable-next-line @next/next/no-img-element
@@ -592,8 +592,8 @@ export function AdminDashboard({
             </div>
             <div className="overflow-y-auto pr-2">
               <div className="relative border-l border-border/60 ml-2 space-y-4 pb-2 mt-2">
-                {activities.map((act) => (
-                  <div key={act.id} className="relative pl-5">
+                {activities.map((act, idx) => (
+                  <div key={`${act.id || 'act'}-${idx}`} className="relative pl-5">
                      <span className="absolute -left-1.5 top-1 size-2.5 rounded-full bg-primary ring-4 ring-card"></span>
                      <div className="flex flex-col gap-0.5">
                         <p className="text-[0.8125rem] font-medium text-foreground">
@@ -748,14 +748,14 @@ export function AdminDashboard({
               </div>
 
               <div className="overflow-y-auto pr-2 space-y-3">
-                {displayedFeedbacks.map(fb => {
+                {displayedFeedbacks.map((fb, idx) => {
                   const model = getModel(fb.modelId || "")
                   const guide = guides.find(g => g.id === fb.guideId)
                   const symptom = symptoms.find(s => s.id === guide?.symptomId)
                   const fbUser = users.find(u => u.employeeCode === fb.userId)
 
                   return (
-                    <div key={fb.id} className="flex flex-col p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
+                    <div key={`${fb.id}-${idx}`} className="flex flex-col p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {fbUser?.avatar ? (
