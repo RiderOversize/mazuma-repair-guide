@@ -10,6 +10,7 @@ import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
 import { type Category, type DeviceModel, type Guide, type SubCategory, type SymptomType, type Symptom, type MasterDataMapping } from "@/lib/types"
 import { preloadTechnicianData } from "@/lib/data-service"
+import { showToast } from "@/lib/swal"
 import { logActivity } from "@/lib/activity-service"
 import type { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -55,20 +56,33 @@ export function TechnicianApp({
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  const refreshTechnicianData = useCallback(async (showIndicator = false) => {
+  const refreshTechnicianData = useCallback(async (showIndicator = false, force = false) => {
     if (showIndicator) setRefreshing(true)
     try {
-      const data = await preloadTechnicianData()
-      setCategories(data.categories)
-      setSubCategories(data.subCategories)
-      setModels(data.models)
-      setGuides(data.guides)
-      setSymptomTypes(data.symptomTypes)
-      setSymptoms(data.symptoms)
-      setMappings(data.mappings || [])
-      return data
+      const data = await preloadTechnicianData(force)
+      if (data) {
+        setCategories(data.categories)
+        setSubCategories(data.subCategories)
+        setModels(data.models)
+        setGuides(data.guides)
+        setSymptomTypes(data.symptomTypes)
+        setSymptoms(data.symptoms)
+        setMappings(data.mappings || [])
+        if (showIndicator) {
+          showToast("อัปเดตข้อมูลคู่มือล่าสุดเรียบร้อยแล้ว", "success")
+        }
+        return data
+      } else {
+        if (showIndicator) {
+          showToast("ไม่สามารถอัปเดตข้อมูลได้ โปรดลองใหม่อีกครั้ง", "error")
+        }
+        return null
+      }
     } catch (err) {
       console.error("Failed to load technician data", err)
+      if (showIndicator) {
+        showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error")
+      }
       return null
     } finally {
       if (showIndicator) setRefreshing(false)
@@ -193,8 +207,8 @@ export function TechnicianApp({
           <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] dark:bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.07] dark:opacity-[0.12] [mask-image:radial-gradient(ellipse_90%_90%_at_50%_0%,#000_70%,transparent_100%)]" />
         </div>
       </div>
-      {/* Top-right account control (or admin preview banner) */}
-      {preview ? (
+      {/* Admin preview banner */}
+      {preview && (
         <div className="relative w-full z-[70] flex items-center justify-between gap-3 border-b border-border bg-primary px-4 py-2.5 text-primary-foreground shadow-xs">
           <span className="text-sm font-medium">กำลังดูตัวอย่างแอปช่าง</span>
           <button
@@ -206,25 +220,7 @@ export function TechnicianApp({
             กลับสู่แอดมิน
           </button>
         </div>
-      ) : onLogout ? (
-        <div className="fixed right-4 top-4 z-[100] flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => refreshTechnicianData(true)}
-            disabled={refreshing || loading}
-            className="flex size-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-md border border-border/50 text-muted-foreground hover:text-foreground shadow-sm active:scale-95 transition-all"
-            title="อัปเดตข้อมูลคู่มือล่าสุด"
-          >
-            <RefreshCw className={cn("size-4", (refreshing || loading) && "animate-spin text-primary")} />
-          </button>
-          <UserMenu 
-            user={user} 
-            onLogout={onLogout} 
-            canSwitchToAdmin={canSwitchToAdmin} 
-            onSwitchToAdmin={onSwitchToAdmin} 
-          />
-        </div>
-      ) : null}
+      )}
 
       {loading ? (
         <div className="flex h-[50vh] items-center justify-center">
@@ -238,6 +234,27 @@ export function TechnicianApp({
           {view === "home" && (
             <TechnicianHome
               ref={homeRef}
+              headerRight={
+                onLogout && !preview ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => refreshTechnicianData(true, true)}
+                      disabled={refreshing || loading}
+                      className="flex size-7.5 items-center justify-center rounded-full bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-all shadow-xs active:scale-95"
+                      title="อัปเดตข้อมูลคู่มือล่าสุด"
+                    >
+                      <RefreshCw className={cn("size-3.5", (refreshing || loading) && "animate-spin text-primary")} />
+                    </button>
+                    <UserMenu 
+                      user={user} 
+                      onLogout={onLogout} 
+                      canSwitchToAdmin={canSwitchToAdmin} 
+                      onSwitchToAdmin={onSwitchToAdmin} 
+                    />
+                  </div>
+                ) : undefined
+              }
               categories={categories}
               models={models}
               symptoms={symptoms}

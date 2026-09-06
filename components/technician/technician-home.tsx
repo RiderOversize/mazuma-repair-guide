@@ -217,6 +217,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
   onSelectModel: (model: DeviceModel) => void
   onSelectDiagnostic?: (categoryId: string) => void
   onSelectGuide?: (guide: Guide, fromQuickDiagnostic?: boolean) => void
+  headerRight?: React.ReactNode
 }>(function TechnicianHome({
   categories,
   models,
@@ -233,6 +234,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
   onSelectModel,
   onSelectDiagnostic,
   onSelectGuide,
+  headerRight,
 }, ref) {
   const [query, setQuery] = useState("")
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
@@ -475,22 +477,10 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
     <div className="mx-auto w-full max-w-3xl">
       {/* Permanently Locked Sticky Header */}
       <div className="sticky top-0 z-30 transition-all w-full">
-        <div className={cn(
-          "w-full bg-background/95 backdrop-blur-2xl px-4 border-b border-border/40 shadow-xs pb-3",
-          preview ? "pt-3.5" : "pt-8 sm:pt-4"
-        )}>
+        <div className="w-full bg-background/95 backdrop-blur-2xl px-4 border-b border-border/40 shadow-xs pb-3 pt-3.5 sm:pt-4">
           {/* Top Status & Tool Buttons */}
           <div className="flex items-center justify-between pb-3 px-0.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-              </span>
-              <span className="text-[0.6875rem] font-semibold text-emerald-700 dark:text-emerald-400 tracking-wide uppercase">
-                Online Database
-              </span>
-            </div>
-            
+            {/* Left side: Tech Tools & App Settings */}
             <div className="flex items-center gap-1.5">
               {/* Tech Tools Button */}
               <button
@@ -503,16 +493,25 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                 <span>เครื่องมือช่าง</span>
               </button>
 
+              {/* Settings Button */}
               {mounted && (
                 <button
                   onClick={() => setShowSettings(true)}
                   className="flex size-7.5 items-center justify-center rounded-full bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/40 transition-all shadow-xs"
                   aria-label="ตั้งค่าแอป"
+                  title="ตั้งค่าแอป"
                 >
                   <Settings className="size-3.5" />
                 </button>
               )}
             </div>
+
+            {/* Right side: Profile & Actions (in normal flow, not floating) */}
+            {headerRight && (
+              <div className="flex items-center gap-1.5">
+                {headerRight}
+              </div>
+            )}
           </div>
 
           {/* Brand header */}

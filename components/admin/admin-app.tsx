@@ -423,7 +423,7 @@ export function AdminApp({
                 className="w-full flex items-center justify-center lg:justify-start gap-2.5 py-2 px-3 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all font-semibold text-xs"
                 title="กลับสู่หน้าแอปช่าง"
               >
-                <Wrench className="size-4 shrink-0" />
+                <Smartphone className="size-4 shrink-0" />
                 <span className="hidden lg:inline">กลับสู่หน้าแอปช่าง</span>
               </button>
             </div>
@@ -461,13 +461,14 @@ export function AdminApp({
                 <button
                   type="button"
                   onClick={onSwitchToTechnician}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-colors"
+                  className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all shadow-xs active:scale-95 shrink-0"
+                  title="กลับสู่หน้าแอปช่าง"
+                  aria-label="แอปช่าง"
                 >
-                  <Wrench className="size-3.5" />
-                  <span>แอปช่าง</span>
+                  <Smartphone className="size-4" />
                 </button>
               )}
-              <UserMenu user={user} onLogout={onLogout} />
+              <UserMenu user={user} onLogout={onLogout} onSwitchToTechnician={onSwitchToTechnician} />
             </div>
           </div>
         )}

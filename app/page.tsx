@@ -168,7 +168,7 @@ function PageContent() {
         <AdminApp 
           user={dbUser} 
           onLogout={handleLogout} 
-          onSwitchToTechnician={isHead ? () => setAdminMode(false) : undefined}
+          onSwitchToTechnician={isHead ? () => setAdminMode(false) : () => router.push('/?preview=true')}
         />
       ) : (
         <TechnicianApp 

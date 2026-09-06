@@ -313,16 +313,21 @@ export async function readSheet(range: string, forceFetch: boolean = false): Pro
     {
       tag: `sheet-${sheetName}`,
       forceRefresh: forceFetch,
-      freshMs: 5 * 60 * 1000,
-      staleMs: 60 * 60 * 1000,
+      freshMs: 30 * 1000,
+      staleMs: 5 * 60 * 1000,
     }
   );
 }
 
 // Batch read multiple sheets in a single API call with Single-Flight In-Memory Cache
-export async function readMultipleSheets(ranges: string[]): Promise<Record<string, any[][]>> {
+export async function readMultipleSheets(ranges: string[], forceRefresh: boolean = false): Promise<Record<string, any[][]>> {
   const key = `batch-${ranges.slice().sort().join('-')}`;
   
+  if (forceRefresh) {
+    cacheManager.invalidate(key);
+    cacheManager.invalidate(`batch-sheets`);
+  }
+
   return cacheManager.getOrFetch(
     key,
     async () => {
@@ -343,8 +348,9 @@ export async function readMultipleSheets(ranges: string[]): Promise<Record<strin
     },
     {
       tag: `batch-sheets`,
-      freshMs: 5 * 60 * 1000,
-      staleMs: 60 * 60 * 1000,
+      forceRefresh,
+      freshMs: 30 * 1000,
+      staleMs: 5 * 60 * 1000,
     }
   );
 }

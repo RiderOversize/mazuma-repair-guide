@@ -111,7 +111,7 @@ import {
   parseTopModelsFromRows,
 } from "./sheet-parsers";
 
-export async function preloadTechnicianData() {
+export async function preloadTechnicianData(forceRefresh = false) {
   const ranges = [
     `${SHEETS.CATEGORIES}!A1:Z`,
     `${SHEETS.GUIDES}!A1:Z`,
@@ -123,7 +123,7 @@ export async function preloadTechnicianData() {
   ];
 
   // This single batchGet call fetches and populates cache for all ranges in ONE API call
-  const batchData = await readMultipleSheets(ranges);
+  const batchData = await readMultipleSheets(ranges, forceRefresh);
 
   const cats = parseCategoriesFromRows(batchData[`${SHEETS.CATEGORIES}!A1:Z`] || []);
   const gds = parseGuidesFromRows(batchData[`${SHEETS.GUIDES}!A1:Z`] || []);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
-import { LogOut, ChevronDown, User, Shield, X, Unlink, Loader2, ChevronRight } from "lucide-react"
+import { LogOut, ChevronDown, User, Shield, X, Unlink, Loader2, ChevronRight, Smartphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/auth"
 import { updateUser } from "@/lib/data-service"
@@ -15,12 +15,14 @@ export function UserMenu({
   tone = "light",
   canSwitchToAdmin,
   onSwitchToAdmin,
+  onSwitchToTechnician,
 }: {
   user: AuthUser
   onLogout: () => void
   tone?: "light" | "dark"
   canSwitchToAdmin?: boolean
   onSwitchToAdmin?: () => void
+  onSwitchToTechnician?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -170,6 +172,28 @@ export function UserMenu({
                     <div className="text-left">
                       <p className="text-sm font-bold text-foreground">สลับไปหน้าระบบจัดการ</p>
                       <p className="text-xs text-muted-foreground">เข้าสู่ระบบแอดมินตามสิทธิ์ที่ได้รับ</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="size-5 text-muted-foreground/60" />
+                </button>
+              )}
+
+              {onSwitchToTechnician && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    onSwitchToTechnician()
+                  }}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 active:scale-[0.98] transition-all mt-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Smartphone className="size-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-foreground">สลับไปหน้าแอปช่าง</p>
+                      <p className="text-xs text-muted-foreground">กลับสู่แอปพลิเคชันช่างเทคนิค</p>
                     </div>
                   </div>
                   <ChevronRight className="size-5 text-muted-foreground/60" />

@@ -22,9 +22,9 @@ class InMemoryCacheManager {
   private cache = new Map<string, CacheEntry<any>>();
   private inFlight = new Map<string, Promise<any>>();
 
-  // Default: Fresh for 5 minutes, Stale-While-Revalidate allowed for up to 60 minutes
-  private readonly DEFAULT_FRESH_MS = 5 * 60 * 1000;
-  private readonly DEFAULT_STALE_MS = 60 * 60 * 1000;
+  // Default: Fresh for 30 seconds, Stale-While-Revalidate allowed for up to 5 minutes
+  private readonly DEFAULT_FRESH_MS = 30 * 1000;
+  private readonly DEFAULT_STALE_MS = 5 * 60 * 1000;
 
   /**
    * Fetch with cache + single-flight deduplication
