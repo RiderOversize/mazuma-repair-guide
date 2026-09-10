@@ -88,11 +88,9 @@ export function GuideForm({
         const model = models.find(m => m.id === selectedModelIds[0])
         if (!model) throw new Error("ข้อมูลสินค้ารุ่นไม่ถูกต้อง")
 
-        const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
-        const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
-
-        const matCode = subCategory?.index || category?.slug || ""
-        const matName = subCategory?.name || category?.name || model.subcategoryId || model.categoryId || ""
+        const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId || c.name === model.categoryId)
+        const matCode = category?.slug || category?.id || model.code?.split("-")[0] || ""
+        const matName = category?.name || model.categoryId || ""
 
         const mappingData = {
           modelCode: model.code,
@@ -111,11 +109,9 @@ export function GuideForm({
           const model = models.find(m => m.id === modelId)
           if (!model) continue
 
-          const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId)
-          const subCategory = subCategories.find(sc => sc.index === model.subcategoryId || sc.id === model.subcategoryId)
-
-          const matCode = subCategory?.index || category?.slug || ""
-          const matName = subCategory?.name || category?.name || model.subcategoryId || model.categoryId || ""
+          const category = categories.find(c => c.slug === model.categoryId || c.id === model.categoryId || c.name === model.categoryId)
+          const matCode = category?.slug || category?.id || model.code?.split("-")[0] || ""
+          const matName = category?.name || model.categoryId || ""
 
           mappingsToCreate.push({
             modelCode: model.code,

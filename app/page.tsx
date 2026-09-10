@@ -8,6 +8,7 @@ import { AdminApp } from "@/components/admin/admin-app"
 import { EmployeeBindView } from "@/components/employee-bind-view"
 import { Loader2 } from "lucide-react"
 import { getUsers } from "@/lib/data-service"
+import { MOCK_USERS } from "@/lib/auth"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
@@ -21,6 +22,17 @@ function PageContent() {
   const initialCategoryId = searchParams.get("categoryId") || undefined
   const [adminMode, setAdminMode] = useState(false)
   const [liveUser, setLiveUser] = useState<any>(null)
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      const devParam = searchParams.get("devUser")
+      if (devParam === "admin") {
+        setLiveUser(MOCK_USERS.admin)
+      } else if (devParam === "technician") {
+        setLiveUser(MOCK_USERS.technician)
+      }
+    }
+  }, [searchParams])
 
   // Stable logout handler that doesn't change on every render
   const handleLogout = useCallback(() => {
@@ -113,7 +125,7 @@ function PageContent() {
     )
   }
 
-  if (status === "unauthenticated" || (!session?.user && !activeUser)) {
+  if (!activeUser && (status === "unauthenticated" || !session?.user)) {
     return (
       <div className="min-h-screen bg-background">
         <LoginView />

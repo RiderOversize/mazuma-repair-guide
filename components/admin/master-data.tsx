@@ -1,22 +1,30 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { AuthUser } from "@/lib/auth"
-import { Category, SubCategory, SymptomType, Symptom, Guide } from "@/lib/types"
+import { Category, SubCategory, SymptomType, Symptom, Guide, DeviceModel } from "@/lib/types"
 import {
   getCategories, createCategory, updateCategory, deleteCategory,
   getSubCategories, createSubCategory, updateSubCategory, deleteSubCategory,
+  createFullCategory, getModels, createModel, updateModel, deleteModel,
   getSymptomTypes, createSymptomType, updateSymptomType, deleteSymptomType,
   getSymptoms, createSymptom, updateSymptom, deleteSymptom,
   getGuides, createGuide, updateGuide, deleteGuide
 } from "@/lib/data-service"
+import { getCategoryTheme, isModelInSubCategory, isAllowedCategory } from "@/lib/category-theme"
+import { cn } from "@/lib/utils"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
-import { Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, Upload, HardDrive, PlaySquare, CheckCircle2 } from "lucide-react"
+import { 
+  Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, 
+  FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, 
+  Upload, HardDrive, PlaySquare, CheckCircle2, Search, Layers, Tag, ImageIcon
+} from "lucide-react"
 
 export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobalBack }: { user: AuthUser, initialView?: string, setGlobalBack?: (fn: (() => void) | null) => void }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+  const [models, setModels] = useState<DeviceModel[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
@@ -26,6 +34,21 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const [activeSubCategoryId, setActiveSubCategoryId] = useState<string | null>(null)
   const [activeSymptomTypeId, setActiveSymptomTypeId] = useState<string | null>(null)
   const [activeSymptomId, setActiveSymptomId] = useState<string | null>(null)
+
+  // Category & Model search state
+  const [categorySearch, setCategorySearch] = useState('')
+  const [modelSearch, setModelSearch] = useState('')
+
+  // Model Modal (ภายในหมวดหมู่)
+  const [showModelModal, setShowModelModal] = useState(false)
+  const [modelForm, setModelForm] = useState({
+    id: '',
+    name: '',
+    code: '',
+    thumbnail: '',
+    status: 'active' as 'active' | 'discontinued' | 'draft',
+    isEdit: false
+  })
 
   // Modals state
   const [showCatModal, setShowCatModal] = useState(false)
@@ -149,45 +172,200 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
   const loadData = async () => {
     setLoading(true)
-    const [cats, subCats, symTypes, syms, gds] = await Promise.all([
-      getCategories(), getSubCategories(), getSymptomTypes(), getSymptoms(), getGuides()
+    const [cats, subCats, symTypes, syms, gds, mods] = await Promise.all([
+      getCategories(), getSubCategories(), getSymptomTypes(), getSymptoms(), getGuides(), getModels()
     ])
     setCategories(cats)
     setSubCategories(subCats)
     setSymptomTypes(symTypes)
     setSymptoms(syms)
     setGuides(gds)
+    setModels(mods)
     setLoading(false)
   }
 
-  const activeCategory = categories.find(c => c.id === activeCategoryId)
+  // หมวดหมู่สินค้าโดยตรงจาก Models / SFTP (กรองเฉพาะหมวดเป้าหมาย)
+  const displayCategories = useMemo(() => {
+    return categories
+      .filter(c => isAllowedCategory(c.name || c.slug || c.id))
+      .map(c => ({
+        id: c.id,
+        slug: c.slug || c.id,
+        code: '',
+        name: c.name,
+        description: c.description && c.description !== c.name ? c.description : '',
+        groupCode: c.slug || c.name || '',
+      }))
+  }, [categories])
+
+  const activeCategory = displayCategories.find(c => 
+    c.id === activeCategoryId || c.slug === activeCategoryId || c.name === activeCategoryId
+  )
   const activeSubCategory = subCategories.find(s => s.id === activeSubCategoryId)
   const activeSymptomType = symptomTypes.find(st => st.id === activeSymptomTypeId)
   const activeSymptom = symptoms.find(s => s.id === activeSymptomId)
 
-  // Category Actions
+  // Calculate model count accurately
+  const getCategoryModelCount = (cat: { id: string; code?: string; slug?: string; name?: string }) => {
+    return models.filter(m => {
+      return (
+        m.categoryId === cat.id ||
+        m.categoryId === cat.slug ||
+        m.categoryId === cat.name ||
+        isModelInSubCategory(m, {
+          id: cat.id,
+          name: cat.name || cat.id,
+          slug: cat.slug || cat.id,
+          description: '',
+          status: 'active'
+        })
+      )
+    }).length
+  }
+
+  // Active Category Models list
+  const activeCategoryModels = useMemo(() => {
+    if (!activeCategory) return []
+
+    const list = models.filter(m => {
+      return (
+        m.categoryId === activeCategory.id ||
+        m.categoryId === activeCategory.slug ||
+        m.categoryId === activeCategory.name ||
+        isModelInSubCategory(m, {
+          id: activeCategory.id,
+          name: activeCategory.name || activeCategory.id,
+          slug: activeCategory.slug || activeCategory.id,
+          description: '',
+          status: 'active'
+        })
+      )
+    })
+
+    if (!modelSearch.trim()) return list
+    const q = modelSearch.trim().toLowerCase()
+    return list.filter(m =>
+      (m.name && m.name.toLowerCase().includes(q)) ||
+      (m.code && m.code.toLowerCase().includes(q))
+    )
+  }, [activeCategory, models, modelSearch])
+
+  // Model Actions (ภายในหมวดหมู่สินค้า)
+  const openAddModel = () => {
+    setModelForm({
+      id: '',
+      name: '',
+      code: '',
+      thumbnail: '',
+      status: 'active',
+      isEdit: false
+    })
+    setShowModelModal(true)
+  }
+
+  const openEditModel = (model: DeviceModel, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setModelForm({
+      id: model.id,
+      name: model.name || '',
+      code: model.code || '',
+      thumbnail: model.thumbnail || '',
+      status: (model.status || 'active') as 'active' | 'discontinued' | 'draft',
+      isEdit: true
+    })
+    setShowModelModal(true)
+  }
+
+  const handleSaveModel = async () => {
+    const cleanName = modelForm.name.trim()
+    const cleanCode = modelForm.code.trim()
+    if (!cleanName) return showToast("กรุณากรอกชื่อรุ่นสินค้า", "error")
+    if (!cleanCode) return showToast("กรุณากรอกรหัสรุ่นสินค้า (Code)", "error")
+
+    const subCatId = activeCategory?.id || ''
+    const groupPrefix = activeCategory?.groupCode || (activeCategory?.code ? activeCategory.code.split('-')[0] : '')
+
+    try {
+      if (modelForm.isEdit) {
+        await updateModel(modelForm.id, {
+          name: cleanName,
+          code: cleanCode,
+          thumbnail: modelForm.thumbnail.trim(),
+          status: modelForm.status,
+        })
+        await logActivity(user, "update", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode})`)
+        showToast("แก้ไขรุ่นสินค้าสำเร็จ", "success")
+      } else {
+        await createModel({
+          id: cleanCode || `m-${Date.now()}`,
+          name: cleanName,
+          code: cleanCode,
+          categoryId: activeCategory?.name || activeCategory?.id || '',
+          subcategoryId: '',
+          thumbnail: modelForm.thumbnail.trim(),
+          status: modelForm.status,
+        } as DeviceModel)
+        await logActivity(user, "create", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode}) ในหมวด: ${activeCategory?.name}`)
+        showToast("เพิ่มรุ่นสินค้าสำเร็จ", "success")
+      }
+      setShowModelModal(false)
+      loadData()
+    } catch (err: any) {
+      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+    }
+  }
+
+  const handleDeleteModel = async (model: DeviceModel, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const isConfirmed = await confirmDelete(
+      "ลบรุ่นสินค้า",
+      `คุณต้องการลบรุ่น "${model.name}" (${model.code}) ใช่หรือไม่?`
+    )
+    if (isConfirmed) {
+      try {
+        await deleteModel(model.id)
+        await logActivity(user, "delete", "model", `รุ่นสินค้า: ${model.name} (${model.code})`)
+        showToast("ลบรุ่นสินค้าสำเร็จ", "success")
+        loadData()
+      } catch (err: any) {
+        showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      }
+    }
+  }
+
+  // Category Actions (1-Level Product Categories)
   const openAddCategory = () => {
     setCatForm({ id: '', name: '', description: '', slug: '', isEdit: false })
     setShowCatModal(true)
   }
 
-  const openEditCategory = (cat: Category, e: React.MouseEvent) => {
+  const openEditCategory = (cat: { id: string; name: string; slug: string; code?: string; description?: string }, e: React.MouseEvent) => {
     e.stopPropagation()
-    setCatForm({ id: cat.id, name: cat.name, description: cat.description, slug: cat.slug || '', isEdit: true })
+    setCatForm({ id: cat.id, name: cat.name, description: cat.description || '', slug: cat.code || cat.slug || '', isEdit: true })
     setShowCatModal(true)
   }
 
   const handleSaveCategory = async () => {
-    if (!catForm.name) return showToast("กรุณากรอกชื่อหมวดหมู่", "error")
+    const cleanName = catForm.name.trim()
+    if (!cleanName) return showToast("กรุณากรอกชื่อหมวดหมู่สินค้า", "error")
+
     try {
       if (catForm.isEdit) {
-        await updateCategory(catForm.id, { name: catForm.name, description: catForm.description, slug: catForm.slug })
-        await logActivity(user, "update", "category", `หมวดหมู่หลัก: ${catForm.name}`)
-        showToast("แก้ไขหมวดหมู่สำเร็จ", "success")
+        await updateCategory(catForm.id, {
+          name: cleanName,
+          slug: cleanName,
+          description: catForm.description.trim(),
+        })
+        await logActivity(user, "update", "category", `หมวดหมู่สินค้า: ${cleanName}`)
+        showToast("แก้ไขหมวดหมู่สินค้าสำเร็จ", "success")
       } else {
-        await createCategory({ name: catForm.name, description: catForm.description, slug: catForm.slug })
-        await logActivity(user, "create", "category", `หมวดหมู่หลัก: ${catForm.name}`)
-        showToast("เพิ่มหมวดหมู่สำเร็จ", "success")
+        await createCategory({
+          name: cleanName,
+          slug: cleanName,
+          description: catForm.description.trim(),
+        })
+        await logActivity(user, "create", "category", `หมวดหมู่สินค้า: ${cleanName}`)
+        showToast("เพิ่มหมวดหมู่สินค้าสำเร็จ", "success")
       }
       setShowCatModal(false)
       loadData()
@@ -196,26 +374,29 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     }
   }
 
-  const handleDeleteCategory = async (cat: Category, e: React.MouseEvent) => {
+  const handleDeleteCategory = async (cat: { id: string; name: string; code?: string; slug?: string }, e: React.MouseEvent) => {
     e.stopPropagation()
+    const modelCount = getCategoryModelCount(cat)
     const isConfirmed = await confirmDelete(
-      "ลบหมวดหมู่หลัก",
-      `คุณต้องการลบ "${cat.name}" ใช่หรือไม่?\n⚠️ หมวดหมู่ย่อยและสินค้าทั้งหมดที่อยู่ในหมวดนี้จะถูกลบออกด้วย`
+      "ลบหมวดหมู่สินค้า",
+      `คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?${
+        modelCount > 0 ? `\n\n⚠️ มีรุ่นสินค้าที่อยู่ในหมวดนี้ ${modelCount} รุ่น` : ""
+      }`
     )
     if (isConfirmed) {
       try {
-        const result = await deleteCategory(cat.id)
+        await deleteCategory(cat.id)
         await logActivity(
           user,
           "delete",
           "category",
-          `หมวดหมู่หลัก: ${cat.name} (ลบหมวดย่อย: ${result.deletedSubCategoriesCount}, สินค้า: ${result.deletedModelsCount})`
+          `หมวดหมู่สินค้า: ${cat.name}`
         )
         if (activeCategoryId === cat.id) {
           setActiveCategoryId(null)
           setCurrentView('categories')
         }
-        showToast("ลบหมวดหมู่และข้อมูลที่เกี่ยวข้องสำเร็จ", "success")
+        showToast("ลบหมวดหมู่สินค้าสำเร็จ", "success")
         loadData()
       } catch (err: any) {
         showAlert("เกิดข้อผิดพลาด", err.message, "error")
@@ -399,12 +580,25 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     }
   }
 
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return displayCategories;
+    const q = categorySearch.trim().toLowerCase();
+    return displayCategories.filter(c =>
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.code && c.code.toLowerCase().includes(q)) ||
+      (c.slug && c.slug.toLowerCase().includes(q)) ||
+      (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [displayCategories, categorySearch]);
+
   const goBack = () => {
-    if (currentView === 'subCategories') {
+    if (currentView === 'categoryModels' || currentView === 'subCategories') {
       setCurrentView('categories')
       setActiveCategoryId(null)
+      setModelSearch('')
     } else if (currentView === 'categories' || currentView === 'symptomTypesRoot') {
       setCurrentView('mainMenu')
+      setCategorySearch('')
     } else if (currentView === 'symptoms') {
       setCurrentView('symptomTypesRoot')
       setActiveSymptomTypeId(null)
@@ -414,7 +608,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     }
   }
 
-  if (loading && categories.length === 0) {
+  if (loading && categories.length === 0 && subCategories.length === 0) {
     return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
   }
 
@@ -431,14 +625,16 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
           </button>
 
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground line-clamp-2">
-            {currentView === 'categories' && "จัดการหมวดหมู่หลัก"}
+            {currentView === 'categories' && "จัดการหมวดหมู่และรุ่นสินค้า"}
+            {currentView === 'categoryModels' && (activeCategory ? `รุ่นสินค้าในหมวด: ${activeCategory.name}` : "รุ่นสินค้า")}
             {currentView === 'subCategories' && (activeCategory?.name || "หมวดหมู่ย่อย")}
             {currentView === 'symptomTypesRoot' && "จัดการอาการเสียและวิธีตรวจสอบ"}
             {currentView === 'symptoms' && (activeSymptomType?.name || "Issue")}
             {currentView === 'guides' && (activeSymptom?.title || "อาการเสียย่อย / หัวข้อการตรวจสอบ")}
           </h1>
           <p className="text-[0.8125rem] text-muted-foreground mt-1">
-            {currentView === 'categories' && "Product Group ทั้งหมด"}
+            {currentView === 'categories' && "เลือกหมวดหมู่เพื่อดูและจัดการรุ่นสินค้าในหมวดนั้น"}
+            {currentView === 'categoryModels' && `${activeCategory?.code || activeCategory?.slug ? `รหัสหมวด ${activeCategory.code || activeCategory.slug} • ` : ''}มีสินค้าทั้งหมด ${activeCategoryModels.length} รุ่น`}
             {currentView === 'subCategories' && "Product Category ในหมวดหมู่นี้"}
             {currentView === 'symptomTypesRoot' && "Symptom Group ทั้งหมด"}
             {currentView === 'symptoms' && "Issue ทั้งหมดที่ผูกกับ Symptom Group นี้"}
@@ -467,84 +663,278 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               </div>
             </div>
             <div
-              onClick={() => setCurrentView('categories')}
+              onClick={() => {
+                setCategorySearch('')
+                setCurrentView('categories')
+              }}
               className="group cursor-pointer rounded-2xl border border-border/40 bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/50 flex flex-col items-center justify-center text-center gap-4"
             >
               <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
                 <Boxes className="size-8" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-bold text-foreground">2. จัดการ Category / Subcategory</h3>
-                <p className="text-sm text-muted-foreground mt-1">เพิ่มลบแก้ไขหมวดหมู่หลักและหมวดหมู่ย่อย</p>
+                <h3 className="font-display text-lg font-bold text-foreground">2. จัดการหมวดหมู่และรุ่นสินค้า</h3>
+                <p className="text-sm text-muted-foreground mt-1">เลือกหมวดหมู่เพื่อดูและจัดการรุ่นสินค้า (เพิ่ม, แก้ไข, ลบ) ในแต่ละหมวด</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-end mb-4">
-        {currentView === 'categories' && (
-          <button onClick={openAddCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-            <Plus className="size-4" /> เพิ่มหมวดหมู่หลัก
-          </button>
-        )}
-        {currentView === 'subCategories' && (
-          <button onClick={openAddSubCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-            <Plus className="size-4" /> เพิ่มหมวดหมู่ย่อย
-          </button>
-        )}
-        {currentView === 'symptomTypesRoot' && (
-          <button onClick={openAddSymptomType} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-            <Plus className="size-4" /> เพิ่มกลุ่มอาการ
-          </button>
-        )}
-        {currentView === 'symptoms' && (
-          <button onClick={() => { setIssueForm({ id: '', title: '', description: '', severity: 'Medium', isEdit: false }); setShowIssueModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-            <Plus className="size-4" /> เพิ่ม Issue
-          </button>
-        )}
-        {currentView === 'guides' && (
-          <button onClick={() => { setGuideForm({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false }); setShowGuideModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-            <Plus className="size-4" /> เพิ่มหัวข้อการตรวจสอบ
-          </button>
-        )}
-      </div>
+      {/* Category Management Toolbar */}
+      {currentView === 'categories' && (
+        <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">
+              ทั้งหมด {filteredCategories.length} หมวดหมู่
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 sm:justify-end">
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="ค้นหาหมวดหมู่ หรือรหัส..."
+                value={categorySearch}
+                onChange={e => setCategorySearch(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl border border-border/50 bg-card outline-none focus:border-primary text-foreground shadow-2xs"
+              />
+              {categorySearch && (
+                <button
+                  onClick={() => setCategorySearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={openAddCategory}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all shrink-0"
+            >
+              <Plus className="size-4" /> เพิ่มหมวดหมู่
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Category Models Toolbar */}
+      {currentView === 'categoryModels' && (
+        <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">
+              {activeCategory?.name} • พบ {activeCategoryModels.length} รุ่น
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 sm:justify-end">
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="ค้นหารุ่นสินค้า หรือรหัส..."
+                value={modelSearch}
+                onChange={e => setModelSearch(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl border border-border/50 bg-card outline-none focus:border-primary text-foreground shadow-2xs"
+              />
+              {modelSearch && (
+                <button
+                  onClick={() => setModelSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={openAddModel}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all shrink-0"
+            >
+              <Plus className="size-4" /> เพิ่มรุ่นสินค้าในหมวดนี้
+            </button>
+          </div>
+        </div>
+      )}
+
+      {currentView !== 'categories' && currentView !== 'categoryModels' && (
+        <div className="flex justify-end mb-4">
+          {currentView === 'subCategories' && (
+            <button onClick={openAddSubCategory} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
+              <Plus className="size-4" /> เพิ่มหมวดหมู่ย่อย
+            </button>
+          )}
+          {currentView === 'symptomTypesRoot' && (
+            <button onClick={openAddSymptomType} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
+              <Plus className="size-4" /> เพิ่มกลุ่มอาการ
+            </button>
+          )}
+          {currentView === 'symptoms' && (
+            <button onClick={() => { setIssueForm({ id: '', title: '', description: '', severity: 'Medium', isEdit: false }); setShowIssueModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
+              <Plus className="size-4" /> เพิ่ม Issue
+            </button>
+          )}
+          {currentView === 'guides' && (
+            <button onClick={() => { setGuideForm({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false }); setShowGuideModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
+              <Plus className="size-4" /> เพิ่มหัวข้อการตรวจสอบ
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl bg-card border border-border/40 shadow-sm">
         {/* Categories View */}
         {currentView === 'categories' && (
           <div className="flex flex-col">
-            {categories.map((cat, i) => {
-              const isLast = i === categories.length - 1;
-              return (
-                <div
-                  key={cat.id}
-                  onClick={() => {
-                    setActiveCategoryId(cat.id)
-                    setCurrentView('subCategories')
-                  }}
-                  className={`group flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors active:bg-muted ${!isLast ? 'border-b border-border/40' : ''}`}
+            {filteredCategories.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
+                <Boxes className="size-10 text-muted-foreground/30 mb-3" />
+                <p className="text-[0.9375rem] font-medium">ไม่พบหมวดหมู่สินค้า</p>
+                <p className="text-xs text-muted-foreground mt-1">กดปุ่ม "เพิ่มหมวดหมู่" ด้านบนเพื่อสร้างหมวดหมู่ใหม่</p>
+              </div>
+            ) : (
+              filteredCategories.map((cat, i) => {
+                const isLast = i === filteredCategories.length - 1;
+                const theme = getCategoryTheme(cat.groupCode || cat.code || cat.slug || cat.id);
+                const Icon = theme.icon;
+                const modelCount = getCategoryModelCount(cat);
+
+                return (
+                  <div
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveCategoryId(cat.id);
+                      setModelSearch('');
+                      setCurrentView('categoryModels');
+                    }}
+                    className={`group flex items-center justify-between p-4 cursor-pointer hover:bg-muted/40 active:bg-muted/60 transition-colors ${!isLast ? 'border-b border-border/40' : ''}`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                      <div className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform group-hover:scale-105 shadow-2xs", theme.iconBg)}>
+                        <Icon className="size-6 stroke-[1.8]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {cat.code ? (
+                            <span className="font-mono text-xs font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                              {cat.code}
+                            </span>
+                          ) : null}
+                          <p className="font-display font-bold text-[15px] text-foreground group-hover:text-primary transition-colors">
+                            {cat.name}
+                          </p>
+                        </div>
+                        {cat.description ? (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {cat.description}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 pl-2">
+                      {/* Model Count Badge */}
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-xs transition-all shadow-2xs",
+                        theme.badgeBg,
+                        theme.badgeText
+                      )}>
+                        <span className={cn("size-1.5 rounded-full", modelCount > 0 ? "bg-current opacity-80" : "bg-muted-foreground/40")} />
+                        <span>{modelCount} <span className="font-normal opacity-85 text-[11px]">รุ่น</span></span>
+                      </span>
+
+                      <ChevronRight className="size-5 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* Category Models View (รุ่นสินค้าในหมวดหมู่) */}
+        {currentView === 'categoryModels' && (
+          <div className="flex flex-col">
+            {activeCategoryModels.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground flex flex-col items-center">
+                <Boxes className="size-12 text-muted-foreground/30 mb-3" />
+                <p className="text-[0.9375rem] font-medium text-foreground">ยังไม่มีรุ่นสินค้าในหมวดหมู่นี้</p>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">กดปุ่มด้านล่างเพื่อเพิ่มรุ่นสินค้าใหม่เข้าหมวดนี้ได้ทันที</p>
+                <button
+                  onClick={openAddModel}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Boxes className="size-5" />
+                  <Plus className="size-4" /> เพิ่มรุ่นสินค้าแรกในหมวดนี้
+                </button>
+              </div>
+            ) : (
+              activeCategoryModels.map((model, i) => {
+                const isLast = i === activeCategoryModels.length - 1;
+                return (
+                  <div
+                    key={model.id}
+                    className={`group flex items-center justify-between p-4 hover:bg-muted/30 transition-colors ${!isLast ? 'border-b border-border/40' : ''}`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border/50 overflow-hidden">
+                        {model.thumbnail ? (
+                          <img
+                            src={model.thumbnail}
+                            alt={model.name}
+                            className="size-full object-contain p-1"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <ImageIcon className="size-5 text-muted-foreground/40" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-display font-bold text-[15px] text-foreground group-hover:text-primary transition-colors">
+                            {model.name}
+                          </p>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold bg-muted text-muted-foreground border border-border/50">
+                            {model.code}
+                          </span>
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border",
+                            model.status === 'discontinued'
+                              ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          )}>
+                            {model.status === 'discontinued' ? 'ยกเลิกผลิต' : 'เปิดจำหน่าย'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ID: {model.id} {model.symptomTypeId ? `• Symptom Group: ${model.symptomTypeId}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[0.9375rem] break-words text-foreground">
-                        {cat.slug && <span className="text-primary font-bold mr-1">{cat.slug} -</span>}
-                        {cat.name}
-                      </p>
-                      <p className="text-[0.8125rem] text-muted-foreground break-words">{cat.description || 'ไม่มีคำอธิบาย'}</p>
+
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <button
+                        onClick={(e) => openEditModel(model, e)}
+                        className="p-2 text-muted-foreground hover:bg-black/5 hover:text-foreground rounded-full transition-colors"
+                        title="แก้ไขรุ่นสินค้า"
+                      >
+                        <Edit className="size-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteModel(model, e)}
+                        className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"
+                        title="ลบรุ่นสินค้า"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={(e) => openEditCategory(cat, e)} className="p-2 text-muted-foreground hover:bg-black/5 hover:text-foreground rounded-full transition-colors"><Edit className="size-4" /></button>
-                    <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
-                    <ChevronRight className="size-5 text-muted-foreground/40" />
-                  </div>
-                </div>
-              )
-            })}
+                );
+              })
+            )}
           </div>
         )}
 
@@ -757,14 +1147,143 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
         )}
       </div>
 
+      {/* Model Modal (เพิ่ม/แก้ไขรุ่นสินค้าภายในหมวดหมู่) */}
+      {showModelModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md md:max-w-lg rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-display font-bold text-foreground">
+                  {modelForm.isEdit ? 'แก้ไขรุ่นสินค้า' : 'เพิ่มรุ่นสินค้าใหม่'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  หมวดหมู่: {activeCategory?.name} {activeCategory?.slug ? `(${activeCategory.slug})` : ''}
+                </p>
+              </div>
+              <button onClick={() => setShowModelModal(false)} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4 text-left">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">
+                  ชื่อรุ่นสินค้า <span className="text-destructive">*</span>
+                </label>
+                <input
+                  autoFocus
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  placeholder="เช่น CRYSTAL 3.5KW หรือ TORO 4500W"
+                  value={modelForm.name}
+                  onChange={e => setModelForm(prev => ({ ...prev, name: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveModel()}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">
+                  รหัสรุ่นสินค้า (Model Code) <span className="text-destructive">*</span>
+                </label>
+                <input
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-mono outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  placeholder="เช่น 11100010 หรือ CRYSTAL-3.5"
+                  value={modelForm.code}
+                  onChange={e => setModelForm(prev => ({ ...prev, code: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveModel()}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  รหัสที่ใช้สำหรับจับคู่กับระบบและค้นหา
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">
+                  ลิงก์รูปภาพสินค้า (Thumbnail URL)
+                </label>
+                <input
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  placeholder="https://... (URL รูปภาพสินค้า)"
+                  value={modelForm.thumbnail}
+                  onChange={e => setModelForm(prev => ({ ...prev, thumbnail: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveModel()}
+                />
+                {modelForm.thumbnail && (
+                  <div className="mt-2 flex items-center gap-3 p-2 rounded-xl bg-muted/40 border border-border/50">
+                    <img
+                      src={modelForm.thumbnail}
+                      alt="preview"
+                      className="size-12 object-contain rounded-lg bg-background p-1 border border-border/40"
+                      onError={(e) => { (e.target as HTMLElement).style.display = 'none' }}
+                    />
+                    <span className="text-xs text-muted-foreground">ภาพตัวอย่างสินค้า</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">
+                  สถานะการใช้งาน
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModelForm(prev => ({ ...prev, status: 'active' }))}
+                    className={cn(
+                      "flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-all",
+                      modelForm.status === 'active'
+                        ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold"
+                        : "bg-muted/30 border-border/50 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    ✓ เปิดจำหน่าย (Active)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModelForm(prev => ({ ...prev, status: 'discontinued' }))}
+                    className={cn(
+                      "flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-all",
+                      modelForm.status === 'discontinued'
+                        ? "bg-muted border-border text-foreground font-bold"
+                        : "bg-muted/30 border-border/50 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    ยกเลิกการผลิต (Discontinued)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowModelModal(false)}
+                className="px-5 py-2.5 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSaveModel}
+                className="px-5 py-2.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 rounded-xl transition-all"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Category Modal */}
       {showCatModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-display font-bold text-foreground">
-                {catForm.isEdit ? 'แก้ไขหมวดหมู่หลัก' : 'เพิ่มหมวดหมู่หลัก'}
-              </h2>
+              <div>
+                <h2 className="text-2xl font-display font-bold text-foreground">
+                  {catForm.isEdit ? 'แก้ไขหมวดหมู่สินค้า' : 'เพิ่มหมวดหมู่สินค้าใหม่'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  จัดการหมวดหมู่สินค้าโดยตรง เชื่อมโยงกับรุ่นสินค้าทั้งหมด
+                </p>
+              </div>
               <button onClick={() => setShowCatModal(false)} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
                 <X className="size-5" />
               </button>
@@ -772,19 +1291,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
 
             <div className="flex flex-col gap-4 text-left">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">Index</label>
+                <label className="text-sm font-semibold text-foreground">
+                  ชื่อหมวดหมู่สินค้า <span className="text-destructive">*</span>
+                </label>
                 <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-                  placeholder="เช่น F1"
-                  value={catForm.slug}
-                  onChange={e => setCatForm({ ...catForm, slug: e.target.value })}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveCategory()}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">ชื่อหมวดหมู่</label>
-                <input
                   className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   placeholder="เช่น เครื่องทำน้ำอุ่น"
                   value={catForm.name}
@@ -796,7 +1307,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
                 <textarea
                   className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 min-h-[80px]"
-                  placeholder="อธิบายเพิ่มเติม..."
+                  placeholder="รายละเอียดเพิ่มเติมของหมวดหมู่นี้..."
                   value={catForm.description}
                   onChange={e => setCatForm({ ...catForm, description: e.target.value })}
                 />

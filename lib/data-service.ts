@@ -42,7 +42,7 @@ import {
   updateSymptom as _updateSymptom,
   deleteSymptom as _deleteSymptom
 } from "./sheets-db";
-import type { DeviceModel, ActiveSession, RepairFeedback } from "./types";
+import type { Category, SubCategory, DeviceModel, ActiveSession, RepairFeedback } from "./types";
 
 export { type ActiveSession, type RepairFeedback } from "./types";
 export { type CreateFullCategoryInput } from "./sheets-db";
@@ -111,58 +111,51 @@ import {
   parseTopModelsFromRows,
 } from "./sheet-parsers";
 
+import { deriveCategoriesFromModels, PREFIX_CATEGORY_NAMES, isAllowedModel, isModelInSubCategory } from "./category-theme";
+
 export async function preloadTechnicianData(forceRefresh = false) {
   const ranges = [
-    `${SHEETS.CATEGORIES}!A1:Z`,
     `${SHEETS.GUIDES}!A1:Z`,
-    `${SHEETS.SUBCATEGORIES}!A1:Z`,
     `${SHEETS.SYMPTOM_TYPES}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
     `${SHEETS.MASTERDATA}!A1:Z`,
     `${SHEETS.MODELS}!A1:Z`,
   ];
 
-  // This single batchGet call fetches and populates cache for all ranges in ONE API call
+  // Batch fetch models, guides, and symptoms directly without ProductGroup/ProductCategory
   const batchData = await readMultipleSheets(ranges, forceRefresh);
 
-  const cats = parseCategoriesFromRows(batchData[`${SHEETS.CATEGORIES}!A1:Z`] || []);
   const gds = parseGuidesFromRows(batchData[`${SHEETS.GUIDES}!A1:Z`] || []);
-  const subCats = parseSubCategoriesFromRows(batchData[`${SHEETS.SUBCATEGORIES}!A1:Z`] || []);
   const symTypes = parseSymptomTypesFromRows(batchData[`${SHEETS.SYMPTOM_TYPES}!A1:Z`] || []);
   const syms = parseSymptomsFromRows(batchData[`${SHEETS.SYMPTOMS}!A1:Z`] || []);
   const mappings = parseMasterDataMappingsFromRows(batchData[`${SHEETS.MASTERDATA}!A1:Z`] || []);
   const rawMods = parseModelsFromRows(batchData[`${SHEETS.MODELS}!A1:Z`] || []);
 
-  // ดึง Thumbnail จากชีต Models (ถ้ามี) มาประกอบกับ MasterData
+  // สร้างหมวดหมู่โดยตรงจาก Models (SFTP) และ MasterData
+  const sftpCategories = deriveCategoriesFromModels(rawMods, mappings);
+
+  // ดึง Thumbnail และ Status จากชีต Models (ถ้ามี) มาประกอบกับ MasterData
   const thumbByCode = new Map<string, string>();
   const thumbByName = new Map<string, string>();
+  const statusByCode = new Map<string, "active" | "discontinued">();
+  const statusByName = new Map<string, "active" | "discontinued">();
   rawMods.forEach((m) => {
-    if (m.code && m.thumbnail) thumbByCode.set(m.code.trim().toLowerCase(), m.thumbnail);
-    if (m.name && m.thumbnail) thumbByName.set(m.name.trim().toLowerCase(), m.thumbnail);
+    const s: "active" | "discontinued" = m.status === "discontinued" ? "discontinued" : "active";
+    if (m.code) {
+      const codeKey = m.code.trim().toLowerCase();
+      if (m.thumbnail) thumbByCode.set(codeKey, m.thumbnail);
+      statusByCode.set(codeKey, s);
+    }
+    if (m.name) {
+      const nameKey = m.name.trim().toLowerCase();
+      if (m.thumbnail) thumbByName.set(nameKey, m.thumbnail);
+      statusByName.set(nameKey, s);
+    }
   });
 
-  // หาชุดของ symptomTypeId และ modelIds ที่มีคู่มือ published จริง
-  const symptomTypeIdsWithGuides = new Set(
-    gds
-      .filter((g) => g.status === "published" || !g.status)
-      .map((g) => {
-        if (g.symptomTypeId) return g.symptomTypeId.trim();
-        const sym = syms.find((s) => s.id === g.symptomId);
-        return (sym?.symptomTypeId || "").trim();
-      })
-      .filter(Boolean)
-  );
-  const modelIdsWithDirectGuides = new Set(
-    gds.flatMap((g) => (g.modelIds || []).map((id) => id.trim().toLowerCase()))
-  );
-
-  // สร้างรายการรุ่นสินค้าสำหรับแอปช่างโดยตรงจากชีต MasterData เฉพาะรุ่นที่มีคู่มือจริงในชีต Guides
+  // สร้างรายการรุ่นสินค้าสำหรับแอปช่าง ดึงตรงจากชีต MasterData
   const validMappings = mappings.filter((m) => {
-    const symCode = (m.symptomTypeCode || "").trim();
-    if (symCode && symptomTypeIdsWithGuides.has(symCode)) return true;
-    const mCode = (m.modelCode || "").trim().toLowerCase();
-    if (mCode && modelIdsWithDirectGuides.has(mCode)) return true;
-    return false;
+    return (m.modelCode || "").trim() !== "" || (m.modelName || "").trim() !== "";
   });
 
   const masterDataModels: DeviceModel[] = validMappings.map((m, index) => {
@@ -171,50 +164,37 @@ export async function preloadTechnicianData(forceRefresh = false) {
     const matCatCode = (m.matCategoryCode || "").trim();
     const matCatName = (m.matCategoryName || "").trim();
 
-    // 1. ระบุ Category จาก matCategoryCode (เช่น "F1-01-00" -> slug "F1") หรือชื่อหมวดหมู่
-    let categoryId = "";
-    if (matCatCode) {
-      const prefix = matCatCode.split("-")[0].trim().toUpperCase();
-      const matchedCat = cats.find(
-        (c) => c.slug.toUpperCase() === prefix || c.id === prefix || (matCatName && c.name.toLowerCase() === matCatName.toLowerCase())
-      );
-      if (matchedCat) {
-        categoryId = matchedCat.id || matchedCat.slug;
-      } else {
-        categoryId = prefix;
-      }
+    // Use raw Thai category name directly with prefix fallback
+    let categoryId = matCatName;
+    if (!categoryId && matCatCode) {
+      const prefix = matCatCode.split("-")[0].toUpperCase();
+      categoryId = PREFIX_CATEGORY_NAMES[prefix] || matCatCode;
     }
-    if (!categoryId && matCatName) {
-      const matchedCat = cats.find((c) => c.name.toLowerCase() === matCatName.toLowerCase());
-      if (matchedCat) categoryId = matchedCat.id || matchedCat.slug;
+    if (!categoryId && code) {
+      const prefix = code.split("-")[0].toUpperCase();
+      categoryId = PREFIX_CATEGORY_NAMES[prefix] || "";
     }
-
-    // 2. ระบุ SubCategory จาก SubCategories
-    let subcategoryId = matCatCode || matCatName || "";
-    if (matCatCode || matCatName) {
-      const matchedSub = subCats.find(
-        (sc) =>
-          (matCatCode && (sc.index?.toLowerCase() === matCatCode.toLowerCase() || sc.id.toLowerCase() === matCatCode.toLowerCase())) ||
-          (matCatName && sc.name?.toLowerCase() === matCatName.toLowerCase())
-      );
-      if (matchedSub) {
-        subcategoryId = matchedSub.index || matchedSub.id;
-      }
+    if (!categoryId) {
+      categoryId = "สินค้าทั่วไป";
     }
 
     const codeLower = code.toLowerCase();
     const nameLower = name.toLowerCase();
     const thumbnail = (codeLower ? thumbByCode.get(codeLower) : "") || (nameLower ? thumbByName.get(nameLower) : "") || "";
+    const status: "active" | "discontinued" =
+      (codeLower ? statusByCode.get(codeLower) : undefined) ||
+      (nameLower ? statusByName.get(nameLower) : undefined) ||
+      "active";
 
     return {
       id: code || m.id || `md-model-${index}`,
       code: code,
       name: name || code || "ไม่ระบุชื่อรุ่น",
       categoryId: categoryId,
-      subcategoryId: subcategoryId,
+      subcategoryId: "",
       symptomTypeId: (m.symptomTypeCode || "").trim(),
       thumbnail: thumbnail,
-      status: "active" as const,
+      status: status,
       createdAt: m.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -229,14 +209,49 @@ export async function preloadTechnicianData(forceRefresh = false) {
     }
   });
 
-  const finalModels = Array.from(uniqueMasterModels.values());
+  // รุ่นสินค้าที่มีคู่มือจริงตรงตามชีต MasterData
+  const finalModels = Array.from(uniqueMasterModels.values()).filter(isAllowedModel);
 
-  return { categories: cats, guides: gds, subCategories: subCats, symptomTypes: symTypes, symptoms: syms, mappings, models: finalModels };
+  // นับจำนวนรุ่นของแต่ละหมวดหมู่ SFTP เพื่อจัดเรียงหมวดหมู่ที่มีสินค้าขึ้นมาก่อน
+  const modelCountByCat = new Map<string, number>();
+  finalModels.forEach((m) => {
+    if (m.categoryId) {
+      const key = m.categoryId.toLowerCase();
+      modelCountByCat.set(key, (modelCountByCat.get(key) || 0) + 1);
+    }
+  });
+
+  sftpCategories.sort((a, b) => {
+    const countA = modelCountByCat.get(a.slug.toLowerCase()) || modelCountByCat.get(a.id.toLowerCase()) || 0;
+    const countB = modelCountByCat.get(b.slug.toLowerCase()) || modelCountByCat.get(b.id.toLowerCase()) || 0;
+    if (countA > 0 && countB === 0) return -1;
+    if (countB > 0 && countA === 0) return 1;
+    return a.slug.localeCompare(b.slug, 'th');
+  });
+
+  // โชว์เฉพาะหมวดที่มีคู่มือแล้วเท่านั้น (มีรุ่นที่มีคู่มือ published จริง)
+  const categoriesWithGuides = sftpCategories.filter((cat) => {
+    return finalModels.some((m) =>
+      m.categoryId === cat.id ||
+      m.categoryId === cat.slug ||
+      m.categoryId === cat.name ||
+      isModelInSubCategory(m, cat)
+    );
+  });
+
+  return {
+    categories: categoriesWithGuides,
+    guides: gds,
+    subCategories: [] as SubCategory[],
+    symptomTypes: symTypes,
+    symptoms: syms,
+    mappings,
+    models: finalModels,
+  };
 }
 
 export async function preloadAdminData() {
   const ranges = [
-    `${SHEETS.CATEGORIES}!A1:Z`,
     `${SHEETS.MASTERDATA}!A1:Z`,
     `${SHEETS.FEEDBACKS}!A1:Z`,
     `${SHEETS.SYMPTOMS}!A1:Z`,
@@ -247,9 +262,70 @@ export async function preloadAdminData() {
 
   const batchData = await readMultipleSheets(ranges);
 
-  const cats = parseCategoriesFromRows(batchData[`${SHEETS.CATEGORIES}!A1:Z`] || []);
   const maps = parseMasterDataMappingsFromRows(batchData[`${SHEETS.MASTERDATA}!A1:Z`] || []);
-  const mods = parseModelsFromRows(batchData[`${SHEETS.MODELS}!A1:Z`] || []);
+  const masterCatByCode = new Map<string, string>();
+  const masterCatByName = new Map<string, string>();
+  maps.forEach((m) => {
+    const code = (m.modelCode || "").trim().toUpperCase();
+    const name = (m.modelName || "").trim().toLowerCase();
+    const cat = (m.matCategoryName || "").trim();
+    if (code && cat) masterCatByCode.set(code, cat);
+    if (name && cat) masterCatByName.set(name, cat);
+  });
+
+  const rawMods = parseModelsFromRows(batchData[`${SHEETS.MODELS}!A1:Z`] || []);
+  const mods = rawMods.map((m) => {
+    const codeKey = (m.code || "").trim().toUpperCase();
+    const nameKey = (m.name || "").trim().toLowerCase();
+    const masterCat = masterCatByCode.get(codeKey) || (nameKey ? masterCatByName.get(nameKey) : undefined);
+    if (masterCat) {
+      return { ...m, categoryId: masterCat };
+    }
+
+    const cat = (m.categoryId || "").trim();
+    const sub = (m.subcategoryId && isNaN(Number(m.subcategoryId))) ? m.subcategoryId.trim() : "";
+    let finalCat = "";
+    if (/[ก-๙]/.test(cat)) {
+      finalCat = cat;
+    } else if (sub && /[ก-๙]/.test(sub)) {
+      finalCat = sub;
+    } else if (cat) {
+      const prefix = cat.split("-")[0].toUpperCase();
+      finalCat = PREFIX_CATEGORY_NAMES[prefix] || cat;
+    } else if (m.code) {
+      const prefix = m.code.split("-")[0].toUpperCase();
+      finalCat = PREFIX_CATEGORY_NAMES[prefix] || "";
+    }
+
+    // Infer category from model name if category is still missing or "สินค้าทั่วไป"
+    if (!finalCat || finalCat === "สินค้าทั่วไป") {
+      const name = (m.name || "").trim();
+      if (name.includes("เครื่องทำน้ำอุ่น") || name.includes("เครื่องทำน้ำร้อน")) {
+        finalCat = "เครื่องทำน้ำอุ่น-น้ำร้อน";
+      } else if (name.includes("เครื่องกรอง") || name.includes("กรองน้ำ")) {
+        finalCat = "เครื่องกรองน้ำ";
+      } else if (name.includes("ตู้กดน้ำ") || name.includes("ตู้ทำน้ำเย็น") || name.includes("ตู้ทำน้ำดื่ม")) {
+        finalCat = "ตู้กดน้ำดื่ม";
+      } else if (name.includes("พัดลม")) {
+        finalCat = "พัดลมระบายอากาศ";
+      } else if (name.includes("ปั๊ม")) {
+        finalCat = "ปั๊มน้ำแรงดัน";
+      } else if (name.includes("เครื่องฟอกอากาศ")) {
+        finalCat = "เครื่องฟอกอากาศ";
+      } else if (name.includes("เครื่องผลิตน้ำแข็ง")) {
+        finalCat = "เครื่องผลิตน้ำแข็ง";
+      } else if (name.includes("หม้อต้ม")) {
+        finalCat = "หม้อต้มน้ำร้อน";
+      } else if (name.includes("แอร์") || name.includes("ปรับอากาศ")) {
+        finalCat = "เครื่องปรับอากาศ";
+      } else if (name.toLowerCase().includes("robot") || name.includes("หุ่นยนต์")) {
+        finalCat = "หุ่นยนต์บริการ";
+      }
+    }
+
+    return { ...m, categoryId: finalCat || "สินค้าทั่วไป" };
+  }).filter(isAllowedModel);
+  const cats = deriveCategoriesFromModels(mods, maps);
   const repStats = parseRepairStatsFromRows(batchData[`${SHEETS.FEEDBACKS}!A1:Z`] || []);
   const sessions: ActiveSession[] = [];
   const top = parseTopModelsFromRows(batchData[`${SHEETS.FEEDBACKS}!A1:Z`] || []);

@@ -77,10 +77,6 @@ export function SubCategoryList({
                   </p>
                 </div>
               </div>
-
-              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                {category.slug}
-              </span>
             </div>
 
             {/* Search Bar */}
@@ -154,26 +150,37 @@ export function SubCategoryList({
                     <CategoryIcon className="size-20" />
                   </div>
 
-                  {/* Left: Code badge & Name */}
+                  {/* Left: Icon & Name */}
                   <div className="relative z-10 flex items-center gap-3 min-w-0 pr-2">
-                    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl font-mono text-[0.6875rem] font-bold border transition-transform duration-300 group-hover:scale-105", theme.badgeBg, theme.badgeText)}>
-                      {subCode ? subCode.replace(`${category.slug}-`, "") : "01"}
+                    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-105", theme.badgeBg, theme.badgeText)}>
+                      <CategoryIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-display text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-1">
                         {sc.name}
                       </p>
-                      <p className="text-[0.6875rem] font-mono text-muted-foreground mt-0.5">
-                        {subCode}
-                      </p>
                     </div>
                   </div>
 
                   {/* Right: Model Count & Chevron */}
-                  <div className="relative z-10 flex items-center gap-2.5 shrink-0">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/60 border border-border/60 px-2.5 py-1 text-[0.6875rem] font-semibold text-foreground/80 group-hover:border-primary/40 group-hover:text-primary transition-colors shadow-2xs">
-                      <span className="size-1.5 rounded-full bg-primary/70 group-hover:bg-primary group-hover:animate-ping" />
-                      {numModels} รุ่น
+                  <div className="relative z-10 flex items-center gap-2.5 shrink-0 pl-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold backdrop-blur-xs transition-all duration-300 shadow-2xs",
+                        theme.badgeBg,
+                        theme.badgeText,
+                        "group-hover:scale-105"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full transition-all",
+                          numModels > 0 ? "bg-current opacity-80" : "bg-muted-foreground/40"
+                        )}
+                      />
+                      <span>
+                        {numModels} <span className="font-normal opacity-85 text-[11px]">รุ่น</span>
+                      </span>
                     </span>
                     <div className="flex size-8 items-center justify-center rounded-full bg-background/80 border border-border/50 text-muted-foreground group-hover:bg-primary group-hover:border-primary group-hover:text-primary-foreground group-hover:translate-x-0.5 transition-all shadow-2xs">
                       <ChevronRight className="size-4" />

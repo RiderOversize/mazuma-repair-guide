@@ -9,6 +9,7 @@ import {
   Tag,
   Activity,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react"
 import {
   type Category,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/types"
 import { getCategoryTheme } from "@/lib/category-theme"
 import { cn } from "@/lib/utils"
+import { DiscontinuedCornerRibbon } from "./discontinued-corner-ribbon"
 
 export function SymptomList({
   category,
@@ -95,7 +97,7 @@ export function SymptomList({
         // 3. Check guides (if there's a guide for this symptom and this category)
         const hasGuideInCat = guides.some(g => 
           g.symptomId === s.id && 
-          (g.categoryId === category.id || g.categoryId === category.slug)
+          (g.categoryId === category.id || g.categoryId === category.slug || (g.categoryId && category.slug.startsWith(g.categoryId)))
         )
         if (hasGuideInCat) return true
 
@@ -109,6 +111,7 @@ export function SymptomList({
         <div className="w-full bg-background/85 backdrop-blur-2xl px-4 pt-3 pb-2.5 border-b border-border/40 shadow-xs">
           {/* Top Header Card */}
           <div className="relative overflow-hidden rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-xl p-3.5 shadow-sm">
+            {model?.status === "discontinued" && <DiscontinuedCornerRibbon size="lg" />}
             <div className={cn("absolute -top-12 -right-12 size-36 rounded-full blur-2xl pointer-events-none opacity-60", theme.accentGlow)} />
 
             {/* Model / Category Details with Category Slug Badge */}
@@ -122,9 +125,11 @@ export function SymptomList({
                   )}
                 </div>
                 <div className="flex flex-col items-start pt-1">
-                  <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-bold tracking-wider mb-1", theme.badgeBg, theme.badgeText)}>
-                    {category.slug}
-                  </span>
+                  {model && (
+                    <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-medium mb-1", theme.badgeBg, theme.badgeText)}>
+                      {category.name}
+                    </span>
+                  )}
                   <h1 className="font-display text-[1.125rem] font-bold leading-none text-foreground truncate max-w-[200px]">
                     {model ? model.name : category.name}
                   </h1>
@@ -133,10 +138,6 @@ export function SymptomList({
                   </p>
                 </div>
               </div>
-
-              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                {category.slug}
-              </span>
             </div>
           </div>
         </div>
@@ -144,6 +145,21 @@ export function SymptomList({
 
       {/* Scrollable Symptoms List */}
       <div className="px-4 pt-4 pb-24 space-y-2.5">
+        {/* Discontinued Model Alert Banner */}
+        {model?.status === "discontinued" && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-start gap-2.5 mb-2 shadow-xs">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                สินค้ารุ่นนี้ยกเลิกการผลิตแล้ว (Discontinued)
+              </p>
+              <p className="text-[0.6875rem] text-amber-700/90 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                ยังสามารถเปิดดูคู่มือซ่อมและผังวงจรได้ตามปกติ โปรดตรวจสอบสต็อกอะไหล่หรือเทียบเคียงอะไหล่ทดแทน
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Symptom Group Card (if available) */}
         {symptomGroup ? (
           <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 flex items-center gap-3 mb-2 shadow-xs">

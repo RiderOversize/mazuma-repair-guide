@@ -27,6 +27,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import type { Category, SubCategory, MasterDataMapping, DeviceModel, SymptomType } from "@/lib/types"
+import { DiscontinuedCornerRibbon } from "@/components/technician/discontinued-corner-ribbon"
 import {
   getCategories,
   getSubCategories,
@@ -42,6 +43,7 @@ import { getLastSyncTime, logActivity } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { isModelInSubCategory, getCategoryTheme, isAllowedModel } from "@/lib/category-theme"
 import { GuideForm } from "./guide-form"
 import { UnmappedCategoriesBanner } from "./unmapped-categories-banner"
 
@@ -71,8 +73,8 @@ export function GuidesManagement({
   // Navigation & View state
   const [selectedModelId, setSelectedModelId] = useState<string | null>(initialModelId || null)
   const [searchQuery, setSearchQuery] = useState(initialSearch)
-  const [filterSubCategory, setFilterSubCategory] = useState("")
-  const [filterGuideStatus, setFilterGuideStatus] = useState<"all" | "has_guides" | "no_guides">("all")
+  const [filterCategory, setFilterCategory] = useState("")
+  const [filterGuideStatus, setFilterGuideStatus] = useState<"all" | "has_guides" | "no_guides" | "discontinued">("all")
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 30
 
@@ -174,7 +176,12 @@ export function GuidesManagement({
   const stats = useMemo(() => {
     let hasGuidesCount = 0
     let noGuidesCount = 0
-    models.forEach(m => {
+    let discontinuedCount = 0
+    const allowed = models.filter(isAllowedModel)
+    allowed.forEach(m => {
+      if (m.status === "discontinued") {
+        discontinuedCount++
+      }
       const code = (m.code || "").trim().toUpperCase()
       const guides = mappingsByModelCode.get(code) || []
       if (guides.length > 0) {
@@ -184,29 +191,39 @@ export function GuidesManagement({
       }
     })
     return {
-      totalModels: models.length,
+      totalModels: allowed.length,
       totalGuides: mappings.length,
       hasGuidesCount,
-      noGuidesCount
+      noGuidesCount,
+      discontinuedCount
     }
   }, [models, mappingsByModelCode, mappings])
 
   // Filtered Models for the catalog view
   const filteredModels = useMemo(() => {
     return models.filter(m => {
+      // Must match allowed appliance keywords and not be spare parts
+      if (!isAllowedModel(m)) return false
+
       const code = (m.code || "").trim().toUpperCase()
       const guides = mappingsByModelCode.get(code) || []
 
       // Guide status filter
       if (filterGuideStatus === "has_guides" && guides.length === 0) return false
       if (filterGuideStatus === "no_guides" && guides.length > 0) return false
+      if (filterGuideStatus === "discontinued" && m.status !== "discontinued") return false
 
-      // Subcategory filter
-      if (filterSubCategory) {
-        const selectedSubCat = subCategories.find(sc => sc.id === filterSubCategory)
-        const matchSub = m.subcategoryId === filterSubCategory ||
-          (selectedSubCat && (m.subcategoryId === selectedSubCat.index || m.subcategoryId === selectedSubCat.name))
-        if (!matchSub) return false
+      // Category filter
+      if (filterCategory) {
+        const selectedCat = categories.find(c => c.id === filterCategory || c.slug === filterCategory || c.name === filterCategory)
+        const matchCat = m.categoryId === filterCategory ||
+          (selectedCat && (
+            m.categoryId === selectedCat.name ||
+            m.categoryId === selectedCat.id ||
+            m.categoryId === selectedCat.slug ||
+            isModelInSubCategory(m, selectedCat)
+          ))
+        if (!matchCat) return false
       }
 
       // Search query
@@ -219,7 +236,7 @@ export function GuidesManagement({
 
       return true
     })
-  }, [models, mappingsByModelCode, filterGuideStatus, filterSubCategory, searchQuery, subCategories])
+  }, [models, mappingsByModelCode, filterGuideStatus, filterCategory, searchQuery, categories])
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE) || 1
 
@@ -400,7 +417,8 @@ export function GuidesManagement({
           </div>
 
           {/* Model Info Banner */}
-          <div className="rounded-3xl border border-border/40 bg-card p-5 shadow-sm">
+          <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-card p-5 shadow-sm">
+            {selectedModel.status === "discontinued" && <DiscontinuedCornerRibbon size="lg" />}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <div className="relative size-24 sm:size-28 shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-background shadow-inner flex items-center justify-center">
                 {selectedModel.thumbnail ? (
@@ -422,16 +440,22 @@ export function GuidesManagement({
                   </span>
                   <span className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold",
-                    selectedModel.status === "active" ? "bg-green-500/10 text-green-600" : selectedModel.status === "draft" ? "bg-amber-500/10 text-amber-600" : "bg-destructive/10 text-destructive"
+                    selectedModel.status === "active" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
                   )}>
-                    {selectedModel.status === "active" ? "เปิดจำหน่าย" : selectedModel.status === "draft" ? "ฉบับร่าง" : "ยกเลิกผลิต"}
+                    {selectedModel.status === "active" ? "เปิดจำหน่าย" : "ยกเลิกผลิต"}
                   </span>
-                  {subCategories.find(sc => sc.id === selectedModel.subcategoryId || sc.index === selectedModel.subcategoryId)?.name && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
-                      <Layers className="size-3" />
-                      {subCategories.find(sc => sc.id === selectedModel.subcategoryId || sc.index === selectedModel.subcategoryId)?.name}
-                    </span>
-                  )}
+                  {(() => {
+                    const cat = categories.find(c => c.id === selectedModel.categoryId || c.slug === selectedModel.categoryId || c.name === selectedModel.categoryId || isModelInSubCategory(selectedModel, c))
+                    const catName = cat?.name || (selectedModel.categoryId !== "สินค้าทั่วไป" ? selectedModel.categoryId : "")
+                    if (!catName) return null
+                    const theme = getCategoryTheme(catName)
+                    return (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold", theme.badgeBg, theme.badgeText)}>
+                        <Tag className="size-3" />
+                        {catName}
+                      </span>
+                    )
+                  })()}
                 </div>
 
                 <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight">
@@ -584,15 +608,6 @@ export function GuidesManagement({
                   <RefreshCw className={cn("size-3.5", syncingSftp && "animate-spin text-primary")} />
                   <span>{syncingSftp ? "กำลัง Sync..." : "Sync SFTP ทันที"}</span>
                 </button>
-                
-                <button
-                  type="button"
-                  onClick={openCreateModel}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-                >
-                  <Plus className="size-4" />
-                  เพิ่มรุ่นใหม่
-                </button>
               </div>
             </div>
 
@@ -628,25 +643,17 @@ export function GuidesManagement({
                 <div className="relative sm:w-64 shrink-0">
                   <Filter className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <select
-                    value={filterSubCategory}
+                    value={filterCategory}
                     onChange={e => {
-                      setFilterSubCategory(e.target.value)
+                      setFilterCategory(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground"
+                    className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground cursor-pointer"
                   >
-                    <option value="">ทุกหมวดหมู่ย่อย</option>
-                    {categories.map(cat => {
-                      const subCatsForCat = subCategories.filter(sc => sc.categoryId === cat.id || sc.categoryId === cat.slug)
-                      if (subCatsForCat.length === 0) return null
-                      return (
-                        <optgroup key={cat.id} label={`หมวดหมู่: ${cat.name}`}>
-                          {subCatsForCat.map(sc => (
-                            <option key={sc.id} value={sc.id}>{sc.name}</option>
-                          ))}
-                        </optgroup>
-                      )
-                    })}
+                    <option value="">ทุกหมวดหมู่สินค้า</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -691,6 +698,19 @@ export function GuidesManagement({
                   <AlertCircle className="size-3.5" />
                   ยังไม่มีคู่มือ ({stats.noGuidesCount})
                 </button>
+                <button
+                  type="button"
+                  onClick={() => { setFilterGuideStatus("discontinued"); setCurrentPage(1); }}
+                  className={cn(
+                    "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
+                    filterGuideStatus === "discontinued"
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "bg-card border border-border/50 text-muted-foreground hover:bg-muted hover:text-rose-600 dark:hover:text-rose-400"
+                  )}
+                >
+                  <span className="size-1.5 rounded-full bg-rose-500"></span>
+                  ยกเลิกผลิต ({stats.discontinuedCount})
+                </button>
               </div>
             </div>
           </div>
@@ -707,7 +727,8 @@ export function GuidesManagement({
             {paginatedModels.map((m: DeviceModel) => {
               const code = (m.code || "").trim().toUpperCase()
               const guides = mappingsByModelCode.get(code) || []
-              const subCat = subCategories.find(c => c.id === m.subcategoryId || c.index === m.subcategoryId)
+              const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId || c.name === m.categoryId || isModelInSubCategory(m, c))
+              const categoryName = cat?.name || m.categoryId
 
               return (
                 <div
@@ -743,9 +764,18 @@ export function GuidesManagement({
                         <span className="font-bold text-[0.6875rem] text-primary bg-primary/10 px-2 py-0.5 rounded-md">
                           {m.code}
                         </span>
-                        {subCat && (
-                          <span className="text-[0.6875rem] text-muted-foreground truncate max-w-[200px]">
-                            {subCat.name}
+                        {categoryName && categoryName !== "สินค้าทั่วไป" && (
+                          <span className={cn(
+                            "text-[0.6875rem] font-semibold px-2 py-0.5 rounded-md truncate max-w-[220px]",
+                            getCategoryTheme(categoryName).badgeBg,
+                            getCategoryTheme(categoryName).badgeText
+                          )}>
+                            {categoryName}
+                          </span>
+                        )}
+                        {m.status === "discontinued" && (
+                          <span className="text-[0.6875rem] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                            ยกเลิกผลิต
                           </span>
                         )}
                       </div>
@@ -805,7 +835,7 @@ export function GuidesManagement({
               <p className="text-[0.8125rem] text-muted-foreground/70">ลองเปลี่ยนคำค้นหา หรือรีเซ็ตตัวกรอง</p>
               <button
                 type="button"
-                onClick={() => { setSearchQuery(""); setFilterSubCategory(""); setFilterGuideStatus("all"); }}
+                onClick={() => { setSearchQuery(""); setFilterCategory(""); setFilterGuideStatus("all"); }}
                 className="mt-2 text-xs font-semibold text-primary hover:underline"
               >
                 ล้างตัวกรองทั้งหมด
@@ -920,32 +950,15 @@ export function GuidesManagement({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
+                  <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่สินค้า <span className="text-destructive">*</span></label>
                   <select
                     required
                     value={modelFormData.categoryId}
                     onChange={e => setModelFormData({ ...modelFormData, categoryId: e.target.value, subcategoryId: "" })}
                     className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                   >
-                    <option value="">เลือกหมวดหมู่หลัก</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
-                  <select
-                    required
-                    value={modelFormData.subcategoryId}
-                    onChange={e => setModelFormData({ ...modelFormData, subcategoryId: e.target.value })}
-                    disabled={!modelFormData.categoryId}
-                    className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
-                  >
-                    <option value="">เลือกหมวดหมู่ย่อย</option>
-                    {subCategories.filter(sc => {
-                      const selectedCat = categories.find(c => c.id === modelFormData.categoryId)
-                      return selectedCat && (sc.categoryId === selectedCat.slug || sc.categoryId === selectedCat.id)
-                    }).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                    <option value="">เลือกหมวดหมู่สินค้า</option>
+                    {categories.map(c => <option key={c.id} value={c.name || c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
@@ -955,10 +968,6 @@ export function GuidesManagement({
                     <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/50")}>
                       <input type="radio" name="status" value="active" checked={modelFormData.status === "active"} onChange={() => setModelFormData({ ...modelFormData, status: "active" })} className="size-4 text-primary focus:ring-primary" />
                       <span className="text-sm font-medium">เปิดจำหน่าย</span>
-                    </label>
-                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card hover:bg-muted/50")}>
-                      <input type="radio" name="status" value="draft" checked={modelFormData.status === "draft"} onChange={() => setModelFormData({ ...modelFormData, status: "draft" })} className="size-4 text-amber-500 focus:ring-amber-500" />
-                      <span className="text-sm font-medium">ฉบับร่าง</span>
                     </label>
                     <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", modelFormData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/50")}>
                       <input type="radio" name="status" value="discontinued" checked={modelFormData.status === "discontinued"} onChange={() => setModelFormData({ ...modelFormData, status: "discontinued" })} className="size-4 text-destructive focus:ring-destructive" />

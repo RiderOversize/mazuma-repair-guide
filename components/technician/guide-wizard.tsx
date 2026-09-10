@@ -212,9 +212,16 @@ export function GuideWizard({
           {model && (
             <div className="flex flex-col gap-1 pb-2.5 border-b border-chart-3/20">
               <div className="flex items-center justify-between gap-2">
-                <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[10.5px]">
-                  รุ่นสินค้า
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[10.5px]">
+                    รุ่นสินค้า
+                  </span>
+                  {model.status === "discontinued" && (
+                    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10.5px] font-bold text-amber-800 dark:text-amber-300">
+                      ยกเลิกผลิต
+                    </span>
+                  )}
+                </div>
                 {model.code && (
                   <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md bg-background/80 border border-border/60 text-[10.5px] font-mono font-semibold text-muted-foreground">
                     {model.code}
@@ -224,6 +231,12 @@ export function GuideWizard({
               <p className="font-display text-[13.5px] font-bold text-foreground leading-snug break-words mt-0.5">
                 {model.name}
               </p>
+              {model.status === "discontinued" && (
+                <div className="mt-1 rounded-xl border border-amber-500/25 bg-amber-500/10 p-2 flex items-start gap-1.5 text-[0.6875rem] text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="size-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <span>รุ่นนี้ยกเลิกการผลิตแล้ว — โปรดตรวจสอบสต็อกอะไหล่หรือเทียบเคียงอะไหล่ทดแทน</span>
+                </div>
+              )}
             </div>
           )}
 

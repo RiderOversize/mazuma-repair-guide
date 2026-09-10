@@ -70,62 +70,8 @@ export async function getLastSyncTime(): Promise<string | null> {
 }
 
 export async function getUnmappedCategoryAlerts(): Promise<UnmappedCategoryAlert[]> {
-  try {
-    const activities = await getActivities()
-    const latestAlert = activities.find(a => a.resource === 'unmapped_category_alert')
-    if (!latestAlert || !latestAlert.details) return []
-    
-    let rawList: UnmappedCategoryAlert[] = []
-    try {
-      rawList = JSON.parse(latestAlert.details)
-    } catch {
-      return []
-    }
-    
-    if (!Array.isArray(rawList) || rawList.length === 0) return []
-
-    // Filter out categories that have already been created in ProductCategory
-    const subCatRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`)
-    if (subCatRows.length > 1) {
-      const headers = subCatRows[0] || []
-      const existingCodes = new Set<string>()
-      const existingNames = new Set<string>()
-      
-      subCatRows.slice(1).forEach(r => {
-        const obj = mapRowToObject(headers, r)
-        const matCode = (obj['MAT Category Code'] || obj.MATCategoryCode || obj.index || '').trim().toLowerCase()
-        const name = (obj.Description || obj.name || '').trim().toLowerCase()
-        if (matCode) existingCodes.add(matCode)
-        if (name) existingNames.add(name)
-      })
-
-      return rawList.filter(item => {
-        const c = (item.categoryCode || '').trim()
-        const cLower = c.toLowerCase()
-        const n = (item.name || '').trim()
-        const nLower = n.toLowerCase()
-
-        // Only include categories containing "เครื่อง" or "ตู้"
-        const isTargetCategory = c.includes('เครื่อง') || c.includes('ตู้')
-        if (!isTargetCategory) return false
-
-        const isMapped = 
-          (cLower && existingCodes.has(cLower)) || 
-          (cLower && existingNames.has(cLower)) || 
-          (nLower && existingNames.has(nLower)) ||
-          (nLower && existingCodes.has(nLower))
-        return !isMapped
-      })
-    }
-
-    return rawList.filter(item => {
-      const c = (item.categoryCode || '').trim()
-      return c.includes('เครื่อง') || c.includes('ตู้')
-    })
-  } catch (error) {
-    console.error("Failed to get unmapped category alerts:", error)
-    return []
-  }
+  // Categories are now derived dynamically from Models and SFTP data directly without requiring mapping in ProductCategory
+  return [];
 }
 
 const ACTIVITY_HEADERS = ["id", "action", "resource", "resourceId", "resourceName", "userCode", "userName", "timestamp", "details"];

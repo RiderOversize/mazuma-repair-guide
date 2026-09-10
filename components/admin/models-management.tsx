@@ -7,6 +7,7 @@ import { getModels, createModel, updateModel, deleteModel, getCategories, getSub
 import { getLastSyncTime } from "@/lib/activity-service"
 import { showToast, confirmDelete, showAlert } from "@/lib/swal"
 import { cn } from "@/lib/utils"
+import { isModelInSubCategory, getCategoryTheme, isAllowedModel } from "@/lib/category-theme"
 import type { AuthUser } from "@/lib/auth"
 import { UnmappedCategoriesBanner } from "./unmapped-categories-banner"
 
@@ -21,7 +22,8 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
 
   // Filter and Pagination state
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterSubCategory, setFilterSubCategory] = useState("")
+  const [filterCategory, setFilterCategory] = useState("")
+  const [filterStatus, setFilterStatus] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 50
 
@@ -68,13 +70,34 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
     }
   }
 
+  const statusStats = useMemo(() => {
+    let active = 0
+    let discontinued = 0
+    models.filter(isAllowedModel).forEach(m => {
+      if (m.status === "discontinued") discontinued++
+      else active++
+    })
+    return { active, discontinued, total: active + discontinued }
+  }, [models])
+
   const filteredModels = useMemo(() => {
-    let res = models
-    if (filterSubCategory) {
-      const selectedSubCat = subCategories.find(sc => sc.id === filterSubCategory);
+    let res = models.filter(isAllowedModel)
+    if (filterStatus !== "all") {
+      res = res.filter(m => {
+        if (filterStatus === "discontinued") return m.status === "discontinued"
+        return m.status !== "discontinued"
+      })
+    }
+    if (filterCategory) {
+      const selectedCat = categories.find(c => c.id === filterCategory || c.slug === filterCategory || c.name === filterCategory)
       res = res.filter(m => 
-        m.subcategoryId === filterSubCategory || 
-        (selectedSubCat && (m.subcategoryId === selectedSubCat.index || m.subcategoryId === selectedSubCat.name))
+        m.categoryId === filterCategory || 
+        (selectedCat && (
+          m.categoryId === selectedCat.id ||
+          m.categoryId === selectedCat.slug ||
+          m.categoryId === selectedCat.name ||
+          isModelInSubCategory(m, selectedCat)
+        ))
       )
     }
     if (searchQuery.trim()) {
@@ -82,7 +105,7 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
       res = res.filter(m => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
     }
     return res
-  }, [models, filterSubCategory, searchQuery])
+  }, [models, filterCategory, filterStatus, searchQuery, categories])
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE) || 1
 
@@ -210,14 +233,6 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               <RefreshCw className={cn("size-3.5", syncingSftp && "animate-spin text-primary")} />
               <span>{syncingSftp ? "กำลัง Sync..." : "Sync SFTP"}</span>
             </button>
-
-            <button
-              onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-            >
-              <Plus className="size-4" />
-              เพิ่มรุ่นใหม่
-            </button>
           </div>
         </div>
 
@@ -251,27 +266,61 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
           <div className="relative sm:w-64 shrink-0">
             <Filter className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <select
-              value={filterSubCategory}
+              value={filterCategory}
               onChange={e => {
-                setFilterSubCategory(e.target.value)
+                setFilterCategory(e.target.value)
                 setCurrentPage(1)
               }}
-              className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground"
+              className="h-10 w-full appearance-none rounded-xl border border-border/50 bg-card pl-9 pr-8 text-[0.8125rem] outline-none transition-all focus:border-primary shadow-sm text-foreground cursor-pointer"
             >
-              <option value="">ทุกหมวดหมู่ย่อย</option>
-              {categories.map(cat => {
-                const subCatsForCat = subCategories.filter(sc => sc.categoryId === cat.id || sc.categoryId === cat.slug);
-                if (subCatsForCat.length === 0) return null;
-                return (
-                  <optgroup key={cat.id} label={`หมวดหมู่: ${cat.name}`}>
-                    {subCatsForCat.map(sc => (
-                      <option key={sc.id} value={sc.id}>{sc.name}</option>
-                    ))}
-                  </optgroup>
-                );
-              })}
+              <option value="">ทุกหมวดหมู่สินค้า</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
             </select>
           </div>
+        </div>
+
+        {/* Status Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <button
+            type="button"
+            onClick={() => { setFilterStatus("all"); setCurrentPage(1); }}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all",
+              filterStatus === "all"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            ทุกสถานะ ({statusStats.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => { setFilterStatus("active"); setCurrentPage(1); }}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
+              filterStatus === "active"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <span className="size-1.5 rounded-full bg-emerald-400"></span>
+            เปิดจำหน่าย ({statusStats.active})
+          </button>
+          <button
+            type="button"
+            onClick={() => { setFilterStatus("discontinued"); setCurrentPage(1); }}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all inline-flex items-center gap-1.5",
+              filterStatus === "discontinued"
+                ? "bg-amber-600 text-white shadow-xs"
+                : "bg-card border border-border/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <span className="size-1.5 rounded-full bg-amber-400"></span>
+            ยกเลิกผลิต ({statusStats.discontinued})
+          </button>
         </div>
       </div>
 
@@ -285,7 +334,10 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
       {/* Mobile Card List / PC Grid List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {paginatedModels.map((m: DeviceModel) => {
-          const subCat = subCategories.find(c => c.id === m.subcategoryId)
+          const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId || c.name === m.categoryId || isModelInSubCategory(m, c))
+          const categoryName = cat?.name || (m.categoryId !== "สินค้าทั่วไป" ? m.categoryId : "")
+          const theme = categoryName ? getCategoryTheme(categoryName) : null
+
           return (
             <div key={m.id} className="flex gap-3 overflow-hidden rounded-2xl border border-border/40 bg-card p-3 shadow-sm">
               <div className="flex size-20 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background overflow-hidden">
@@ -296,13 +348,25 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-[0.9375rem] leading-tight text-foreground line-clamp-1">{m.name}</p>
                     <div className="flex items-center gap-1 shrink-0">
-                      {m.status === "active" && <span className="size-2 rounded-full bg-green-500" title="Active"></span>}
-                      {m.status === "draft" && <span className="size-2 rounded-full bg-amber-500" title="Draft"></span>}
-                      {m.status === "discontinued" && <span className="size-2 rounded-full bg-destructive" title="Discontinued"></span>}
+                      {m.status === "discontinued" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6875rem] font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                          <span className="size-1.5 rounded-full bg-amber-500"></span>
+                          ยกเลิกผลิต
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6875rem] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+                          <span className="size-1.5 rounded-full bg-emerald-500"></span>
+                          เปิดจำหน่าย
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs font-medium text-muted-foreground truncate">{m.code}</p>
-                  <p className="text-xs text-muted-foreground truncate">{subCat ? subCat.name : m.subcategoryId || m.categoryId}</p>
+                  {categoryName && (
+                    <span className={cn("inline-block mt-1 text-[0.6875rem] font-semibold px-2 py-0.5 rounded-md truncate max-w-[200px]", theme?.badgeBg, theme?.badgeText)}>
+                      {categoryName}
+                    </span>
+                  )}
                   <p className="text-[0.625rem] text-muted-foreground/70 mt-2 flex items-center gap-1">
                     <RefreshCw className="h-3 w-3" />
                     อัปเดต/ซิงค์: {m.lastSyncAt ? new Date(m.lastSyncAt).toLocaleString('th-TH') : (m.updatedAt ? new Date(m.updatedAt).toLocaleString('th-TH') : '-')}
@@ -417,32 +481,15 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
               </div>
               
               <div className="space-y-2">
-                <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่หลัก <span className="text-destructive">*</span></label>
+                <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่สินค้า <span className="text-destructive">*</span></label>
                 <select
                   required
                   value={formData.categoryId}
                   onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: "" })}
                   className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm"
                 >
-                  <option value="">เลือกหมวดหมู่หลัก</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[0.8125rem] font-semibold text-foreground">หมวดหมู่ย่อย <span className="text-destructive">*</span></label>
-                <select
-                  required
-                  value={formData.subcategoryId}
-                  onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
-                  disabled={!formData.categoryId}
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all focus:border-primary shadow-sm disabled:opacity-50"
-                >
-                  <option value="">เลือกหมวดหมู่ย่อย</option>
-                  {subCategories.filter(sc => {
-                    const selectedCat = categories.find(c => c.id === formData.categoryId);
-                    return selectedCat && sc.categoryId === selectedCat.slug;
-                  }).map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                  <option value="">เลือกหมวดหมู่สินค้า</option>
+                  {categories.map(c => <option key={c.id} value={c.name || c.id}>{c.name}</option>)}
                 </select>
               </div>
 
@@ -452,10 +499,6 @@ export function ModelsManagement({ user }: { user?: AuthUser }) {
                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "active" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="active" checked={formData.status === "active"} onChange={() => setFormData({ ...formData, status: "active"})} className="size-4 text-primary focus:ring-primary" />
                      <span className="text-sm font-medium">เปิดจำหน่าย</span>
-                   </label>
-                   <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "draft" ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20" : "border-border bg-card hover:bg-muted/50")}>
-                     <input type="radio" name="status" value="draft" checked={formData.status === "draft"} onChange={() => setFormData({ ...formData, status: "draft"})} className="size-4 text-amber-500 focus:ring-amber-500" />
-                     <span className="text-sm font-medium">ฉบับร่าง</span>
                    </label>
                    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors", formData.status === "discontinued" ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/50")}>
                      <input type="radio" name="status" value="discontinued" checked={formData.status === "discontinued"} onChange={() => setFormData({ ...formData, status: "discontinued"})} className="size-4 text-destructive focus:ring-destructive" />

@@ -123,6 +123,23 @@ export function LoginView() {
             ยืนยันตัวตนพนักงานผ่านระบบความปลอดภัยสูง
           </div>
 
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-4 flex gap-2">
+              <a
+                href="/?devUser=admin"
+                className="flex-1 py-2 text-center text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              >
+                🛠️ เข้าสู่ระบบ Admin
+              </a>
+              <a
+                href="/?devUser=technician"
+                className="flex-1 py-2 text-center text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              >
+                🛠️ เข้าสู่ระบบ ช่าง
+              </a>
+            </div>
+          )}
+
           <div className="mt-4 flex justify-center border-t border-white/5 pt-4">
             <button
               type="button"

@@ -15,6 +15,7 @@ import {
   parseTopModelsFromRows,
   parseMasterDataMappingsFromRows,
 } from "./sheet-parsers";
+import { deriveCategoriesFromModels, PREFIX_CATEGORY_NAMES, isAllowedModel } from "./category-theme";
 
 // Optional: check if sheet ID is configured
 const useSheets = !!process.env.GOOGLE_SHEETS_ID;
@@ -106,8 +107,73 @@ export async function deleteUser(employeeCode: string): Promise<void> {
 // Models
 // ---------------------------------------------------------------------------
 export async function getModels(): Promise<DeviceModel[]> {
-  const allRows = await readSheet(`${SHEETS.MODELS}!A1:Z`);
-  return parseModelsFromRows(allRows);
+  const [allRows, masterRows] = await Promise.all([
+    readSheet(`${SHEETS.MODELS}!A1:Z`),
+    readSheet(`${SHEETS.MASTERDATA}!A1:Z`).catch(() => []),
+  ]);
+  const parsed = parseModelsFromRows(allRows);
+  const masterMappings = parseMasterDataMappingsFromRows(masterRows);
+  const masterCatByCode = new Map<string, string>();
+  const masterCatByName = new Map<string, string>();
+  masterMappings.forEach((m) => {
+    const code = (m.modelCode || "").trim().toUpperCase();
+    const name = (m.modelName || "").trim().toLowerCase();
+    const cat = (m.matCategoryName || "").trim();
+    if (code && cat) masterCatByCode.set(code, cat);
+    if (name && cat) masterCatByName.set(name, cat);
+  });
+
+  return parsed.map((m) => {
+    const codeKey = (m.code || "").trim().toUpperCase();
+    const nameKey = (m.name || "").trim().toLowerCase();
+    const masterCat = masterCatByCode.get(codeKey) || (nameKey ? masterCatByName.get(nameKey) : undefined);
+    if (masterCat) {
+      return { ...m, categoryId: masterCat };
+    }
+
+    const cat = (m.categoryId || "").trim();
+    const sub = (m.subcategoryId && isNaN(Number(m.subcategoryId))) ? m.subcategoryId.trim() : "";
+    let finalCat = "";
+    if (/[ก-๙]/.test(cat)) {
+      finalCat = cat;
+    } else if (sub && /[ก-๙]/.test(sub)) {
+      finalCat = sub;
+    } else if (cat) {
+      const prefix = cat.split("-")[0].toUpperCase();
+      finalCat = PREFIX_CATEGORY_NAMES[prefix] || cat;
+    } else if (m.code) {
+      const prefix = m.code.split("-")[0].toUpperCase();
+      finalCat = PREFIX_CATEGORY_NAMES[prefix] || "";
+    }
+
+    // Infer category from model name if category is still missing or "สินค้าทั่วไป"
+    if (!finalCat || finalCat === "สินค้าทั่วไป") {
+      const name = (m.name || "").trim();
+      if (name.includes("เครื่องทำน้ำอุ่น") || name.includes("เครื่องทำน้ำร้อน")) {
+        finalCat = "เครื่องทำน้ำอุ่น-น้ำร้อน";
+      } else if (name.includes("เครื่องกรอง") || name.includes("กรองน้ำ")) {
+        finalCat = "เครื่องกรองน้ำ";
+      } else if (name.includes("ตู้กดน้ำ") || name.includes("ตู้ทำน้ำเย็น") || name.includes("ตู้ทำน้ำดื่ม")) {
+        finalCat = "ตู้กดน้ำดื่ม";
+      } else if (name.includes("พัดลม")) {
+        finalCat = "พัดลมระบายอากาศ";
+      } else if (name.includes("ปั๊ม")) {
+        finalCat = "ปั๊มน้ำแรงดัน";
+      } else if (name.includes("เครื่องฟอกอากาศ")) {
+        finalCat = "เครื่องฟอกอากาศ";
+      } else if (name.includes("เครื่องผลิตน้ำแข็ง")) {
+        finalCat = "เครื่องผลิตน้ำแข็ง";
+      } else if (name.includes("หม้อต้ม")) {
+        finalCat = "หม้อต้มน้ำร้อน";
+      } else if (name.includes("แอร์") || name.includes("ปรับอากาศ")) {
+        finalCat = "เครื่องปรับอากาศ";
+      } else if (name.toLowerCase().includes("robot") || name.includes("หุ่นยนต์")) {
+        finalCat = "หุ่นยนต์บริการ";
+      }
+    }
+
+    return { ...m, categoryId: finalCat || "สินค้าทั่วไป" };
+  }).filter(isAllowedModel);
 }
 
 export async function createModel(model: DeviceModel): Promise<DeviceModel> {
@@ -200,8 +266,16 @@ export async function deleteModel(id: string): Promise<void> {
 // Categories
 // ---------------------------------------------------------------------------
 export async function getCategories(): Promise<Category[]> {
-  const allRows = await readSheet(`${SHEETS.CATEGORIES}!A1:Z`);
-  return parseCategoriesFromRows(allRows);
+  try {
+    const [models, mappings] = await Promise.all([
+      getModels(),
+      getMasterDataMappings().catch(() => [])
+    ]);
+    return deriveCategoriesFromModels(models, mappings);
+  } catch (err) {
+    console.error("Failed to get categories from models:", err);
+    return [];
+  }
 }
 
 export async function createCategory(cat: Partial<Category>): Promise<Category> {
@@ -340,8 +414,7 @@ export async function deleteCategory(id: string): Promise<{
 // SubCategories
 // ---------------------------------------------------------------------------
 export async function getSubCategories(): Promise<SubCategory[]> {
-  const allRows = await readSheet(`${SHEETS.SUBCATEGORIES}!A1:Z`);
-  return parseSubCategoriesFromRows(allRows);
+  return [];
 }
 
 export async function createSubCategory(subCat: Partial<SubCategory>): Promise<SubCategory> {

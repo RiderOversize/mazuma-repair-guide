@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   BookOpen,
   Boxes,
@@ -28,6 +28,7 @@ import { getActivities, type ActivityLog } from "@/lib/activity-service"
 import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { getEffectiveMenus } from "./user-management"
+import { isAllowedCategory } from "@/lib/category-theme"
 
 export function AdminDashboard({ 
   user, 
@@ -96,10 +97,6 @@ export function AdminDashboard({
     setLoading(false)
   }
 
-  if (loading && mappings.length === 0) {
-    return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
-  }
-
   const stats = [
     { label: "การจับคู่ทั้งหมด", value: mappings.length, icon: BookOpen, tone: "text-blue-500 bg-blue-500/10 border-blue-500/20", onClick: hasAccess("guides") ? () => onNavigateTo?.("guides") : undefined },
     { label: "รุ่นสินค้า", value: models.length, icon: Smartphone, tone: "text-purple-500 bg-purple-500/10 border-purple-500/20", onClick: hasAccess("guides") ? () => onNavigateTo?.("models") : undefined },
@@ -157,29 +154,37 @@ export function AdminDashboard({
     return false;
   };
 
-  const categoriesWithCount = categories.map(cat => {
-    const uniqueMappedModels = new Set(
-      mappings
-        .filter(m => {
-          const matchCat = (() => {
-            if (cat.slug && m.matCategoryCode) {
-              return m.matCategoryCode.startsWith(cat.slug);
-            }
-            const model = models.find(mod => mod.code === m.modelCode);
-            return model?.categoryId === cat.id || model?.categoryId === cat.slug;
-          })();
-          if (!matchCat) return false;
+  const categoriesWithCount = useMemo(() => {
+    const categoryModelMap = new Map<string, Set<string>>();
 
-          // Must actually have a repair guide in Guides sheet
-          return isMappingBoundToGuide(m);
-        })
-        .map(m => m.modelCode)
-    )
-    return { ...cat, modelCount: uniqueMappedModels.size }
-  }).sort((a, b) => b.modelCount - a.modelCount)
+    mappings.forEach(m => {
+      const catName = (m.matCategoryName || "").trim();
+      const modelCode = (m.modelCode || "").trim();
+      if (!catName || !modelCode) return;
+      if (!isAllowedCategory(catName)) return;
 
-  const topCategories = categoriesWithCount.slice(0, 5)
-  const maxCategoryCount = topCategories[0]?.modelCount || 1
+      if (!categoryModelMap.has(catName)) {
+        categoryModelMap.set(catName, new Set<string>());
+      }
+      categoryModelMap.get(catName)!.add(modelCode);
+    });
+
+    return Array.from(categoryModelMap.entries())
+      .map(([name, modelSet]) => {
+        const matchedCat = categories.find(c => c.name === name || c.id === name || c.slug === name);
+        return {
+          id: matchedCat?.id || name,
+          name: name,
+          slug: matchedCat?.slug || name,
+          modelCount: modelSet.size,
+        };
+      })
+      .filter(c => c.modelCount > 0)
+      .sort((a, b) => b.modelCount - a.modelCount);
+  }, [categories, mappings, guides, symptoms]);
+
+  const topCategories = useMemo(() => categoriesWithCount.slice(0, 5), [categoriesWithCount]);
+  const maxCategoryCount = useMemo(() => topCategories[0]?.modelCount || 1, [topCategories]);
 
   const uniqueUsersMap = new Map()
   for (const a of activities) {
@@ -188,6 +193,10 @@ export function AdminDashboard({
     }
   }
   const uniqueUsers = Array.from(uniqueUsersMap.values())
+
+  if (loading && mappings.length === 0) {
+    return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="size-10 animate-spin text-primary" /></div>
+  }
 
   return (
     <div className="mx-auto w-full px-4 pb-8">
@@ -406,23 +415,25 @@ export function AdminDashboard({
             )}
           </div>
           <div className="space-y-3">
-            {topCategories.length === 0 || maxCategoryCount === 0 ? (
-              <p className="text-[0.8125rem] text-muted-foreground text-center py-2">ยังไม่มีข้อมูลการผูกคู่มือ</p>
+            {topCategories.length === 0 ? (
+              <p className="text-[0.8125rem] text-muted-foreground text-center py-4">ยังไม่มีข้อมูลการผูกคู่มือ</p>
             ) : (
               topCategories.map((cat, i) => (
-                <button key={cat.id} onClick={() => onNavigateToGuides?.(cat.slug || cat.name)} className="w-full text-left flex items-center gap-3 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
+                <button key={cat.id} onClick={() => onNavigateToGuides?.(cat.name || cat.slug)} className="w-full text-left flex items-center gap-3 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
                    <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[0.6875rem] font-bold text-muted-foreground group-hover:bg-background">
                      {i + 1}
                    </div>
                    <div className="flex-1 min-w-0">
                      <p className="font-medium text-[0.8125rem] truncate text-foreground group-hover:text-primary transition-colors">
-                       {cat.slug && <span className="text-primary mr-1">{cat.slug} -</span>}
+                       {cat.slug && cat.slug !== cat.name && !/[ก-๙]/.test(cat.slug) && (
+                         <span className="text-primary mr-1 font-mono font-bold">{cat.slug} -</span>
+                       )}
                        {cat.name}
                      </p>
                      <div className="mt-1 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                        <div 
-                         className="h-full rounded-full bg-emerald-500" 
-                         style={{ width: `${Math.max(10, (cat.modelCount / maxCategoryCount) * 100)}%` }} 
+                         className="h-full rounded-full bg-emerald-500 transition-all duration-500" 
+                         style={{ width: `${Math.max(8, (cat.modelCount / maxCategoryCount) * 100)}%` }} 
                        />
                      </div>
                    </div>
@@ -490,7 +501,7 @@ export function AdminDashboard({
           <div className="bg-card w-full max-w-lg md:max-w-3xl rounded-3xl border shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-display font-bold text-foreground">
-                หมวดหมู่ทั้งหมด ({categoriesWithCount.length})
+                หมวดหมู่ที่มีรุ่นสินค้าผูกคู่มือแล้ว ({categoriesWithCount.length})
               </h2>
               <button 
                 onClick={() => setShowAllCategories(false)}
@@ -501,18 +512,20 @@ export function AdminDashboard({
             </div>
             <div className="overflow-y-auto pr-2 space-y-2">
               {categoriesWithCount.map((cat, i) => (
-                <button key={cat.id} onClick={() => { setShowAllCategories(false); onNavigateToGuides?.(cat.slug || cat.name); }} className="w-full text-left flex items-center gap-3 border-b border-border/40 pb-3 last:border-0 last:pb-0 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
+                <button key={cat.id} onClick={() => { setShowAllCategories(false); onNavigateToGuides?.(cat.name || cat.slug); }} className="w-full text-left flex items-center gap-3 border-b border-border/40 pb-3 last:border-0 last:pb-0 group hover:bg-muted/50 p-2 -mx-2 rounded-xl transition-colors">
                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-[0.8125rem] font-bold text-muted-foreground group-hover:bg-background">
                      {i + 1}
                    </div>
                    <div className="flex-1 min-w-0">
                      <p className="font-medium text-sm truncate text-foreground group-hover:text-primary transition-colors">
-                       {cat.slug && <span className="text-primary mr-1">{cat.slug} -</span>}
+                       {cat.slug && cat.slug !== cat.name && !/[ก-๙]/.test(cat.slug) && (
+                         <span className="text-primary mr-1 font-mono font-bold">{cat.slug} -</span>
+                       )}
                        {cat.name}
                      </p>
                      <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                        <div 
-                         className="h-full rounded-full bg-emerald-500" 
+                         className="h-full rounded-full bg-emerald-500 transition-all duration-500" 
                          style={{ width: `${Math.max(5, (cat.modelCount / maxCategoryCount) * 100)}%` }} 
                        />
                      </div>

@@ -10,7 +10,7 @@ import {
   Search, Flame, Droplets, Gauge, ChevronRight, X, Boxes, Moon, Sun, 
   Settings, Type, TextSelect, ShowerHead, Filter, Factory, GlassWater, 
   Fan, Wind, Cpu, Sparkles, Zap, ArrowUpRight, Activity, Calculator, Scan,
-  AlertTriangle, Stethoscope, History, Star, Clock, CheckCircle2, BookOpen, Layers, ChevronLeft
+  AlertTriangle, Stethoscope, History, Star, Clock, CheckCircle2, BookOpen, Layers, ChevronLeft, Bot
 } from "lucide-react"
 import {
   type Category,
@@ -20,153 +20,11 @@ import {
   type MasterDataMapping,
   type Guide,
 } from "@/lib/types"
+import { getCategoryTheme, type CategoryTheme, isModelInSubCategory } from "@/lib/category-theme"
+import { DiscontinuedCornerRibbon } from "./discontinued-corner-ribbon"
 
-interface CategoryTheme {
-  icon: any
-  gradient: string
-  bgHover: string
-  border: string
-  borderHover: string
-  iconBg: string
-  iconColor: string
-  badgeBg: string
-  badgeText: string
-  accentGlow: string
-  tag: string
-}
+const themeFor = (slugOrName?: string): CategoryTheme => getCategoryTheme(slugOrName)
 
-const themeFor = (slug: Category["slug"]): CategoryTheme => {
-  switch (slug) {
-    case "F1":
-      return {
-        icon: ShowerHead,
-        gradient: "from-amber-500/15 via-orange-500/5 to-transparent",
-        bgHover: "hover:from-amber-500/25 hover:via-orange-500/10",
-        border: "border-amber-500/20",
-        borderHover: "hover:border-amber-500/40 hover:shadow-amber-500/10",
-        iconBg: "bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-500 shadow-md shadow-amber-500/10 ring-1 ring-amber-500/20",
-        iconColor: "text-amber-600 dark:text-amber-400",
-        badgeBg: "bg-amber-500/10 border-amber-500/20",
-        badgeText: "text-amber-700 dark:text-amber-300",
-        accentGlow: "bg-amber-500/15",
-        tag: "ทำน้ำอุ่น-น้ำร้อน",
-      }
-    case "F2":
-    case "F3":
-    case "F4":
-      return {
-        icon: Filter,
-        gradient: "from-cyan-500/15 via-blue-500/5 to-transparent",
-        bgHover: "hover:from-cyan-500/25 hover:via-blue-500/10",
-        border: "border-cyan-500/20",
-        borderHover: "hover:border-cyan-500/40 hover:shadow-cyan-500/10",
-        iconBg: "bg-gradient-to-br from-cyan-500/20 to-blue-500/10 text-cyan-500 shadow-md shadow-cyan-500/10 ring-1 ring-cyan-500/20",
-        iconColor: "text-cyan-600 dark:text-cyan-400",
-        badgeBg: "bg-cyan-500/10 border-cyan-500/20",
-        badgeText: "text-cyan-700 dark:text-cyan-300",
-        accentGlow: "bg-cyan-500/15",
-        tag: "เครื่องกรองน้ำ",
-      }
-    case "F6":
-      return {
-        icon: Factory,
-        gradient: "from-slate-500/15 via-indigo-500/5 to-transparent",
-        bgHover: "hover:from-slate-500/25 hover:via-indigo-500/10",
-        border: "border-indigo-500/20",
-        borderHover: "hover:border-indigo-500/40 hover:shadow-indigo-500/10",
-        iconBg: "bg-gradient-to-br from-slate-500/20 to-indigo-500/10 text-indigo-500 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/20",
-        iconColor: "text-indigo-600 dark:text-indigo-400",
-        badgeBg: "bg-indigo-500/10 border-indigo-500/20",
-        badgeText: "text-indigo-700 dark:text-indigo-300",
-        accentGlow: "bg-indigo-500/15",
-        tag: "ระบบอุตสาหกรรม",
-      }
-    case "FA":
-      return {
-        icon: GlassWater,
-        gradient: "from-sky-500/15 via-blue-500/5 to-transparent",
-        bgHover: "hover:from-sky-500/25 hover:via-blue-500/10",
-        border: "border-sky-500/20",
-        borderHover: "hover:border-sky-500/40 hover:shadow-sky-500/10",
-        iconBg: "bg-gradient-to-br from-sky-500/20 to-blue-500/10 text-sky-500 shadow-md shadow-sky-500/10 ring-1 ring-sky-500/20",
-        iconColor: "text-sky-600 dark:text-sky-400",
-        badgeBg: "bg-sky-500/10 border-sky-500/20",
-        badgeText: "text-sky-700 dark:text-sky-300",
-        accentGlow: "bg-sky-500/15",
-        tag: "ตู้กดน้ำดื่ม",
-      }
-    case "FB":
-      return {
-        icon: Fan,
-        gradient: "from-teal-500/15 via-emerald-500/5 to-transparent",
-        bgHover: "hover:from-teal-500/25 hover:via-emerald-500/10",
-        border: "border-teal-500/20",
-        borderHover: "hover:border-teal-500/40 hover:shadow-teal-500/10",
-        iconBg: "bg-gradient-to-br from-teal-500/20 to-emerald-500/10 text-teal-500 shadow-md shadow-teal-500/10 ring-1 ring-teal-500/20",
-        iconColor: "text-teal-600 dark:text-teal-400",
-        badgeBg: "bg-teal-500/10 border-teal-500/20",
-        badgeText: "text-teal-700 dark:text-teal-300",
-        accentGlow: "bg-teal-500/15",
-        tag: "พัดลมระบายอากาศ",
-      }
-    case "FC":
-      return {
-        icon: Wind,
-        gradient: "from-violet-500/15 via-purple-500/5 to-transparent",
-        bgHover: "hover:from-violet-500/25 hover:via-purple-500/10",
-        border: "border-violet-500/20",
-        borderHover: "hover:border-violet-500/40 hover:shadow-violet-500/10",
-        iconBg: "bg-gradient-to-br from-violet-500/20 to-purple-500/10 text-violet-500 shadow-md shadow-violet-500/10 ring-1 ring-violet-500/20",
-        iconColor: "text-violet-600 dark:text-violet-400",
-        badgeBg: "bg-violet-500/10 border-violet-500/20",
-        badgeText: "text-violet-700 dark:text-violet-300",
-        accentGlow: "bg-violet-500/15",
-        tag: "เครื่องฟอกอากาศ",
-      }
-    case "FD":
-      return {
-        icon: Gauge,
-        gradient: "from-blue-600/15 via-indigo-500/5 to-transparent",
-        bgHover: "hover:from-blue-600/25 hover:via-indigo-500/10",
-        border: "border-blue-500/20",
-        borderHover: "hover:border-blue-500/40 hover:shadow-blue-500/10",
-        iconBg: "bg-gradient-to-br from-blue-600/20 to-indigo-500/10 text-blue-500 shadow-md shadow-blue-500/10 ring-1 ring-blue-500/20",
-        iconColor: "text-blue-600 dark:text-blue-400",
-        badgeBg: "bg-blue-500/10 border-blue-500/20",
-        badgeText: "text-blue-700 dark:text-blue-300",
-        accentGlow: "bg-blue-500/15",
-        tag: "ปั๊มน้ำแรงดัน",
-      }
-    case "FF":
-      return {
-        icon: Cpu,
-        gradient: "from-fuchsia-500/15 via-purple-500/5 to-transparent",
-        bgHover: "hover:from-fuchsia-500/25 hover:via-purple-500/10",
-        border: "border-fuchsia-500/20",
-        borderHover: "hover:border-fuchsia-500/40 hover:shadow-fuchsia-500/10",
-        iconBg: "bg-gradient-to-br from-fuchsia-500/20 to-purple-500/10 text-fuchsia-500 shadow-md shadow-fuchsia-500/10 ring-1 ring-fuchsia-500/20",
-        iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
-        badgeBg: "bg-fuchsia-500/10 border-fuchsia-500/20",
-        badgeText: "text-fuchsia-700 dark:text-fuchsia-300",
-        accentGlow: "bg-fuchsia-500/15",
-        tag: "อุปกรณ์อัจฉริยะ",
-      }
-    default:
-      return {
-        icon: Boxes,
-        gradient: "from-primary/15 via-primary/5 to-transparent",
-        bgHover: "hover:from-primary/25 hover:via-primary/10",
-        border: "border-border/50",
-        borderHover: "hover:border-primary/40 hover:shadow-primary/10",
-        iconBg: "bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md ring-1 ring-primary/20",
-        iconColor: "text-primary",
-        badgeBg: "bg-secondary border-border/50",
-        badgeText: "text-secondary-foreground",
-        accentGlow: "bg-primary/15",
-        tag: "สินค้าทั่วไป",
-      }
-  }
-}
 
 export interface DiagnosticOption {
   symptom: Symptom
@@ -237,6 +95,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
   headerRight,
 }, ref) {
   const [query, setQuery] = useState("")
+  const [diagnosticQuery, setDiagnosticQuery] = useState("")
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
   const [mainView, setMainView] = useState<"categories" | "diagnostics" | "favorites" | "recents">(activeTab || "categories")
   const [favorites, setFavorites] = useState<string[]>([])
@@ -270,6 +129,10 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
         setShowSettings(false)
         return true
       }
+      if (diagnosticQuery) {
+        setDiagnosticQuery("")
+        return true
+      }
       if (query) {
         setQuery("")
         return true
@@ -282,6 +145,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
       setShowScanner(false)
       setShowSettings(false)
       setQuery("")
+      setDiagnosticQuery("")
     }
   }))
 
@@ -292,15 +156,6 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
   const { theme, setTheme, systemTheme } = useTheme()
   const { fontSize, setFontSize, fontFamily, setFontFamily } = useAppSettings()
   const [mounted, setMounted] = useState(false)
-
-  const filterGroups = [
-    { id: "all", label: "ทั้งหมด", icon: Sparkles },
-    { id: "water_filter", label: "เครื่องกรองน้ำ", icon: Filter, slugs: ["F2", "F3", "F4", "F6"] },
-    { id: "water_heater", label: "ทำน้ำอุ่น-ร้อน", icon: ShowerHead, slugs: ["F1"] },
-    { id: "dispenser", label: "ตู้กดน้ำ", icon: GlassWater, slugs: ["FA"] },
-    { id: "air_cool", label: "พัดลม / ฟอกอากาศ", icon: Wind, slugs: ["FB", "FC"] },
-    { id: "smart_pump", label: "ปั๊มน้ำ / Smart", icon: Zap, slugs: ["FD", "FF"] },
-  ]
 
   // Dynamically generate quick searches from recent searches and available models
   const quickSearches = useMemo(() => {
@@ -379,7 +234,11 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
 
       // Category name
       const guideCatId = symGuides[0]?.categoryId
-      const cat = categories.find(c => c.id === guideCatId || c.slug === guideCatId)
+      const cat = categories.find(c => 
+        c.id === guideCatId || 
+        c.slug === guideCatId || 
+        (guideCatId && (c.slug.toUpperCase().startsWith(guideCatId.toUpperCase() + "-") || c.id.toUpperCase().startsWith(guideCatId.toUpperCase() + "-")))
+      )
 
       const option: DiagnosticOption = {
         symptom: sym,
@@ -412,6 +271,29 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
       ...group
     }))
   }, [symptoms, guides, symptomTypes, categories])
+
+  // Filter quick diagnostics based on search query
+  const filteredDiagnostics = useMemo(() => {
+    const q = (diagnosticQuery || "").trim().toLowerCase()
+    if (!q) return quickDiagnostics
+
+    return quickDiagnostics.filter((topic) => {
+      // 1. Check title & description
+      if (topic.title.toLowerCase().includes(q)) return true
+      if (topic.description && topic.description.toLowerCase().includes(q)) return true
+
+      // 2. Check options (codes, codeDisplay, symptomTypeName, categoryName)
+      return topic.options.some((opt) => {
+        if (opt.code && opt.code.toLowerCase().includes(q)) return true
+        if (opt.codeDisplay && opt.codeDisplay.toLowerCase().includes(q)) return true
+        if (opt.symptomTypeName && opt.symptomTypeName.toLowerCase().includes(q)) return true
+        if (opt.categoryName && opt.categoryName.toLowerCase().includes(q)) return true
+        if (opt.symptom?.title && opt.symptom.title.toLowerCase().includes(q)) return true
+        if (opt.symptom?.description && opt.symptom.description.toLowerCase().includes(q)) return true
+        return false
+      })
+    })
+  }, [quickDiagnostics, diagnosticQuery])
 
   useEffect(() => {
     setMounted(true)
@@ -457,11 +339,113 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
     onSelectModel(m)
   }
 
+  // โชว์เฉพาะหมวดที่มีคู่มือแล้วเท่านั้น (มีรุ่นที่มีคู่มือจริง > 0)
+  const categoriesWithModels = useMemo(() => {
+    return categories.filter((cat) => {
+      const count = models.filter((m) =>
+        m.categoryId === cat.id ||
+        m.categoryId === cat.slug ||
+        m.categoryId === cat.name ||
+        isModelInSubCategory(m, cat)
+      ).length
+      return count > 0
+    })
+  }, [categories, models])
+
+  // กลุ่มหมวดหมู่หลักในระบบ
+  const baseFilterGroups = useMemo(() => [
+    { id: "all", label: "ทั้งหมด", icon: Sparkles, slugs: [] as string[] },
+    { id: "water_filter", label: "เครื่องกรองน้ำ", icon: Filter, slugs: ["F2", "F3", "F4", "F6", "กรอง"] },
+    { id: "water_heater", label: "ทำน้ำอุ่น-ร้อน", icon: ShowerHead, slugs: ["F1", "น้ำอุ่น", "น้ำร้อน", "หม้อต้ม"] },
+    { id: "sterilizer", label: "เครื่องกำจัดเชื้อ", icon: Cpu, slugs: ["FJ", "กำจัดเชื้อ", "เชื้อ", "sterilizer"] },
+    { id: "dispenser", label: "ตู้กดน้ำ", icon: GlassWater, slugs: ["FA", "ตู้", "กดน้ำ"] },
+    { id: "air_cool", label: "พัดลม / ฟอกอากาศ", icon: Wind, slugs: ["FB", "FC", "พัดลม", "ฟอกอากาศ"] },
+    { id: "smart_pump", label: "ปั๊มน้ำ / Smart", icon: Zap, slugs: ["FD", "FF", "FE", "ปั๊ม", "smart"] },
+    { id: "ice_maker", label: "เครื่องผลิตน้ำแข็ง", icon: Boxes, slugs: ["FH", "น้ำแข็ง"] },
+    { id: "robot", label: "หุ่นยนต์บริการ", icon: Bot, slugs: ["FK", "robot", "หุ่นยนต์", "pudu"] },
+  ], [])
+
+  // แสดงเฉพาะกลุ่มที่มีคู่มือ/รุ่นสินค้าจริง (> 0 รุ่น) เพื่อให้สอดคล้องกับหมวดที่มีคู่มือ
+  const filterGroups = useMemo(() => {
+    const matched = baseFilterGroups.filter((group) => {
+      if (group.id === "all") return true
+      return categoriesWithModels.some((c) => {
+        const name = (c.name || "").toLowerCase()
+        const slug = (c.slug || "").toLowerCase()
+        const id = (c.id || "").toLowerCase()
+        return group.slugs.some((s) => {
+          const sLower = s.toLowerCase()
+          return (
+            slug === sLower ||
+            slug.startsWith(sLower + "-") ||
+            slug.includes(sLower) ||
+            id === sLower ||
+            id.startsWith(sLower + "-") ||
+            name.includes(sLower)
+          )
+        })
+      })
+    })
+
+    // ตรวจสอบว่ามีหมวดหมู่อื่นใน categoriesWithModels ที่ยังไม่อยู่ใน matched หรือไม่
+    const unmatched = categoriesWithModels.filter((c) => {
+      return !baseFilterGroups.some((g) => {
+        if (g.id === "all") return false
+        const name = (c.name || "").toLowerCase()
+        const slug = (c.slug || "").toLowerCase()
+        const id = (c.id || "").toLowerCase()
+        return g.slugs.some((s) => {
+          const sLower = s.toLowerCase()
+          return (
+            slug === sLower ||
+            slug.startsWith(sLower + "-") ||
+            slug.includes(sLower) ||
+            id === sLower ||
+            id.startsWith(sLower + "-") ||
+            name.includes(sLower)
+          )
+        })
+      })
+    })
+
+    const dynamic = unmatched.map((c) => {
+      const theme = themeFor(c.name || c.slug)
+      return {
+        id: `custom_${c.id}`,
+        label: c.name,
+        icon: theme.icon || Boxes,
+        slugs: [c.id, c.slug, c.name].filter(Boolean),
+      }
+    })
+
+    return [...matched, ...dynamic]
+  }, [baseFilterGroups, categoriesWithModels])
+
+  // หากกลุ่มที่เลือกไม่มีอยู่ในแท็บที่แสดง ให้รีเซ็ตกลับเป็น "all"
+  useEffect(() => {
+    if (selectedGroup !== "all" && !filterGroups.some((g) => g.id === selectedGroup)) {
+      setSelectedGroup("all")
+    }
+  }, [filterGroups, selectedGroup])
+
   const filteredCategories = selectedGroup === "all"
-    ? categories
-    : categories.filter(c => {
+    ? categoriesWithModels
+    : categoriesWithModels.filter(c => {
         const group = filterGroups.find(g => g.id === selectedGroup)
-        return group?.slugs?.includes(c.slug)
+        const name = (c.name || "").toLowerCase()
+        const slug = (c.slug || "").toLowerCase()
+        const id = (c.id || "").toLowerCase()
+        return group?.slugs?.some(s => {
+          const sLower = s.toLowerCase()
+          return (
+            slug === sLower || 
+            slug.startsWith(sLower + "-") || 
+            slug.includes(sLower) ||
+            id === sLower || 
+            id.startsWith(sLower + "-") ||
+            name.includes(sLower)
+          )
+        })
       })
 
   const favoriteModels = models.filter((m) => favorites.includes(m.id))
@@ -538,17 +522,26 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <input
               type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ค้นหาชื่อรุ่น หรือรหัสสินค้าด่วน..."
+              value={mainView === "diagnostics" ? diagnosticQuery : query}
+              onChange={(e) => {
+                if (mainView === "diagnostics") {
+                  setDiagnosticQuery(e.target.value)
+                } else {
+                  setQuery(e.target.value)
+                }
+              }}
+              placeholder={mainView === "diagnostics" ? "ค้นหาอาการเสีย เช่น ไม่ร้อน, ไฟดูด, น้ำรั่ว, 1R..." : "ค้นหาชื่อรุ่น หรือรหัสสินค้าด่วน..."}
               className="w-full rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl py-2.5 pl-10.5 pr-10 text-sm outline-none shadow-xs transition-all duration-300 focus:bg-background focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             />
             
-            {query && (
+            {(mainView === "diagnostics" ? diagnosticQuery : query) && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setQuery("")}
+                  onClick={() => {
+                    if (mainView === "diagnostics") setDiagnosticQuery("")
+                    else setQuery("")
+                  }}
                   className="flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="ล้างการค้นหา"
                 >
@@ -558,8 +551,8 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
             )}
           </div>
 
-          {/* Quick Search Shortcut Chips */}
-          {!query && (
+          {/* Quick Search Shortcut Chips (for Models) */}
+          {!query && mainView === "categories" && (
             <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar no-scrollbar pt-2 pb-1 -mx-1 px-1">
               <span className="text-[0.625rem] font-semibold text-muted-foreground/70 shrink-0 flex items-center gap-1 mr-0.5">
                 <Zap className="size-3 text-amber-500 fill-amber-500 animate-pulse" /> ค้นหาด่วน:
@@ -573,6 +566,41 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                   {item.label}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Quick Diagnostic Filter Chips (when on Diagnostics Tab) */}
+          {mainView === "diagnostics" && (
+            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar no-scrollbar pt-2 pb-1 -mx-1 px-1">
+              <span className="text-[0.625rem] font-semibold text-muted-foreground/70 shrink-0 flex items-center gap-1 mr-0.5">
+                <Zap className="size-3 text-amber-500 fill-amber-500 animate-pulse" /> ค้นหาด่วน:
+              </span>
+              {[
+                { label: "ไม่ทำความร้อน", query: "ไม่ทำความร้อน" },
+                { label: "ไฟไม่เข้า / ไม่ติด", query: "ไม่ทำงาน" },
+                { label: "ไฟดูด / ไฟรั่ว", query: "ไฟดูด" },
+                { label: "น้ำรั่วซึม", query: "น้ำรั่ว" },
+                { label: "น้ำร้อนจัด", query: "น้ำร้อนจัด" },
+                { label: "รหัส 1R", query: "1R" },
+                { label: "รหัส 2R", query: "2R" },
+              ].map((chip) => {
+                const isActive = diagnosticQuery === chip.query
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setDiagnosticQuery(isActive ? "" : chip.query)}
+                    className={cn(
+                      "shrink-0 rounded-full border px-2.5 py-0.5 text-[0.6875rem] font-medium transition-all duration-200 shadow-2xs",
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                        : "bg-muted/50 hover:bg-primary/10 border-border/40 hover:border-primary/30 text-muted-foreground hover:text-primary"
+                    )}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
             </div>
           )}
 
@@ -653,7 +681,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                   พบ {results.length} รุ่น
                 </p>
                 {results.map((m) => {
-                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)
+                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId || c.name === m.categoryId || isModelInSubCategory(m, c))
                   const isFav = favorites.includes(m.id)
                   return (
                     <div
@@ -664,8 +692,10 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSelectModelWithHistory(m)
                       }}
-                      className="group flex items-center justify-between rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm px-4 py-3.5 text-left transition-all duration-300 hover:bg-muted/50 hover:shadow-md hover:border-primary/30 cursor-pointer"
+                      className="group relative overflow-hidden flex items-center justify-between rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm px-4 py-3.5 text-left transition-all duration-300 hover:bg-muted/50 hover:shadow-md hover:border-primary/30 cursor-pointer"
                     >
+                      {m.status === "discontinued" && <DiscontinuedCornerRibbon size="sm" />}
+
                       <div className="min-w-0 flex-1 pr-2">
                         <p className="font-bold text-[14.5px] group-hover:text-primary transition-colors truncate">{m.name}</p>
                         <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">
@@ -697,13 +727,13 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
           </div>
         ) : null}
 
-        {/* TAB 1: Categories View */}
+        {/* TAB 1: Categories View (1 Column List) */}
         {!query && mainView === "categories" && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="flex flex-col gap-2.5">
             {filteredCategories.map((cat) => {
-              const theme = themeFor(cat.slug)
+              const theme = themeFor(cat.name || cat.slug)
               const Icon = theme.icon
-              const catModelsCount = models.filter(m => m.categoryId === cat.id || m.categoryId === cat.slug).length
+              const catModelsCount = models.filter(m => m.categoryId === cat.id || m.categoryId === cat.slug || m.categoryId === cat.name || isModelInSubCategory(m, cat)).length
 
               return (
                 <button
@@ -711,8 +741,8 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                   type="button"
                   onClick={() => onSelectCategory(cat.id)}
                   className={cn(
-                    "group relative flex flex-col justify-between overflow-hidden rounded-[26px] border bg-gradient-to-br p-4 text-left backdrop-blur-md transition-all duration-500 ease-out",
-                    "hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.98]",
+                    "group relative flex items-center justify-between overflow-hidden rounded-2xl border bg-gradient-to-r p-3.5 sm:p-4 text-left backdrop-blur-md transition-all duration-300 ease-out",
+                    "hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]",
                     theme.border,
                     theme.borderHover,
                     theme.gradient,
@@ -721,72 +751,119 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                   )}
                 >
                   {/* Glass sheen highlight on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
 
-                  {/* Giant Translucent Watermark Icon */}
-                  <div className="absolute -right-3 -bottom-3 pointer-events-none opacity-[0.04] dark:opacity-[0.07] group-hover:opacity-[0.14] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 ease-out">
+                  {/* Giant Translucent Watermark Icon on the right */}
+                  <div className="absolute -right-2 -bottom-4 pointer-events-none opacity-[0.04] dark:opacity-[0.07] group-hover:opacity-[0.12] group-hover:scale-110 transition-all duration-500 ease-out">
                     <Icon className="size-24 stroke-[1.2]" />
                   </div>
 
-                  {/* Top Row: Icon + Code Badge + Arrow */}
-                  <div className="relative z-10 flex items-start justify-between w-full mb-3">
-                    <div className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3", theme.iconBg)}>
-                      <Icon className="size-6 stroke-[1.8]" />
+                  {/* Left: Icon + Title */}
+                  <div className="relative z-10 flex items-center gap-3.5 min-w-0 pr-2">
+                    <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105", theme.iconBg)}>
+                      <Icon className="size-5.5 stroke-[1.8]" />
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                        {cat.slug}
+
+                    <div className="min-w-0">
+                      <p className="font-display text-[15px] sm:text-base font-bold leading-snug text-foreground group-hover:text-primary transition-colors truncate">
+                        {cat.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Model Count & Action button */}
+                  <div className="relative z-10 flex items-center gap-2.5 shrink-0 pl-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold backdrop-blur-xs transition-all duration-300 shadow-2xs",
+                        theme.badgeBg,
+                        theme.badgeText,
+                        "group-hover:scale-105"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full transition-all",
+                          catModelsCount > 0 ? "bg-current opacity-80" : "bg-muted-foreground/40"
+                        )}
+                      />
+                      <span>
+                        {catModelsCount} <span className="font-normal opacity-85 text-[11px]">รุ่น</span>
                       </span>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mr-0.5">
-                        <ArrowUpRight className={cn("size-3.5", theme.iconColor)} />
-                      </div>
+                    </span>
+
+                    <div className="flex size-8 items-center justify-center rounded-full bg-background/80 border border-border/50 text-muted-foreground group-hover:bg-primary group-hover:border-primary group-hover:text-primary-foreground transition-all duration-300 shadow-2xs group-hover:translate-x-0.5">
+                      <ChevronRight className="size-4" />
                     </div>
-                  </div>
-
-                  {/* Middle: Title & Tag */}
-                  <div className="relative z-10 w-full mb-3">
-                    <p className="font-display text-sm font-bold leading-tight line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-                      {cat.name}
-                    </p>
-                    <p className="text-[0.6875rem] font-medium text-muted-foreground/80 mt-1 line-clamp-1">
-                      {theme.tag}
-                    </p>
-                  </div>
-
-                  {/* Bottom: Model count badge */}
-                  <div className="relative z-10 mt-auto pt-1 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/80 dark:bg-background/50 border border-border/60 px-2.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground group-hover:border-primary/30 group-hover:text-foreground transition-all shadow-2xs">
-                      <span className="size-1.5 rounded-full bg-primary/60 group-hover:bg-primary group-hover:animate-ping" />
-                      {catModelsCount} รุ่น
-                    </span>
-                    <span className="text-[0.6875rem] font-semibold text-primary opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-300">
-                      เปิดดู →
-                    </span>
                   </div>
                 </button>
               )
             })}
+
+            {filteredCategories.length === 0 && (
+              <div className="flex flex-col items-center justify-center p-12 rounded-3xl border border-dashed border-border/60 text-center bg-card/30">
+                <Boxes className="size-10 text-muted-foreground/30 mb-2" />
+                <p className="font-display text-sm font-bold text-foreground">ยังไม่มีคู่มือสำหรับหมวดนี้</p>
+                <p className="text-xs text-muted-foreground mt-1">ระบบจะแสดงเฉพาะหมวดหมู่ที่มีคู่มือการซ่อมแล้วเท่านั้น</p>
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 2: Quick Diagnostics Finder View */}
         {!query && mainView === "diagnostics" && (
           <div className="space-y-3">
-            <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3.5 flex items-center gap-3">
-              <Stethoscope className="size-5 text-primary shrink-0" />
-              <p className="text-[12px] text-foreground/90 font-medium leading-relaxed">
-                เลือก **อาการเสียที่พบ** ด้านล่างเพื่อดูแนวทางการแก้ไขและรุ่นสินค้าที่เกี่ยวข้องทันที
-              </p>
+            <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3.5 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <Stethoscope className="size-5 text-primary shrink-0" />
+                <p className="text-[12px] text-foreground/90 font-medium leading-relaxed">
+                  เลือก <strong className="text-primary font-bold">อาการเสียที่พบ</strong> ด้านล่างเพื่อดูแนวทางการแก้ไขและรุ่นสินค้าทันที
+                </p>
+              </div>
+              {diagnosticQuery && (
+                <button
+                  type="button"
+                  onClick={() => setDiagnosticQuery("")}
+                  className="shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1 text-[11px] font-bold transition-colors"
+                >
+                  ล้างค้นหา
+                </button>
+              )}
             </div>
 
+            {diagnosticQuery && (
+              <div className="flex items-center justify-between px-1">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  พบ {filteredDiagnostics.length} อาการเสีย สำหรับ &ldquo;<span className="text-foreground font-bold">{diagnosticQuery}</span>&rdquo;
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDiagnosticQuery("")}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  แสดงทั้งหมด ({quickDiagnostics.length})
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-2.5">
-              {quickDiagnostics.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-[0.875rem] text-muted-foreground">
-                  ยังไม่มีข้อมูลอาการเสียในขณะนี้
+              {filteredDiagnostics.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border/60 bg-muted/20 p-8 text-center flex flex-col items-center justify-center">
+                  <Stethoscope className="size-12 text-muted-foreground/30 mb-3" />
+                  <h3 className="font-display text-base font-bold text-foreground">ไม่พบอาการเสียที่ค้นหา</h3>
+                  <p className="text-xs text-muted-foreground max-w-[260px] mt-1">
+                    ไม่พบรายการที่ตรงกับ &ldquo;{diagnosticQuery}&rdquo; ลองค้นหาด้วยคำอื่น เช่น ไม่ร้อน, ไฟรั่ว, น้ำรั่ว หรือรหัส 1R
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setDiagnosticQuery("")}
+                    className="mt-4 rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-xs font-bold shadow-xs hover:bg-primary/90 transition-all"
+                  >
+                    ล้างการค้นหา (แสดงทั้งหมด)
+                  </button>
                 </div>
               ) : (
-                quickDiagnostics.map((topic) => {
+                filteredDiagnostics.map((topic) => {
                   let Icon = Stethoscope
                   let colorClass = "text-blue-500 bg-blue-500/10 border-blue-500/20"
                   
@@ -881,7 +958,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                   รุ่นโปรดที่บันทึกไว้ ({favoriteModels.length})
                 </p>
                 {favoriteModels.map((m) => {
-                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)
+                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId || c.name === m.categoryId || isModelInSubCategory(m, c))
                   return (
                     <div
                       key={m.id}
@@ -952,7 +1029,7 @@ export const TechnicianHome = forwardRef<TechnicianHomeRef, {
                 </div>
 
                 {recentModels.map((m) => {
-                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId)
+                  const cat = categories.find(c => c.id === m.categoryId || c.slug === m.categoryId || c.name === m.categoryId || isModelInSubCategory(m, c))
                   const isFav = favorites.includes(m.id)
                   return (
                     <div

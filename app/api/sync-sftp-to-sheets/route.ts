@@ -3,6 +3,7 @@ import Client from 'ssh2-sftp-client';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { clearCache, SHEETS } from '@/lib/google-sheets';
+import { EXCLUDED_CATEGORY_KEYWORDS, ALLOWED_CATEGORY_KEYWORDS } from '@/lib/category-theme';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -58,42 +59,7 @@ export async function GET(request: Request) {
       throw new Error("Sheet 'Models' not found in the Google Spreadsheet.");
     }
     
-    // 5. Load ProductGroup & ProductCategory mapping
-    const groupSheet = doc.sheetsByTitle['ProductGroup'];
-    const groupMap = new Map<string, string>(); // Index (e.g. F1) -> ID (e.g. 1)
-    if (groupSheet) {
-      const groupRows = await groupSheet.getRows();
-      groupRows.forEach(r => {
-        const id = r.get('ID') || r.get('id');
-        const index = r.get('Index') || r.get('index');
-        if (id && index) groupMap.set(index.trim(), id.trim());
-      });
-    }
-
-    const subCatSheet = doc.sheetsByTitle['ProductCategory'];
-    interface SubCatInfo {
-      id: string;
-      index: string; // e.g. F1, F2, F3
-      matCode: string; // e.g. F1-01-00
-      name: string; // e.g. เครื่องทำน้ำอุ่น
-    }
-    const subCatMap = new Map<string, SubCatInfo>();
-    if (subCatSheet) {
-      const subCatRows = await subCatSheet.getRows();
-      subCatRows.forEach(r => {
-        const name = (r.get('Description') || r.get('name') || '').trim();
-        const id = (r.get('ID') || r.get('id') || '').trim();
-        const index = (r.get('Index') || r.get('index') || '').trim();
-        const matCode = (r.get('MAT Category Code') || r.get('MATCategoryCode') || '').trim();
-        
-        const info: SubCatInfo = { id, index, matCode, name };
-        if (name) subCatMap.set(name, info);
-        if (matCode) subCatMap.set(matCode, info);
-        if (id) subCatMap.set(id, info);
-      });
-    }
-
-    // 6.2 Load MasterData mappings
+    // 5. Load MasterData mappings (Optional symptomTypeId linking)
     const masterDataMap = new Map<string, string>();
     if (doc.sheetsByTitle[SHEETS.MASTERDATA]) {
       const mdRows = await doc.sheetsByTitle[SHEETS.MASTERDATA].getRows();
@@ -106,11 +72,11 @@ export async function GET(request: Request) {
       });
     }
     
-    // 7. Load existing rows to perform Upsert
+    // 6. Load existing rows to perform Upsert
     const rows = await sheet.getRows();
     const currentTime = new Date().toISOString();
     
-    // 8. Create a map of existing products by 'code' (primary key)
+    // 7. Create a map of existing products by 'code' (primary key)
     // And pre-populate rowsToUpdate to update lastSyncAt for ALL rows
     const existingProductsMap = new Map();
     const rowsToUpdate: any[] = [];
@@ -125,17 +91,9 @@ export async function GET(request: Request) {
       rowsToUpdate.push(row);
     });
     
-    // 9. Process incoming data
+    // 8. Process incoming SFTP data directly without ProductGroup/ProductCategory dependency
     const rowsToAdd: any[] = [];
     let updateCount = 0;
-    
-    interface UnmappedCategoryItem {
-      categoryCode: string;
-      name: string;
-      count: number;
-      sampleCodes: string[];
-    }
-    const unmappedCategoriesMap = new Map<string, UnmappedCategoryItem>();
     
     for (const item of dataArray) {
       // Mapping from the actual SFTP JSON structure
@@ -145,42 +103,21 @@ export async function GET(request: Request) {
       const itemName = item.MAT || item.productName || item.name || item.PRODUCT_NAME || item.itemName || '';
       const rawCat = (item.MATCategoryUSERID_Full || item.categoryCode || item.categoryId || item.subCategoryId || '').trim();
       
-      let matchedInfo = subCatMap.get(rawCat);
-      if (!matchedInfo) {
-        // Try partial match
-        for (const [key, value] of subCatMap.entries()) {
-          if (key && (key.includes(rawCat) || rawCat.includes(key))) {
-            matchedInfo = value;
-            break;
-          }
-        }
-      }
-
-      if (!matchedInfo) {
-        // Collect unmapped categories to notify admin (Filter ONLY categories containing "เครื่อง" or "ตู้")
-        const isTargetCategory = rawCat.includes('เครื่อง') || rawCat.includes('ตู้');
-        if (rawCat && isTargetCategory) {
-          const existing = unmappedCategoriesMap.get(rawCat);
-          if (existing) {
-            existing.count += 1;
-            if (existing.sampleCodes.length < 3 && code) {
-              existing.sampleCodes.push(code);
-            }
-          } else {
-            unmappedCategoriesMap.set(rawCat, {
-              categoryCode: rawCat,
-              name: itemName,
-              count: 1,
-              sampleCodes: code ? [code] : [],
-            });
-          }
-        }
+      // Filter out non-equipment items, spare parts (อะไหล่), and display units (ตัวโชว์)
+      const fullItemText = `${rawCat} ${itemName} ${code}`.toLowerCase();
+      const isExcluded = EXCLUDED_CATEGORY_KEYWORDS.some(kw => fullItemText.includes(kw.toLowerCase()));
+      const isTargetCategory = !isExcluded && (!rawCat || ALLOWED_CATEGORY_KEYWORDS.some(k => rawCat.toLowerCase().includes(k.toLowerCase())));
+      const isTargetCode = !isExcluded && (code.includes('-F') || code.includes('-C') || /^[A-Za-z0-9]{2,}-/i.test(code));
+      
+      if (!isTargetCategory && !isTargetCode) {
         continue;
       }
       
-      // Correct categoryId (Index like F1, F2, F3) and subcategoryId (ID like 1, 2, 27)
-      const categoryId = matchedInfo.index || (matchedInfo.matCode ? matchedInfo.matCode.split('-')[0] : '');
-      const subCatId = matchedInfo.id || rawCat;
+      // Determine categoryId:
+      // Use raw category name directly from SFTP (e.g. "เครื่องทำน้ำอุ่น", "เครื่องฟอกอากาศ", "เครื่องผลิตน้ำแข็ง")
+      const categoryName = rawCat || 'สินค้าทั่วไป';
+      const categoryId = categoryName;
+      const subCatId = '';
 
       const existingRow = existingProductsMap.get(code);
       const targetSymType = (existingRow ? existingRow.get('symptomTypeId') : '') || masterDataMap.get(code) || masterDataMap.get(itemName) || '';
@@ -189,16 +126,16 @@ export async function GET(request: Request) {
         // Update if properties changed
         let changed = false;
         
-        if (existingRow.get('name') !== itemName) {
+        if (existingRow.get('name') !== itemName && itemName) {
            existingRow.assign({ 'name': itemName });
            changed = true;
         }
-        if (existingRow.get('subcategoryId') !== subCatId) {
-           existingRow.assign({ 'subcategoryId': subCatId });
+        if (categoryName && existingRow.get('categoryId') !== categoryName) {
+           existingRow.assign({ 'categoryId': categoryName });
            changed = true;
         }
-        if (existingRow.get('categoryId') !== categoryId) {
-           existingRow.assign({ 'categoryId': categoryId });
+        if (existingRow.get('subcategoryId') !== '') {
+           existingRow.assign({ 'subcategoryId': '' });
            changed = true;
         }
         if (targetSymType && existingRow.get('symptomTypeId') !== targetSymType) {
@@ -210,10 +147,8 @@ export async function GET(request: Request) {
           existingRow.assign({ 'updatedAt': currentTime });
           updateCount++;
         }
-        // Note: lastSyncAt is already updated above, and row is already in rowsToUpdate
-        
       } else {
-        // Insert new
+        // Insert new model directly
         const newRow = {
           'id': `m-${code}-${Date.now()}`,
           'code': code,
@@ -269,8 +204,6 @@ export async function GET(request: Request) {
       await sheet.addRows(rowsToAdd);
     }
     
-    const unmappedList = Array.from(unmappedCategoriesMap.values());
-
     try {
       const activitySheet = doc.sheetsByTitle['ActivityLogs'];
       if (activitySheet) {
@@ -282,43 +215,30 @@ export async function GET(request: Request) {
           userCode: 'SYSTEM_CRON',
           userName: 'SFTP Auto Sync',
           timestamp: new Date().toISOString(),
-          details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length}, Unmapped Categories: ${unmappedList.length})`
+          details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length})`
         });
-
-        // Log unmapped categories alert if any found
-        if (unmappedList.length > 0) {
-          await activitySheet.addRow({
-            id: `log-unmapped-${Date.now()}`,
-            action: 'alert',
-            resource: 'unmapped_category_alert',
-            userCode: 'SYSTEM_CRON',
-            userName: 'SFTP Auto Sync',
-            timestamp: new Date().toISOString(),
-            details: JSON.stringify(unmappedList)
-          });
-        }
       }
     } catch (logError) {
       console.error('Failed to log sync activity:', logError);
     }
     
-    // Invalidate Next.js cache so the frontend sees the new models and new activity log immediately
+    // Invalidate Next.js cache so frontend sees new models immediately
     try {
       clearCache();
     } catch (cacheErr) {
-      console.warn('Could not clear cache (this is normal if running as an isolated script):', cacheErr);
+      console.warn('Could not clear cache:', cacheErr);
     }
     
     return NextResponse.json({
       success: true,
-      message: 'Successfully synced SFTP data to Google Sheets (Upsert)',
+      message: 'Successfully synced SFTP data to Google Sheets Models (Direct)',
       stats: {
         totalReceived: dataArray.length,
         updated: updateCount,
         inserted: rowsToAdd.length,
-        unmappedCategoriesCount: unmappedList.length,
+        unmappedCategoriesCount: 0,
       },
-      unmappedCategories: unmappedList
+      unmappedCategories: []
     });
 
   } catch (error: any) {

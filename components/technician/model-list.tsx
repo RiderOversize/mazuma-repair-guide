@@ -5,6 +5,7 @@ import { ChevronLeft, Search, ChevronRight, X, Boxes, Sparkles, Star } from "luc
 import { type Category, type SubCategory, type DeviceModel } from "@/lib/types"
 import { getCategoryTheme, isModelInSubCategory } from "@/lib/category-theme"
 import { cn } from "@/lib/utils"
+import { DiscontinuedCornerRibbon } from "./discontinued-corner-ribbon"
 
 export function ModelList({
   category,
@@ -72,18 +73,13 @@ export function ModelList({
                 </div>
                 <div className="min-w-0">
                   <h1 className="font-display text-base font-bold leading-tight tracking-tight text-foreground truncate">
-                    {subCategory?.name || "เลือกรุ่นสินค้า"}
+                    {category.name || subCategory?.name || "เลือกรุ่นสินค้า"}
                   </h1>
                   <p className="text-[0.6875rem] text-muted-foreground mt-0.5 truncate">
-                    <span className="font-semibold text-foreground/80">{category.name}</span>
-                    {subCategory?.index ? ` (${subCategory.index})` : ""} • {catModels.length} รุ่น
+                    ทั้งหมด {catModels.length} รุ่น
                   </p>
                 </div>
               </div>
-
-              <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider border shadow-2xs font-mono", theme.badgeBg, theme.badgeText)}>
-                {category.slug}
-              </span>
             </div>
 
             {/* Search Input */}
@@ -141,8 +137,10 @@ export function ModelList({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") onSelectModel(m)
                   }}
-                  className="group relative flex items-center justify-between rounded-2xl border border-border/60 bg-card/80 backdrop-blur-md p-3.5 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40 hover:shadow-md cursor-pointer active:scale-[0.99]"
+                  className="group relative overflow-hidden flex items-center justify-between rounded-2xl border border-border/60 bg-card/80 backdrop-blur-md p-3.5 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40 hover:shadow-md cursor-pointer active:scale-[0.99]"
                 >
+                  {m.status === "discontinued" && <DiscontinuedCornerRibbon size="sm" />}
+
                   <div className="flex items-center gap-3 min-w-0 pr-2">
                     {/* Thumbnail / Icon Box */}
                     <div className="size-11 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background/90 flex items-center justify-center shadow-2xs transition-transform group-hover:scale-105">
