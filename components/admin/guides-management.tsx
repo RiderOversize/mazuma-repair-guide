@@ -471,23 +471,12 @@ export function GuidesManagement({
 
           {/* Guides Section for This Model */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-                  <Stethoscope className="size-5 text-primary" />
-                  คู่มือซ่อมตามอาการเสีย ({guidesForSelectedModel.length} รายการ)
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">รายการคู่มือที่ช่างเทคนิคจะมองเห็นเมื่อเลือกรุ่นสินค้านี้</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openCreateGuideForModel(selectedModel)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3.5 py-1.5 text-xs font-bold transition-colors active:scale-95"
-              >
-                <Plus className="size-3.5" />
-                เพิ่มคู่มืออาการ
-              </button>
+            <div>
+              <h2 className="font-display text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                <Stethoscope className="size-5 text-primary" />
+                คู่มือซ่อมตามอาการเสีย ({guidesForSelectedModel.length} รายการ)
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">รายการคู่มือที่ช่างเทคนิคจะมองเห็นเมื่อเลือกรุ่นสินค้านี้</p>
             </div>
 
             {guidesForSelectedModel.length > 0 ? (
@@ -619,7 +608,7 @@ export function GuidesManagement({
                   <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="ค้นหาชื่อรุ่น, รหัสสินค้า, หรือชื่ออาการเสีย..."
+                    placeholder="ค้นหาชื่อรุ่น, รหัสสินค้า"
                     value={searchQuery}
                     onChange={e => {
                       setSearchQuery(e.target.value)
@@ -803,7 +792,7 @@ export function GuidesManagement({
                         className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 active:scale-95 transition-transform"
                       >
                         <Plus className="size-3.5" />
-                        ผูกคู่มือ
+                        ผูกอาการ
                       </button>
                     )}
                     <button
@@ -881,15 +870,15 @@ export function GuidesManagement({
         <>
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[90]" onClick={() => setIsModelFormOpen(false)}></div>
           <div className="fixed inset-0 z-[100] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[480px] md:max-w-2xl md:top-[5vh] md:h-[90vh] md:rounded-3xl flex flex-col bg-background animate-in slide-in-from-bottom-full duration-300 sm:border border-border/40 shadow-2xl overflow-hidden">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm z-10 shrink-0">
               <h3 className="font-display text-lg font-bold text-foreground">
                 {editingModelId ? "แก้ไขรุ่นสินค้า" : "เพิ่มรุ่นสินค้าใหม่"}
               </h3>
-              <button 
-                type="button" 
-                onClick={() => setIsModelFormOpen(false)} 
+              <button
+                type="button"
+                onClick={() => setIsModelFormOpen(false)}
                 className="p-2 -mr-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
               >
                 <X className="size-5" />
@@ -981,17 +970,17 @@ export function GuidesManagement({
             {/* Footer Actions */}
             <div className="shrink-0 p-5 border-t border-border/40 bg-background/95 backdrop-blur-sm z-10">
               <div className="flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModelFormOpen(false)} 
+                <button
+                  type="button"
+                  onClick={() => setIsModelFormOpen(false)}
                   className="flex-1 py-3.5 rounded-xl border border-border/50 bg-card font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
                 >
                   ยกเลิก
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   form="model-form"
-                  disabled={savingModel} 
+                  disabled={savingModel}
                   className="flex-1 py-3.5 rounded-xl bg-primary font-semibold text-primary-foreground shadow-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
                 >
                   {savingModel ? <Loader2 className="size-5 animate-spin" /> : "บันทึกข้อมูล"}

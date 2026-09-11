@@ -15,9 +15,9 @@ import { getCategoryTheme, isModelInSubCategory, isAllowedCategory } from "@/lib
 import { cn } from "@/lib/utils"
 import { logActivity } from "@/lib/activity-service"
 import { showToast, showAlert, confirmDelete } from "@/lib/swal"
-import { 
-  Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree, 
-  FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown, 
+import {
+  Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree,
+  FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown,
   Upload, HardDrive, PlaySquare, CheckCircle2, Search, Layers, Tag, ImageIcon
 } from "lucide-react"
 
@@ -198,7 +198,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       }))
   }, [categories])
 
-  const activeCategory = displayCategories.find(c => 
+  const activeCategory = displayCategories.find(c =>
     c.id === activeCategoryId || c.slug === activeCategoryId || c.name === activeCategoryId
   )
   const activeSubCategory = subCategories.find(s => s.id === activeSubCategoryId)
@@ -379,8 +379,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     const modelCount = getCategoryModelCount(cat)
     const isConfirmed = await confirmDelete(
       "ลบหมวดหมู่สินค้า",
-      `คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?${
-        modelCount > 0 ? `\n\n⚠️ มีรุ่นสินค้าที่อยู่ในหมวดนี้ ${modelCount} รุ่น` : ""
+      `คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?${modelCount > 0 ? `\n\n⚠️ มีรุ่นสินค้าที่อยู่ในหมวดนี้ ${modelCount} รุ่น` : ""
       }`
     )
     if (isConfirmed) {
@@ -674,7 +673,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               </div>
               <div>
                 <h3 className="font-display text-lg font-bold text-foreground">2. จัดการหมวดหมู่และรุ่นสินค้า</h3>
-                <p className="text-sm text-muted-foreground mt-1">เลือกหมวดหมู่เพื่อดูและจัดการรุ่นสินค้า (เพิ่ม, แก้ไข, ลบ) ในแต่ละหมวด</p>
+                <p className="text-sm text-muted-foreground mt-1">เลือกหมวดหมู่เพื่อดูและจัดการรุ่นสินค้าในแต่ละหมวด</p>
               </div>
             </div>
           </div>
@@ -709,13 +708,6 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 </button>
               )}
             </div>
-
-            <button
-              onClick={openAddCategory}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all shrink-0"
-            >
-              <Plus className="size-4" /> เพิ่มหมวดหมู่
-            </button>
           </div>
         </div>
       )}
@@ -748,13 +740,6 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 </button>
               )}
             </div>
-
-            <button
-              onClick={openAddModel}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all shrink-0"
-            >
-              <Plus className="size-4" /> เพิ่มรุ่นสินค้าในหมวดนี้
-            </button>
           </div>
         </div>
       )}
@@ -768,17 +753,17 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
           )}
           {currentView === 'symptomTypesRoot' && (
             <button onClick={openAddSymptomType} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-              <Plus className="size-4" /> เพิ่มกลุ่มอาการ
+              <Plus className="size-4" /> เพิ่มกลุ่มอาการใหม่
             </button>
           )}
           {currentView === 'symptoms' && (
             <button onClick={() => { setIssueForm({ id: '', title: '', description: '', severity: 'Medium', isEdit: false }); setShowIssueModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-              <Plus className="size-4" /> เพิ่ม Issue
+              <Plus className="size-4" /> เพิ่มอาการใหม่
             </button>
           )}
           {currentView === 'guides' && (
             <button onClick={() => { setGuideForm({ id: '', title: '', mediaUrl: '', pdfUrl: '', isEdit: false }); setShowGuideModal(true) }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground shadow-sm">
-              <Plus className="size-4" /> เพิ่มหัวข้อการตรวจสอบ
+              <Plus className="size-4" /> เพิ่มหัวข้อการตรวจสอบใหม่
             </button>
           )}
         </div>
@@ -792,7 +777,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                 <Boxes className="size-10 text-muted-foreground/30 mb-3" />
                 <p className="text-[0.9375rem] font-medium">ไม่พบหมวดหมู่สินค้า</p>
-                <p className="text-xs text-muted-foreground mt-1">กดปุ่ม "เพิ่มหมวดหมู่" ด้านบนเพื่อสร้างหมวดหมู่ใหม่</p>
+                <p className="text-xs text-muted-foreground mt-1">ข้อมูลหมวดหมู่สินค้าจะถูกซิงค์มาจากระบบ SFTP โดยตรง</p>
               </div>
             ) : (
               filteredCategories.map((cat, i) => {
@@ -861,13 +846,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               <div className="py-16 text-center text-muted-foreground flex flex-col items-center">
                 <Boxes className="size-12 text-muted-foreground/30 mb-3" />
                 <p className="text-[0.9375rem] font-medium text-foreground">ยังไม่มีรุ่นสินค้าในหมวดหมู่นี้</p>
-                <p className="text-xs text-muted-foreground mt-1 mb-4">กดปุ่มด้านล่างเพื่อเพิ่มรุ่นสินค้าใหม่เข้าหมวดนี้ได้ทันที</p>
-                <button
-                  onClick={openAddModel}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
-                >
-                  <Plus className="size-4" /> เพิ่มรุ่นสินค้าแรกในหมวดนี้
-                </button>
+                <p className="text-xs text-muted-foreground mt-1">ข้อมูลรุ่นสินค้าจะถูกซิงค์มาจากระบบ SFTP โดยตรง</p>
               </div>
             ) : (
               activeCategoryModels.map((model, i) => {
