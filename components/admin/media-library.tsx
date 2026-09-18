@@ -1265,7 +1265,7 @@ export function MediaLibrary({ user }: { user: AuthUser }) {
                   </h2>
                   {drillStep === 1 && <p className="text-xs text-muted-foreground mt-0.5">{preselectedFileForLink ? "เลือกกลุ่มอาการที่ต้องการเชื่อมโยง" : "Symptom Group ทั้งหมด"}</p>}
                   {drillStep === 2 && <p className="text-xs text-muted-foreground mt-0.5">อาการเสียย่อยและหัวข้อการตรวจสอบที่ผูกกับ Symptom Group นี้</p>}
-                  {drillStep === 3 && <p className="text-xs text-muted-foreground mt-0.5">หัวข้อการตรวจสอบแก้ไขที่เกี่ยวข้องกับ Issue นี้</p>}
+                  {drillStep === 3 && <p className="text-xs text-muted-foreground mt-0.5">หัวข้อการตรวจสอบแก้ไขที่เกี่ยวข้องกับอาการเสียนี้</p>}
                 </div>
               </div>
               <button onClick={() => setIsDrilldownModalOpen(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors shrink-0">

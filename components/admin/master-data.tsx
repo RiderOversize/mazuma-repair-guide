@@ -711,7 +711,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
   const handleSaveGuide = () => {
     const cleanTitle = guideForm.title.trim()
     if (!cleanTitle) return showToast("กรุณากรอกหัวข้อการตรวจสอบ", "error")
-    if (!activeSymptomId) return showToast("กรุณาเลือก Issue ก่อน", "error")
+    if (!activeSymptomId) return showToast("กรุณาเลือกอาการเสียก่อน", "error")
 
     const isDuplicate = guides.some(g =>
       (guideForm.isEdit ? g.id !== guideForm.id : true) &&
@@ -821,7 +821,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             {currentView === 'categoryModels' && (activeCategory ? `รุ่นสินค้าในหมวด: ${activeCategory.name}` : "รุ่นสินค้า")}
             {currentView === 'subCategories' && (activeCategory?.name || "หมวดหมู่ย่อย")}
             {currentView === 'symptomTypesRoot' && "จัดการอาการเสียและวิธีตรวจสอบ"}
-            {currentView === 'symptoms' && (activeSymptomType?.name || "Issue")}
+            {currentView === 'symptoms' && (activeSymptomType?.name || "อาการเสีย")}
             {currentView === 'guides' && (activeSymptom?.title || "อาการเสียย่อย / หัวข้อการตรวจสอบ")}
           </h1>
           <p className="text-[0.8125rem] text-muted-foreground mt-1">
@@ -829,8 +829,8 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
             {currentView === 'categoryModels' && `${activeCategory?.code || activeCategory?.slug ? `รหัสหมวด ${activeCategory.code || activeCategory.slug} • ` : ''}มีสินค้าทั้งหมด ${activeCategoryModels.length} รุ่น`}
             {currentView === 'subCategories' && "Product Category ในหมวดหมู่นี้"}
             {currentView === 'symptomTypesRoot' && "Symptom Group ทั้งหมด"}
-            {currentView === 'symptoms' && "Issue ทั้งหมดที่ผูกกับ Symptom Group นี้"}
-            {currentView === 'guides' && "อาการเสียย่อยและหัวข้อการตรวจสอบที่เกี่ยวข้องกับ Issue นี้"}
+            {currentView === 'symptoms' && "อาการเสียทั้งหมดที่ผูกกับ Symptom Group นี้"}
+            {currentView === 'guides' && "หัวข้อการตรวจสอบที่เกี่ยวข้องกับอาการเสียนี้"}
           </p>
         </div>
       )}
@@ -1213,7 +1213,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 return (
                   <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
                     <AlertTriangle className="size-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-[0.9375rem]">ไม่มี Issue ในกลุ่มนี้</p>
+                    <p className="text-[0.9375rem]">ไม่มีอาการเสียในกลุ่มนี้</p>
                   </div>
                 )
               }
@@ -1241,7 +1241,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                       <button onClick={(e) => { e.stopPropagation(); setIssueForm({ id: sym.id, title: sym.title, description: sym.description, severity: sym.severity, isEdit: true }); setShowIssueModal(true) }} className="p-2 text-muted-foreground hover:bg-black/5 hover:text-foreground rounded-full transition-colors"><Edit className="size-4" /></button>
                       <button onClick={async (e) => {
                         e.stopPropagation()
-                        const ok = await confirmDelete("ลบ Issue", `คุณต้องการลบ "${sym.title}" หรือไม่?`)
+                        const ok = await confirmDelete("ลบอาการเสีย", `คุณต้องการลบ "${sym.title}" หรือไม่?`)
                         if (ok) {
                           const symId = sym.id
                           const symTitle = sym.title
@@ -1638,7 +1638,7 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
           <div className="bg-card w-full max-w-md md:max-w-2xl rounded-3xl border shadow-2xl p-6 animate-in zoom-in-95 duration-200 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-foreground">
-                {issueForm.isEdit ? 'แก้ไข Issue' : 'เพิ่ม Issue'}
+                {issueForm.isEdit ? 'แก้ไขอาการเสีย' : 'เพิ่มอาการเสีย'}
               </h2>
               <button onClick={() => setShowIssueModal(false)} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
                 <X className="size-5" />
