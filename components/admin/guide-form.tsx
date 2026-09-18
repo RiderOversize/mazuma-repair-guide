@@ -27,7 +27,7 @@ export function GuideForm({
   user?: AuthUser,
   editMapping?: MasterDataMapping | null,
   initialModelIds?: string[],
-  onFinish?: () => void
+  onFinish?: (optimisticMappings?: MasterDataMapping[], isEdit?: boolean) => void
 }) {
   const [models, setModels] = useState<DeviceModel[]>([])
   const [symptomTypes, setSymptomTypes] = useState<SymptomType[]>([])
@@ -38,50 +38,63 @@ export function GuideForm({
 
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>(initialModelIds || [])
   const [selectedSymptomTypeId, setSelectedSymptomTypeId] = useState<string>("")
+  const [modelSearch, setModelSearch] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
 
   // Custom dropdown search state
-  const [modelSearch, setModelSearch] = useState("")
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [])
 
+  useEffect(() => {
+    if (editMapping) {
+      const st = symptomTypes.find(s => s.subcategoryId === editMapping.symptomTypeCode || s.id === editMapping.symptomTypeCode)
+      if (st) setSelectedSymptomTypeId(st.id)
+      const m = models.find(mod => mod.code === editMapping.modelCode)
+      if (m) setSelectedModelIds([m.id])
+    }
+  }, [editMapping, symptomTypes, models])
+
   const loadData = async () => {
     setLoading(true)
-    const [mods, symTypes, cats, subCats, maps] = await Promise.all([
-      getModels(), getSymptomTypes(), getCategories(), getSubCategories(), getMasterDataMappings()
-    ])
-
-    setModels(mods)
-    setSymptomTypes(symTypes)
-    setCategories(cats)
-    setSubCategories(subCats)
-
-    if (editMapping) {
-      // Find model ID by code
-      const m = mods.find(x => x.code === editMapping.modelCode || x.name === editMapping.modelName)
-      if (m) {
-        setSelectedModelIds([m.id])
+    try {
+      const [m, st, c, sc, mdm] = await Promise.all([
+        getModels(),
+        getSymptomTypes(),
+        getCategories(),
+        getSubCategories(),
+        getMasterDataMappings()
+      ])
+      setModels(m)
+      setSymptomTypes(st)
+      setCategories(c)
+      setSubCategories(sc)
+      if (!editMapping && st.length > 0 && !selectedSymptomTypeId) {
+        setSelectedSymptomTypeId(st[0].id)
       }
-
-      // Symptom type code might be saved in subcategoryId
-      const st = symTypes.find(x => x.subcategoryId === editMapping.symptomTypeCode || x.id === editMapping.symptomTypeCode || x.name === editMapping.symptomTypeName)
-      if (st) setSelectedSymptomTypeId(st.id)
-    } else if (initialModelIds && initialModelIds.length > 0) {
-      setSelectedModelIds(initialModelIds)
+    } catch (err: any) {
+      showAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล", err.message, "error")
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
-  const handleSave = async () => {
-    if (selectedModelIds.length === 0) return showToast("กรุณาเลือกรุ่นสินค้า", "error")
-    if (!selectedSymptomTypeId) return showToast("กรุณาเลือกประเภทอาการ", "error")
+  const handleSave = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault()
 
-    setSaving(true)
+    if (selectedModelIds.length === 0) {
+      showToast("กรุณาเลือกรุ่นสินค้าอย่างน้อย 1 รุ่น", "error")
+      return
+    }
+    if (!selectedSymptomTypeId) {
+      showToast("กรุณาเลือกประเภทอาการเสีย", "error")
+      return
+    }
+
     try {
-      const symType = symptomTypes.find(st => st.id === selectedSymptomTypeId)
+      const symType = symptomTypes.find(s => s.id === selectedSymptomTypeId)
       if (!symType) throw new Error("ข้อมูลประเภทอาการไม่ถูกต้อง")
 
       if (editMapping) {
@@ -92,7 +105,8 @@ export function GuideForm({
         const matCode = category?.slug || category?.id || model.code?.split("-")[0] || ""
         const matName = category?.name || model.categoryId || ""
 
-        const mappingData = {
+        const mappingData: MasterDataMapping = {
+          id: editMapping.id,
           modelCode: model.code,
           modelName: model.name,
           matCategoryCode: matCode,
@@ -100,11 +114,20 @@ export function GuideForm({
           symptomTypeCode: symType.subcategoryId || symType.id,
           symptomTypeName: symType.name,
         }
-        await updateMasterDataMapping(editMapping.id, mappingData as any)
-        if (user) await logActivity(user, "update", "masterdata_mapping", `${mappingData.modelName} -> ${mappingData.symptomTypeName}`, editMapping.id)
+
         showToast("อัปเดตการผูกข้อมูลสำเร็จ", "success")
+        if (onFinish) onFinish([mappingData], true)
+
+        updateMasterDataMapping(editMapping.id, mappingData as any)
+          .then(() => {
+            if (user) logActivity(user, "update", "masterdata_mapping", `${mappingData.modelName} -> ${mappingData.symptomTypeName}`, editMapping.id)
+          })
+          .catch(err => {
+            console.error("Failed to update mapping in background:", err)
+            showToast("บันทึกลง Google Sheet ไม่สำเร็จ", "error")
+          })
       } else {
-        const mappingsToCreate = []
+        const mappingsToCreate: MasterDataMapping[] = []
         for (const modelId of selectedModelIds) {
           const model = models.find(m => m.id === modelId)
           if (!model) continue
@@ -114,6 +137,7 @@ export function GuideForm({
           const matName = category?.name || model.categoryId || ""
 
           mappingsToCreate.push({
+            id: `map-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
             modelCode: model.code,
             modelName: model.name,
             matCategoryCode: matCode,
@@ -123,14 +147,20 @@ export function GuideForm({
           })
         }
 
-        if (mappingsToCreate.length > 0) {
-          await bulkCreateMasterDataMappings(mappingsToCreate as any)
-          if (user) await logActivity(user, "create", "masterdata_mapping", `ผูกสินค้า ${mappingsToCreate.length} รุ่น -> ${symType.name}`)
-        }
         showToast(`บันทึกการผูกข้อมูลสำเร็จ ${mappingsToCreate.length} รายการ`, "success")
-      }
+        if (onFinish) onFinish(mappingsToCreate, false)
 
-      if (onFinish) onFinish()
+        if (mappingsToCreate.length > 0) {
+          bulkCreateMasterDataMappings(mappingsToCreate as any)
+            .then(() => {
+              if (user) logActivity(user, "create", "masterdata_mapping", `ผูกสินค้า ${mappingsToCreate.length} รุ่น -> ${symType.name}`)
+            })
+            .catch(err => {
+              console.error("Failed to create mappings in background:", err)
+              showToast("บันทึกลง Google Sheet ไม่สำเร็จ", "error")
+            })
+        }
+      }
     } catch (err: any) {
       showAlert("เกิดข้อผิดพลาด", err.message, "error")
     } finally {
@@ -160,7 +190,7 @@ export function GuideForm({
             </div>
           </div>
           <button
-            onClick={onFinish}
+            onClick={() => onFinish && onFinish()}
             className="flex size-8 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="size-4" />
@@ -319,7 +349,7 @@ export function GuideForm({
         <div className="border-t border-border/50 bg-muted/20 p-4 rounded-b-3xl flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={onFinish}
+            onClick={() => onFinish && onFinish()}
             disabled={saving}
             className="rounded-xl px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >

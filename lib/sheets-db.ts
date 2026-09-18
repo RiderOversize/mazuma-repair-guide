@@ -619,6 +619,30 @@ export async function getSymptoms(): Promise<Symptom[]> {
 }
 
 export async function createSymptom(data: Partial<Symptom>): Promise<Symptom> {
+  const cleanTitle = (data.title || "").trim().toLowerCase();
+  const existingSymptoms = await getSymptoms();
+  const types = await getSymptomTypes();
+  const targetType = types.find(t =>
+    t.id === data.symptomTypeId ||
+    t.name === data.symptomTypeId ||
+    (t.subcategoryId && t.subcategoryId === data.symptomTypeId)
+  );
+  const validGroupKeys = new Set(
+    [data.symptomTypeId, targetType?.id, targetType?.name, targetType?.subcategoryId]
+      .filter(Boolean)
+      .map(k => String(k).trim().toLowerCase())
+  );
+
+  const isDuplicate = existingSymptoms.some(s => {
+    const sTypeId = String(s.symptomTypeId || "").trim().toLowerCase();
+    const belongs = validGroupKeys.has(sTypeId);
+    return belongs && s.title.trim().toLowerCase() === cleanTitle;
+  });
+
+  if (isDuplicate) {
+    throw new Error(`มีอาการเสีย "${data.title}" ในกลุ่มอาการนี้อยู่แล้ว (ห้ามเพิ่มอาการซ้ำ)`);
+  }
+
   const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
   const headers = allRows[0] || [];
   
@@ -640,8 +664,7 @@ export async function createSymptom(data: Partial<Symptom>): Promise<Symptom> {
     tags: data.tags || []
   };
   
-  const types = await getSymptomTypes();
-  const st = types.find(t => t.id === newSym.symptomTypeId);
+  const st = types.find(t => t.id === newSym.symptomTypeId || t.name === newSym.symptomTypeId || t.subcategoryId === newSym.symptomTypeId);
   
   const objToSave = {
     ...newSym,
@@ -664,6 +687,31 @@ export async function updateSymptom(id: string, data: Partial<Symptom>): Promise
   const existing = symptoms.find(s => s.id === id);
   if (!existing) throw new Error("Symptom not found");
   const merged = { ...existing, ...data };
+
+  if (data.title) {
+    const cleanTitle = data.title.trim().toLowerCase();
+    const types = await getSymptomTypes();
+    const targetType = types.find(t =>
+      t.id === merged.symptomTypeId ||
+      t.name === merged.symptomTypeId ||
+      (t.subcategoryId && t.subcategoryId === merged.symptomTypeId)
+    );
+    const validGroupKeys = new Set(
+      [merged.symptomTypeId, targetType?.id, targetType?.name, targetType?.subcategoryId]
+        .filter(Boolean)
+        .map(k => String(k).trim().toLowerCase())
+    );
+
+    const isDuplicate = symptoms.some(s => {
+      if (s.id === id) return false;
+      const sTypeId = String(s.symptomTypeId || "").trim().toLowerCase();
+      const belongs = validGroupKeys.has(sTypeId);
+      return belongs && s.title.trim().toLowerCase() === cleanTitle;
+    });
+    if (isDuplicate) {
+      throw new Error(`มีอาการเสีย "${data.title}" ในกลุ่มอาการนี้อยู่แล้ว (ห้ามเพิ่มอาการซ้ำ)`);
+    }
+  }
   
   const allRows = await readSheet(`${SHEETS.SYMPTOMS}!A1:Z`);
   const headers = allRows[0] || [];

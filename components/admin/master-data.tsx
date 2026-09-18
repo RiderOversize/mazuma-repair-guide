@@ -18,7 +18,8 @@ import { showToast, showAlert, confirmDelete } from "@/lib/swal"
 import {
   Loader2, Plus, Trash2, Edit, ChevronRight, Boxes, Stethoscope, X, ListTree,
   FolderOpen, Wrench, AlertTriangle, FileText, ArrowRight, Video, FileDown,
-  Upload, HardDrive, PlaySquare, CheckCircle2, Search, Layers, Tag, ImageIcon
+  Upload, HardDrive, PlaySquare, CheckCircle2, Search, Layers, Tag, ImageIcon,
+  AlertCircle
 } from "lucide-react"
 
 export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobalBack }: { user: AuthUser, initialView?: string, setGlobalBack?: (fn: (() => void) | null) => void }) {
@@ -250,6 +251,21 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     )
   }, [activeCategory, models, modelSearch])
 
+  // Check duplicate issue / symptom within current symptom group
+  const isIssueTitleDuplicate = useMemo(() => {
+    const clean = (issueForm.title || '').trim().toLowerCase()
+    if (!clean) return false
+    return symptoms.some(s => {
+      if (issueForm.isEdit && s.id === issueForm.id) return false
+      const belongsToGroup =
+        s.symptomTypeId === activeSymptomType?.id ||
+        s.symptomTypeId === activeSymptomType?.name ||
+        (activeSymptomType?.subcategoryId && s.symptomTypeId === activeSymptomType?.subcategoryId) ||
+        s.symptomTypeId === activeSymptomTypeId
+      return belongsToGroup && (s.title || '').trim().toLowerCase() === clean
+    })
+  }, [issueForm.title, issueForm.id, issueForm.isEdit, activeSymptomType, activeSymptomTypeId, symptoms])
+
   // Model Actions (ภายในหมวดหมู่สินค้า)
   const openAddModel = () => {
     setModelForm({
@@ -276,42 +292,59 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     setShowModelModal(true)
   }
 
-  const handleSaveModel = async () => {
+  const handleSaveModel = () => {
     const cleanName = modelForm.name.trim()
     const cleanCode = modelForm.code.trim()
     if (!cleanName) return showToast("กรุณากรอกชื่อรุ่นสินค้า", "error")
     if (!cleanCode) return showToast("กรุณากรอกรหัสรุ่นสินค้า (Code)", "error")
 
-    const subCatId = activeCategory?.id || ''
-    const groupPrefix = activeCategory?.groupCode || (activeCategory?.code ? activeCategory.code.split('-')[0] : '')
-
-    try {
-      if (modelForm.isEdit) {
-        await updateModel(modelForm.id, {
-          name: cleanName,
-          code: cleanCode,
-          thumbnail: modelForm.thumbnail.trim(),
-          status: modelForm.status,
-        })
-        await logActivity(user, "update", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode})`)
-        showToast("แก้ไขรุ่นสินค้าสำเร็จ", "success")
-      } else {
-        await createModel({
-          id: cleanCode || `m-${Date.now()}`,
-          name: cleanName,
-          code: cleanCode,
-          categoryId: activeCategory?.name || activeCategory?.id || '',
-          subcategoryId: '',
-          thumbnail: modelForm.thumbnail.trim(),
-          status: modelForm.status,
-        } as DeviceModel)
-        await logActivity(user, "create", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode}) ในหมวด: ${activeCategory?.name}`)
-        showToast("เพิ่มรุ่นสินค้าสำเร็จ", "success")
-      }
+    if (modelForm.isEdit) {
+      const modelId = modelForm.id
+      const prevModels = [...models]
+      setModels(prev => prev.map(m => m.id === modelId ? {
+        ...m,
+        name: cleanName,
+        code: cleanCode,
+        thumbnail: modelForm.thumbnail.trim(),
+        status: modelForm.status,
+      } : m))
       setShowModelModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขรุ่นสินค้าสำเร็จ", "success")
+
+      updateModel(modelId, {
+        name: cleanName,
+        code: cleanCode,
+        thumbnail: modelForm.thumbnail.trim(),
+        status: modelForm.status,
+      })
+        .then(() => logActivity(user, "update", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode})`))
+        .catch(err => {
+          console.error("Failed to update model in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setModels(prevModels)
+        })
+    } else {
+      const newModel: DeviceModel = {
+        id: cleanCode || `m-${Date.now()}`,
+        name: cleanName,
+        code: cleanCode,
+        categoryId: activeCategory?.name || activeCategory?.id || '',
+        subcategoryId: '',
+        thumbnail: modelForm.thumbnail.trim(),
+        status: modelForm.status,
+      } as DeviceModel
+      const prevModels = [...models]
+      setModels(prev => [...prev, newModel])
+      setShowModelModal(false)
+      showToast("เพิ่มรุ่นสินค้าสำเร็จ", "success")
+
+      createModel(newModel)
+        .then(() => logActivity(user, "create", "model", `รุ่นสินค้า: ${cleanName} (${cleanCode}) ในหมวด: ${activeCategory?.name}`))
+        .catch(err => {
+          console.error("Failed to create model in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setModels(prevModels)
+        })
     }
   }
 
@@ -322,14 +355,20 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       `คุณต้องการลบรุ่น "${model.name}" (${model.code}) ใช่หรือไม่?`
     )
     if (isConfirmed) {
-      try {
-        await deleteModel(model.id)
-        await logActivity(user, "delete", "model", `รุ่นสินค้า: ${model.name} (${model.code})`)
-        showToast("ลบรุ่นสินค้าสำเร็จ", "success")
-        loadData()
-      } catch (err: any) {
-        showAlert("เกิดข้อผิดพลาด", err.message, "error")
-      }
+      const mId = model.id
+      const mName = model.name
+      const mCode = model.code
+      const prevModels = [...models]
+      setModels(prev => prev.filter(m => m.id !== mId))
+      showToast("ลบรุ่นสินค้าสำเร็จ", "success")
+
+      deleteModel(mId)
+        .then(() => logActivity(user, "delete", "model", `รุ่นสินค้า: ${mName} (${mCode})`))
+        .catch(err => {
+          console.error("Failed to delete model in background:", err)
+          showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setModels(prevModels)
+        })
     }
   }
 
@@ -345,32 +384,53 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     setShowCatModal(true)
   }
 
-  const handleSaveCategory = async () => {
+  const handleSaveCategory = () => {
     const cleanName = catForm.name.trim()
     if (!cleanName) return showToast("กรุณากรอกชื่อหมวดหมู่สินค้า", "error")
+    const cleanDesc = catForm.description.trim()
 
-    try {
-      if (catForm.isEdit) {
-        await updateCategory(catForm.id, {
-          name: cleanName,
-          slug: cleanName,
-          description: catForm.description.trim(),
-        })
-        await logActivity(user, "update", "category", `หมวดหมู่สินค้า: ${cleanName}`)
-        showToast("แก้ไขหมวดหมู่สินค้าสำเร็จ", "success")
-      } else {
-        await createCategory({
-          name: cleanName,
-          slug: cleanName,
-          description: catForm.description.trim(),
-        })
-        await logActivity(user, "create", "category", `หมวดหมู่สินค้า: ${cleanName}`)
-        showToast("เพิ่มหมวดหมู่สินค้าสำเร็จ", "success")
-      }
+    if (catForm.isEdit) {
+      const catId = catForm.id
+      const prevCats = [...categories]
+      setCategories(prev => prev.map(c => c.id === catId ? {
+        ...c,
+        name: cleanName,
+        slug: cleanName,
+        description: cleanDesc,
+      } : c))
       setShowCatModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขหมวดหมู่สินค้าสำเร็จ", "success")
+
+      updateCategory(catId, {
+        name: cleanName,
+        slug: cleanName,
+        description: cleanDesc,
+      })
+        .then(() => logActivity(user, "update", "category", `หมวดหมู่สินค้า: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to update category in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setCategories(prevCats)
+        })
+    } else {
+      const newCat: Category = {
+        id: `cat-${Date.now()}`,
+        name: cleanName,
+        slug: cleanName,
+        description: cleanDesc,
+      }
+      const prevCats = [...categories]
+      setCategories(prev => [...prev, newCat])
+      setShowCatModal(false)
+      showToast("เพิ่มหมวดหมู่สินค้าสำเร็จ", "success")
+
+      createCategory(newCat)
+        .then(() => logActivity(user, "create", "category", `หมวดหมู่สินค้า: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to create category in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setCategories(prevCats)
+        })
     }
   }
 
@@ -379,27 +439,26 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     const modelCount = getCategoryModelCount(cat)
     const isConfirmed = await confirmDelete(
       "ลบหมวดหมู่สินค้า",
-      `คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?${modelCount > 0 ? `\n\n⚠️ มีรุ่นสินค้าที่อยู่ในหมวดนี้ ${modelCount} รุ่น` : ""
-      }`
+      `คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?${modelCount > 0 ? `\n\n⚠️ มีรุ่นสินค้าที่อยู่ในหมวดนี้ ${modelCount} รุ่น` : ""}`
     )
     if (isConfirmed) {
-      try {
-        await deleteCategory(cat.id)
-        await logActivity(
-          user,
-          "delete",
-          "category",
-          `หมวดหมู่สินค้า: ${cat.name}`
-        )
-        if (activeCategoryId === cat.id) {
-          setActiveCategoryId(null)
-          setCurrentView('categories')
-        }
-        showToast("ลบหมวดหมู่สินค้าสำเร็จ", "success")
-        loadData()
-      } catch (err: any) {
-        showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      const catId = cat.id
+      const catName = cat.name
+      const prevCats = [...categories]
+      setCategories(prev => prev.filter(c => c.id !== catId))
+      if (activeCategoryId === catId) {
+        setActiveCategoryId(null)
+        setCurrentView('categories')
       }
+      showToast("ลบหมวดหมู่สินค้าสำเร็จ", "success")
+
+      deleteCategory(catId)
+        .then(() => logActivity(user, "delete", "category", `หมวดหมู่สินค้า: ${catName}`))
+        .catch(err => {
+          console.error("Failed to delete category in background:", err)
+          showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setCategories(prevCats)
+        })
     }
   }
 
@@ -415,24 +474,46 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     setShowSubCatModal(true)
   }
 
-  const handleSaveSubCategory = async () => {
-    if (!subCatForm.index) return showToast("กรุณากรอกรหัส MAT Category Code", "error")
-    if (!subCatForm.name) return showToast("กรุณากรอกชื่อหมวดหมู่ย่อย", "error")
+  const handleSaveSubCategory = () => {
+    const cleanIndex = subCatForm.index.trim()
+    const cleanName = subCatForm.name.trim()
+    if (!cleanIndex) return showToast("กรุณากรอกรหัส MAT Category Code", "error")
+    if (!cleanName) return showToast("กรุณากรอกชื่อหมวดหมู่ย่อย", "error")
 
-    try {
-      if (subCatForm.isEdit) {
-        await updateSubCategory(subCatForm.id, { name: subCatForm.name })
-        await logActivity(user, "update", "subcategory", `หมวดหมู่ย่อย: ${subCatForm.name}`)
-        showToast("แก้ไขหมวดหมู่ย่อยสำเร็จ", "success")
-      } else {
-        await createSubCategory({ name: subCatForm.name, index: subCatForm.index, categoryId: activeCategory?.slug || '' })
-        await logActivity(user, "create", "subcategory", `หมวดหมู่ย่อย: ${subCatForm.name}`)
-        showToast("เพิ่มหมวดหมู่ย่อยสำเร็จ", "success")
-      }
+    if (subCatForm.isEdit) {
+      const scId = subCatForm.id
+      const prevSubCats = [...subCategories]
+      setSubCategories(prev => prev.map(sc => sc.id === scId ? { ...sc, name: cleanName } : sc))
       setShowSubCatModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขหมวดหมู่ย่อยสำเร็จ", "success")
+
+      updateSubCategory(scId, { name: cleanName })
+        .then(() => logActivity(user, "update", "subcategory", `หมวดหมู่ย่อย: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to update subcategory in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSubCategories(prevSubCats)
+        })
+    } else {
+      const newId = `sc-${Date.now()}`
+      const newSubCat: SubCategory = {
+        id: newId,
+        name: cleanName,
+        index: cleanIndex,
+        categoryId: activeCategory?.slug || ''
+      }
+      const prevSubCats = [...subCategories]
+      setSubCategories(prev => [...prev, newSubCat])
+      setShowSubCatModal(false)
+      showToast("เพิ่มหมวดหมู่ย่อยสำเร็จ", "success")
+
+      createSubCategory({ name: cleanName, index: cleanIndex, categoryId: activeCategory?.slug || '' })
+        .then(() => logActivity(user, "create", "subcategory", `หมวดหมู่ย่อย: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to create subcategory in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSubCategories(prevSubCats)
+        })
     }
   }
 
@@ -443,23 +524,23 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
       `คุณต้องการลบ "${subCat.name}" ใช่หรือไม่?\n⚠️ สินค้าทั้งหมดที่อยู่ในหมวดนี้จะถูกลบออกด้วย`
     )
     if (isConfirmed) {
-      try {
-        const result = await deleteSubCategory(subCat.id)
-        await logActivity(
-          user,
-          "delete",
-          "subcategory",
-          `หมวดหมู่ย่อย: ${subCat.name} (ลบสินค้า: ${result.deletedModelsCount})`
-        )
-        if (activeSubCategoryId === subCat.id) {
-          setActiveSubCategoryId(null)
-          setCurrentView('subCategories')
-        }
-        showToast("ลบหมวดหมู่ย่อยและสินค้าสำเร็จ", "success")
-        loadData()
-      } catch (err: any) {
-        showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      const scId = subCat.id
+      const scName = subCat.name
+      const prevSubCats = [...subCategories]
+      setSubCategories(prev => prev.filter(sc => sc.id !== scId))
+      if (activeSubCategoryId === scId) {
+        setActiveSubCategoryId(null)
+        setCurrentView('subCategories')
       }
+      showToast("ลบหมวดหมู่ย่อยและสินค้าสำเร็จ", "success")
+
+      deleteSubCategory(scId)
+        .then(result => logActivity(user, "delete", "subcategory", `หมวดหมู่ย่อย: ${scName} (ลบสินค้า: ${result.deletedModelsCount})`))
+        .catch(err => {
+          console.error("Failed to delete subcategory in background:", err)
+          showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSubCategories(prevSubCats)
+        })
     }
   }
 
@@ -475,24 +556,62 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     setShowSymModal(true)
   }
 
-  const handleSaveSymptomType = async () => {
-    if (!symForm.subcategoryId) return showToast("กรุณากรอกรหัสกลุ่มอาการ", "error")
-    if (!symForm.name) return showToast("กรุณากรอกชื่อกลุ่มอาการ", "error")
+  const handleSaveSymptomType = () => {
+    const cleanSubCatId = symForm.subcategoryId.trim()
+    const cleanName = symForm.name.trim()
+    const cleanDesc = symForm.description?.trim() || ''
+    if (!cleanSubCatId) return showToast("กรุณากรอกรหัสกลุ่มอาการ", "error")
+    if (!cleanName) return showToast("กรุณากรอกชื่อกลุ่มอาการ", "error")
 
-    try {
-      if (symForm.isEdit) {
-        await updateSymptomType(symForm.id, { subcategoryId: symForm.subcategoryId, name: symForm.name, description: symForm.description })
-        await logActivity(user, "update", "symptom_type", `กลุ่มอาการ: ${symForm.name}`)
-        showToast("แก้ไขกลุ่มอาการสำเร็จ", "success")
-      } else {
-        await createSymptomType({ subcategoryId: symForm.subcategoryId, name: symForm.name, description: symForm.description })
-        await logActivity(user, "create", "symptom_type", `กลุ่มอาการ: ${symForm.name}`)
-        showToast("เพิ่มกลุ่มอาการสำเร็จ", "success")
-      }
+    const isDuplicate = symptomTypes.some(st =>
+      (symForm.isEdit ? st.id !== symForm.id : true) &&
+      (st.subcategoryId?.trim().toLowerCase() === cleanSubCatId.toLowerCase() ||
+       st.name.trim().toLowerCase() === cleanName.toLowerCase())
+    )
+    if (isDuplicate) {
+      return showToast("มีรหัสหรือชื่อกลุ่มอาการนี้อยู่แล้ว (ห้ามระบุซ้ำ)", "warning")
+    }
+
+    if (symForm.isEdit) {
+      const stId = symForm.id
+      const prevTypes = [...symptomTypes]
+      setSymptomTypes(prev => prev.map(s => s.id === stId ? {
+        ...s,
+        subcategoryId: cleanSubCatId,
+        name: cleanName,
+        description: cleanDesc
+      } : s))
       setShowSymModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขกลุ่มอาการสำเร็จ", "success")
+
+      updateSymptomType(stId, { subcategoryId: cleanSubCatId, name: cleanName, description: cleanDesc })
+        .then(() => logActivity(user, "update", "symptom_type", `กลุ่มอาการ: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to update symptom type in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSymptomTypes(prevTypes)
+        })
+    } else {
+      const newId = cleanSubCatId || symForm.id || `type-${Date.now()}`
+      const newSt: SymptomType = {
+        id: newId,
+        subcategoryId: cleanSubCatId,
+        name: cleanName,
+        description: cleanDesc,
+        categoryId: ''
+      }
+      const prevTypes = [...symptomTypes]
+      setSymptomTypes(prev => [...prev, newSt])
+      setShowSymModal(false)
+      showToast("เพิ่มกลุ่มอาการสำเร็จ", "success")
+
+      createSymptomType({ subcategoryId: cleanSubCatId, name: cleanName, description: cleanDesc })
+        .then(() => logActivity(user, "create", "symptom_type", `กลุ่มอาการ: ${cleanName}`))
+        .catch(err => {
+          console.error("Failed to create symptom type in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSymptomTypes(prevTypes)
+        })
     }
   }
 
@@ -500,82 +619,156 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
     e.stopPropagation()
     const isConfirmed = await confirmDelete("ลบกลุ่มอาการ", `คุณต้องการลบ "${st.name}" ใช่หรือไม่?`)
     if (isConfirmed) {
-      try {
-        await deleteSymptomType(st.id)
-        await logActivity(user, "delete", "symptom_type", `กลุ่มอาการ: ${st.name}`)
-        showToast("ลบกลุ่มอาการสำเร็จ", "success")
-        loadData()
-      } catch (err: any) {
-        showAlert("เกิดข้อผิดพลาด", err.message, "error")
-      }
+      const stId = st.id
+      const stName = st.name
+      const prevTypes = [...symptomTypes]
+      setSymptomTypes(prev => prev.filter(s => s.id !== stId))
+      showToast("ลบกลุ่มอาการสำเร็จ", "success")
+
+      deleteSymptomType(stId)
+        .then(() => logActivity(user, "delete", "symptom_type", `กลุ่มอาการ: ${stName}`))
+        .catch(err => {
+          console.error("Failed to delete symptom type in background:", err)
+          showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSymptomTypes(prevTypes)
+        })
     }
   }
 
   // Issue (Symptom) Actions
-  const handleSaveIssue = async () => {
-    if (!issueForm.title) return showToast("กรุณากรอกชื่ออาการเสีย", "error")
+  const handleSaveIssue = () => {
+    const cleanTitle = issueForm.title.trim()
+    if (!cleanTitle) return showToast("กรุณากรอกชื่ออาการเสีย", "error")
     if (!activeSymptomTypeId) return showToast("กรุณาเลือกกลุ่มอาการก่อน", "error")
 
-    try {
-      if (issueForm.isEdit) {
-        await updateSymptom(issueForm.id, {
-          title: issueForm.title,
-          description: issueForm.description,
-          severity: issueForm.severity as any
-        })
-        await logActivity(user, "update", "symptom", `อาการเสีย: ${issueForm.title}`)
-        showToast("แก้ไขอาการเสียสำเร็จ", "success")
-      } else {
-        await createSymptom({
-          id: issueForm.id,
-          title: issueForm.title,
-          description: issueForm.description,
-          severity: issueForm.severity as any,
-          symptomTypeId: activeSymptomType?.subcategoryId || activeSymptomTypeId,
-          tags: []
-        })
-        await logActivity(user, "create", "symptom", `อาการเสีย: ${issueForm.title}`)
-        showToast("เพิ่มอาการเสียสำเร็จ", "success")
-      }
+    const parentTypeId = activeSymptomType?.subcategoryId || activeSymptomType?.id || activeSymptomTypeId
+
+    // Duplicate check
+    const cleanLower = cleanTitle.toLowerCase()
+    const isDuplicate = symptoms.some(s => {
+      if (issueForm.isEdit && s.id === issueForm.id) return false
+      const belongsToGroup =
+        s.symptomTypeId === activeSymptomType?.id ||
+        s.symptomTypeId === activeSymptomType?.name ||
+        (activeSymptomType?.subcategoryId && s.symptomTypeId === activeSymptomType?.subcategoryId) ||
+        s.symptomTypeId === parentTypeId
+      return belongsToGroup && (s.title || '').trim().toLowerCase() === cleanLower
+    })
+
+    if (isDuplicate) {
+      return showToast("มีชื่ออาการเสียนี้อยู่ในกลุ่มนี้แล้ว (ห้ามเพิ่มอาการซ้ำ)", "warning")
+    }
+
+    if (issueForm.isEdit) {
+      const issueId = issueForm.id
+      const prevSymptoms = [...symptoms]
+      setSymptoms(prev => prev.map(s => s.id === issueId ? {
+        ...s,
+        title: cleanTitle,
+        description: issueForm.description.trim(),
+        severity: (issueForm.severity as any) || 'Medium'
+      } : s))
       setShowIssueModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขอาการเสียสำเร็จ", "success")
+
+      updateSymptom(issueId, {
+        title: cleanTitle,
+        description: issueForm.description.trim(),
+        severity: (issueForm.severity as any) || 'Medium'
+      })
+        .then(() => logActivity(user, "update", "symptom", `อาการเสีย: ${cleanTitle}`))
+        .catch(err => {
+          console.error("Failed to update symptom in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSymptoms(prevSymptoms)
+        })
+    } else {
+      const newId = issueForm.id || `sym-${Date.now()}`
+      const newSymptom: Symptom = {
+        id: newId,
+        title: cleanTitle,
+        description: issueForm.description.trim(),
+        severity: (issueForm.severity as any) || 'Medium',
+        symptomTypeId: parentTypeId,
+        tags: []
+      }
+      const prevSymptoms = [...symptoms]
+      setSymptoms(prev => [...prev, newSymptom])
+      setShowIssueModal(false)
+      showToast("เพิ่มอาการเสียสำเร็จ", "success")
+
+      createSymptom(newSymptom)
+        .then(() => logActivity(user, "create", "symptom", `อาการเสีย: ${cleanTitle}`))
+        .catch(err => {
+          console.error("Failed to create symptom in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setSymptoms(prevSymptoms)
+        })
     }
   }
 
   // Guide Actions
-  const handleSaveGuide = async () => {
-    if (!guideForm.title) return showToast("กรุณากรอกหัวข้อการตรวจสอบ", "error")
+  const handleSaveGuide = () => {
+    const cleanTitle = guideForm.title.trim()
+    if (!cleanTitle) return showToast("กรุณากรอกหัวข้อการตรวจสอบ", "error")
     if (!activeSymptomId) return showToast("กรุณาเลือก Issue ก่อน", "error")
 
-    try {
-      if (guideForm.isEdit) {
-        await updateGuide(guideForm.id, {
-          title: guideForm.title,
-          mediaUrl: guideForm.mediaUrl,
-          pdfUrl: guideForm.pdfUrl
-        })
-        await logActivity(user, "update", "guide", `หัวข้อ: ${guideForm.title}`)
-        showToast("แก้ไขสำเร็จ", "success")
-      } else {
-        await createGuide({
-          id: `gd-${Date.now()}`,
-          title: guideForm.title,
-          symptomId: activeSymptom?.id || '',
-          mediaUrl: guideForm.mediaUrl,
-          pdfUrl: guideForm.pdfUrl,
-          categoryId: '',
-          toolsRequired: [],
-          steps: []
-        } as any)
-        await logActivity(user, "create", "guide", `หัวข้อ: ${guideForm.title}`)
-        showToast("เพิ่มสำเร็จ", "success")
-      }
+    const isDuplicate = guides.some(g =>
+      (guideForm.isEdit ? g.id !== guideForm.id : true) &&
+      (g.symptomId === activeSymptom?.id || g.symptomId === activeSymptomId) &&
+      g.title.trim().toLowerCase() === cleanTitle.toLowerCase()
+    )
+    if (isDuplicate) {
+      return showToast("มีหัวข้อการตรวจสอบนี้อยู่แล้ว (ห้ามระบุชื่อซ้ำ)", "warning")
+    }
+
+    if (guideForm.isEdit) {
+      const gId = guideForm.id
+      const prevGuides = [...guides]
+      setGuides(prev => prev.map(g => g.id === gId ? {
+        ...g,
+        title: cleanTitle,
+        mediaUrl: guideForm.mediaUrl.trim(),
+        pdfUrl: guideForm.pdfUrl.trim()
+      } : g))
       setShowGuideModal(false)
-      loadData()
-    } catch (err: any) {
-      showAlert("เกิดข้อผิดพลาด", err.message, "error")
+      showToast("แก้ไขสำเร็จ", "success")
+
+      updateGuide(gId, {
+        title: cleanTitle,
+        mediaUrl: guideForm.mediaUrl.trim(),
+        pdfUrl: guideForm.pdfUrl.trim()
+      })
+        .then(() => logActivity(user, "update", "guide", `หัวข้อ: ${cleanTitle}`))
+        .catch(err => {
+          console.error("Failed to update guide in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setGuides(prevGuides)
+        })
+    } else {
+      const newId = `gd-${Date.now()}`
+      const newGuide: Guide = {
+        id: newId,
+        title: cleanTitle,
+        symptomId: activeSymptom?.id || activeSymptomId,
+        mediaUrl: guideForm.mediaUrl.trim(),
+        pdfUrl: guideForm.pdfUrl.trim(),
+        categoryId: '',
+        toolsRequired: [],
+        steps: []
+      } as any
+      const prevGuides = [...guides]
+      setGuides(prev => [...prev, newGuide])
+      setShowGuideModal(false)
+      showToast("เพิ่มสำเร็จ", "success")
+
+      createGuide(newGuide)
+        .then(() => logActivity(user, "create", "guide", `หัวข้อ: ${cleanTitle}`))
+        .catch(err => {
+          console.error("Failed to create guide in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setGuides(prevGuides)
+        })
     }
   }
 
@@ -1050,11 +1243,19 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                         e.stopPropagation()
                         const ok = await confirmDelete("ลบ Issue", `คุณต้องการลบ "${sym.title}" หรือไม่?`)
                         if (ok) {
-                          try {
-                            await deleteSymptom(sym.id)
-                            showToast("ลบข้อมูลสำเร็จ", "success")
-                            loadData()
-                          } catch (err: any) { showAlert("Error", err.message, "error") }
+                          const symId = sym.id
+                          const symTitle = sym.title
+                          const prevSymptoms = [...symptoms]
+                          setSymptoms(prev => prev.filter(s => s.id !== symId))
+                          showToast("ลบข้อมูลสำเร็จ", "success")
+
+                          deleteSymptom(symId)
+                            .then(() => logActivity(user, "delete", "symptom", `อาการเสีย: ${symTitle}`))
+                            .catch(err => {
+                              console.error("Failed to delete symptom in background:", err)
+                              showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+                              setSymptoms(prevSymptoms)
+                            })
                         }
                       }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
                       <ChevronRight className="size-5 text-muted-foreground/40" />
@@ -1116,7 +1317,25 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button onClick={(e) => { e.stopPropagation(); setGuideForm({ id: guide.id, title: guide.title, mediaUrl: guide.mediaUrl || '', pdfUrl: guide.pdfUrl || '', isEdit: true }); setShowGuideModal(true) }} className="p-2 text-muted-foreground hover:bg-black/5 hover:text-foreground rounded-full transition-colors"><Edit className="size-4" /></button>
-                      <button onClick={async (e) => { e.stopPropagation(); const ok = await confirmDelete(guide.title); if (ok) { try { await deleteGuide(guide.id); showToast('ลบสำเร็จ', 'success'); loadData() } catch (err: any) { showAlert('เกิดข้อผิดพลาด', err.message, 'error') } } }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
+                      <button onClick={async (e) => {
+                        e.stopPropagation()
+                        const ok = await confirmDelete(guide.title)
+                        if (ok) {
+                          const gId = guide.id
+                          const gTitle = guide.title
+                          const prevGuides = [...guides]
+                          setGuides(prev => prev.filter(g => g.id !== gId))
+                          showToast('ลบสำเร็จ', 'success')
+
+                          deleteGuide(gId)
+                            .then(() => logActivity(user, "delete", "guide", `หัวข้อ: ${gTitle}`))
+                            .catch(err => {
+                              console.error("Failed to delete guide in background:", err)
+                              showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+                              setGuides(prevGuides)
+                            })
+                        }
+                      }} className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors"><Trash2 className="size-4" /></button>
                     </div>
                   </div>
                 )
@@ -1431,12 +1650,23 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
                 <label className="text-sm font-semibold text-foreground">ชื่ออาการเสีย</label>
                 <input
                   autoFocus
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  className={cn(
+                    "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none transition-all",
+                    isIssueTitleDuplicate
+                      ? "border-destructive focus:border-destructive focus:ring-4 focus:ring-destructive/10 text-destructive"
+                      : "border-input focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  )}
                   placeholder="เช่น เครื่องเปิดติด แต่เครื่องไม่ทำความร้อน"
                   value={issueForm.title}
                   onChange={e => setIssueForm({ ...issueForm, title: e.target.value })}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveIssue()}
+                  onKeyDown={e => e.key === 'Enter' && !isIssueTitleDuplicate && handleSaveIssue()}
                 />
+                {isIssueTitleDuplicate && (
+                  <p className="text-xs text-destructive flex items-center gap-1.5 mt-1 animate-in fade-in">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    มีชื่ออาการเสียนี้อยู่ในกลุ่มนี้แล้ว (ห้ามระบุชื่อซ้ำ)
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">คำอธิบาย (ไม่บังคับ)</label>
@@ -1453,7 +1683,11 @@ export function MasterDataManagement({ user, initialView = 'mainMenu', setGlobal
               <button onClick={() => setShowIssueModal(false)} className="px-5 py-2.5 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors">
                 ยกเลิก
               </button>
-              <button onClick={handleSaveIssue} className="px-5 py-2.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 rounded-xl transition-all">
+              <button
+                onClick={handleSaveIssue}
+                disabled={!issueForm.title.trim() || isIssueTitleDuplicate}
+                className="px-5 py-2.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 บันทึก
               </button>
             </div>

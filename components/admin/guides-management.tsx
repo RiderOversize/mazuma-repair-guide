@@ -296,39 +296,48 @@ export function GuidesManagement({
     const isConfirmed = await confirmDelete("ลบรุ่นสินค้า", "คุณแน่ใจหรือไม่ที่จะลบรุ่นสินค้านี้?")
     if (!isConfirmed) return
 
-    setLoading(true)
-    try {
-      await deleteModel(id)
-      await logActivity(user, "delete", "model", `ลบรุ่นสินค้า id: ${id}`)
-      if (selectedModelId === id) setSelectedModelId(null)
-      await loadData()
-      showToast("ลบรุ่นสินค้าสำเร็จ", "success")
-    } catch (err: any) {
-      showAlert("ลบไม่สำเร็จ", err.message, "error")
-    } finally {
-      setLoading(false)
-    }
+    const prevModels = [...models]
+    setModels(prev => prev.filter(m => m.id !== id))
+    if (selectedModelId === id) setSelectedModelId(null)
+    showToast("ลบรุ่นสินค้าสำเร็จ", "success")
+
+    deleteModel(id)
+      .then(() => logActivity(user, "delete", "model", `ลบรุ่นสินค้า id: ${id}`))
+      .catch(err => {
+        console.error("Failed to delete model in background:", err)
+        showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+        setModels(prevModels)
+      })
   }
 
-  const handleSaveModel = async (e: React.FormEvent) => {
+  const handleSaveModel = (e: React.FormEvent) => {
     e.preventDefault()
-    setSavingModel(true)
-    try {
-      if (editingModelId) {
-        await updateModel(editingModelId, modelFormData)
-        await logActivity(user, "update", "model", `แก้ไขรุ่น: ${modelFormData.name} (${modelFormData.code})`, editingModelId)
-        showToast("อัปเดตข้อมูลรุ่นสำเร็จ", "success")
-      } else {
-        await createModel(modelFormData as DeviceModel)
-        await logActivity(user, "create", "model", `เพิ่มรุ่นใหม่: ${modelFormData.name} (${modelFormData.code})`)
-        showToast("สร้างรุ่นสินค้าสำเร็จ", "success")
-      }
-      setIsModelFormOpen(false)
-      await loadData()
-    } catch (err: any) {
-      showAlert("บันทึกไม่สำเร็จ", err.message, "error")
-    } finally {
-      setSavingModel(false)
+    setIsModelFormOpen(false)
+    const prevModels = [...models]
+
+    if (editingModelId) {
+      setModels(prev => prev.map(m => m.id === editingModelId ? { ...m, ...modelFormData } : m))
+      showToast("อัปเดตข้อมูลรุ่นสำเร็จ", "success")
+
+      updateModel(editingModelId, modelFormData)
+        .then(() => logActivity(user, "update", "model", `แก้ไขรุ่น: ${modelFormData.name} (${modelFormData.code})`, editingModelId))
+        .catch(err => {
+          console.error("Failed to update model in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setModels(prevModels)
+        })
+    } else {
+      const newModel = { ...modelFormData, id: modelFormData.code || `m-${Date.now()}` } as DeviceModel
+      setModels(prev => [...prev, newModel])
+      showToast("สร้างรุ่นสินค้าสำเร็จ", "success")
+
+      createModel(newModel)
+        .then(() => logActivity(user, "create", "model", `เพิ่มรุ่นใหม่: ${modelFormData.name} (${modelFormData.code})`))
+        .catch(err => {
+          console.error("Failed to create model in background:", err)
+          showToast("บันทึกลง Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+          setModels(prevModels)
+        })
     }
   }
 
@@ -353,20 +362,33 @@ export function GuidesManagement({
     const isConfirmed = await confirmDelete("ลบการผูกคู่มือ", `คุณแน่ใจหรือไม่ที่จะลบคู่มือ "${mapping.symptomTypeName}" สำหรับรุ่น ${mapping.modelName}?`)
     if (!isConfirmed) return
 
-    try {
-      await deleteMasterDataMapping(mapping.id)
-      await logActivity(user, "delete", "masterdata_mapping", `${mapping.modelName} -> ${mapping.symptomTypeName}`, mapping.id)
-      await loadData()
-      showToast("ลบคู่มือสำเร็จ", "success")
-    } catch (err: any) {
-      showAlert("ลบไม่สำเร็จ", err.message, "error")
-    }
+    const mappingId = mapping.id
+    const prevMappings = [...mappings]
+    setMappings(prev => prev.filter(m => m.id !== mappingId))
+    showToast("ลบคู่มือสำเร็จ", "success")
+
+    deleteMasterDataMapping(mappingId)
+      .then(() => logActivity(user, "delete", "masterdata_mapping", `${mapping.modelName} -> ${mapping.symptomTypeName}`, mappingId))
+      .catch(err => {
+        console.error("Failed to delete mapping in background:", err)
+        showToast("ลบจาก Google Sheet ไม่สำเร็จ กำลังคืนค่า...", "error")
+        setMappings(prevMappings)
+      })
   }
 
-  const handleGuideModalFinish = () => {
+  const handleGuideModalFinish = (optimisticMappings?: MasterDataMapping[], isEdit?: boolean) => {
     setIsGuideFormOpen(false)
     setEditMapping(null)
-    loadData()
+    if (optimisticMappings && optimisticMappings.length > 0) {
+      if (isEdit) {
+        const edited = optimisticMappings[0]
+        setMappings(prev => prev.map(m => m.id === edited.id ? edited : m))
+      } else {
+        setMappings(prev => [...optimisticMappings, ...prev])
+      }
+    } else {
+      loadData()
+    }
   }
 
   if (loading && models.length === 0) {
