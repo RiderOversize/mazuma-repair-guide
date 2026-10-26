@@ -7,7 +7,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "sync:sftp": "npx tsx scripts/sync-sftp.ts"
+    "sync:sftp": "npx tsx scripts/sync-sftp.ts",
+    "docs:pdf": "node docs/generate_pdf.mjs",
+    "docs:docx": "node docs/build_docx.mjs",
+    "docs:build": "node docs/generate_pdf.mjs && node docs/build_docx.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

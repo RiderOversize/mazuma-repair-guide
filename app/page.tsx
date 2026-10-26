@@ -1,7 +1,6 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
-import { GlobalWatermark } from "@/components/watermark"
 import { LoginView } from "@/components/login-view"
 import { TechnicianApp } from "@/components/technician/technician-app"
 import { AdminApp } from "@/components/admin/admin-app"
@@ -129,7 +128,6 @@ function PageContent() {
     return (
       <div className="min-h-screen bg-background">
         <LoginView />
-        <GlobalWatermark />
       </div>
     )
   }
@@ -153,7 +151,6 @@ function PageContent() {
             await update({ boundUser });
           }}
         />
-        <GlobalWatermark />
       </div>
     )
   }
@@ -193,7 +190,6 @@ function PageContent() {
           onSwitchToAdmin={() => setAdminMode(true)}
         />
       )}
-      <GlobalWatermark />
     </div>
   )
 }

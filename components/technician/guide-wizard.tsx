@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Wrench,
   AlertTriangle,
+  AlertCircle,
   Phone,
   MonitorSmartphone,
   Check,
@@ -15,6 +16,7 @@ import {
   Loader2,
   ThumbsUp,
   ThumbsDown,
+  Send,
 } from "lucide-react"
 import { SecureVideoPlayer } from "./secure-video-player"
 import {
@@ -28,6 +30,15 @@ import { type AuthUser } from "@/lib/auth"
 import { logRepairFeedback, getUsers } from "@/lib/data-service"
 import { logActivity } from "@/lib/activity-service"
 import { cn } from "@/lib/utils"
+
+const COMMON_FAILURE_REASONS = [
+  "อะไหล่ไม่ตรงรุ่น",
+  "ไม่มีอะไหล่เปลี่ยน",
+  "อาการไม่ตรงกับคู่มือ",
+  "เครื่องมือหน้างานไม่พร้อม",
+  "ต้องส่งเครื่องเข้าศูนย์ใหญ่",
+  "ลูกค้าขอยกเลิกซ่อม",
+]
 
 export function GuideWizard({
   guide,
@@ -58,7 +69,10 @@ export function GuideWizard({
   const [showFeedback, setShowFeedback] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedbackResult, setFeedbackResult] = useState<boolean | null>(null)
   const [feedbackNote, setFeedbackNote] = useState("")
+  const [feedbackError, setFeedbackError] = useState("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [showThankYou, setShowThankYou] = useState(false)
   const [showAskContact, setShowAskContact] = useState(false)
   const [dbSupervisors, setDbSupervisors] = useState<AuthUser[]>([])
@@ -104,12 +118,52 @@ export function GuideWizard({
     }
   }, [user, currentGuide.id, currentGuide.title, model])
 
-  const handleFinish = () => {
+  const handleOpenFeedback = () => {
+    setFeedbackResult(null)
+    setFeedbackNote("")
+    setFeedbackError("")
     setShowFeedback(true)
   }
 
-  const handleFeedback = async (isHelpful: boolean, reason?: string) => {
+  const handleCloseFeedback = () => {
+    setShowFeedback(false)
+    setFeedbackResult(null)
+    setFeedbackNote("")
+    setFeedbackError("")
+  }
+
+  const handleSelectResult = (isSuccess: boolean) => {
+    setFeedbackResult(isSuccess)
+    setFeedbackError("")
+    setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 100)
+  }
+
+  const handleSelectReason = (reason: string) => {
+    setFeedbackNote((prev) => {
+      const trimmed = prev.trim()
+      if (!trimmed) return reason
+      if (trimmed.includes(reason)) return prev
+      return `${trimmed}, ${reason}`
+    })
+    setFeedbackError("")
+    textareaRef.current?.focus()
+  }
+
+  const handleSubmitFeedback = async () => {
+    if (feedbackResult === null) return
+
+    // If unsuccessful, note is required
+    if (!feedbackResult && !feedbackNote.trim()) {
+      setFeedbackError("กรุณาระบุสาเหตุที่ซ่อมไม่สำเร็จก่อนส่งรายงาน")
+      textareaRef.current?.focus()
+      return
+    }
+
+    setFeedbackError("")
     setIsSubmitting(true)
+    const isHelpful = feedbackResult
     try {
       await logRepairFeedback({
         guideId: currentGuide.id,
@@ -119,7 +173,7 @@ export function GuideWizard({
         isSuccess: isHelpful,
         stepsViewed: maxReachedIndex + 1,
         totalSteps: symGuides.length,
-        note: feedbackNote
+        note: feedbackNote.trim()
       })
 
       await logActivity(
@@ -128,18 +182,25 @@ export function GuideWizard({
         "guide",
         currentGuide.title,
         currentGuide.id,
-        `ส่งผลการซ่อม: ${isHelpful ? 'สำเร็จ' : 'ไม่สำเร็จ'}`
+        `ส่งผลการซ่อม: ${isHelpful ? 'สำเร็จ' : 'ไม่สำเร็จ'}${feedbackNote.trim() ? ` (${feedbackNote.trim()})` : ''}`
       )
     } catch (e) {
       console.error(e)
     }
     setIsSubmitting(false)
     setShowFeedback(false)
+    setFeedbackResult(null)
+    setFeedbackNote("")
+
     if (isHelpful) {
       setShowThankYou(true)
     } else {
       setShowAskContact(true)
     }
+  }
+
+  const handleFeedback = (isHelpful: boolean) => {
+    handleSelectResult(isHelpful)
   }
 
   if (finished) {
@@ -354,7 +415,7 @@ export function GuideWizard({
           {/* Action buttons (จบงาน & ติดต่อช่าง) placed in content flow */}
           <div className="pt-3 pb-6 flex flex-row gap-3">
             <button
-              onClick={() => setShowFeedback(true)}
+              onClick={handleOpenFeedback}
               className="flex flex-[2] items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-display text-sm font-bold text-white shadow-sm transition-transform active:scale-[0.98] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20 cursor-pointer"
             >
               <CheckCircle2 className="size-5 shrink-0" />
@@ -434,54 +495,195 @@ export function GuideWizard({
       {/* Feedback Modal */}
       {showFeedback && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="size-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
-                <CheckCircle2 className="size-8" />
-              </div>
-              <h2 className="text-2xl font-display font-bold text-foreground">
-                การซ่อมครั้งนี้สำเร็จหรือไม่?
-              </h2>
-              <p className="text-muted-foreground mt-2 text-sm">
-                การรายงานผลจะช่วยให้เราปรับปรุงคู่มือให้ดีขึ้น
-              </p>
-            </div>
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-5">
+            {feedbackResult === null ? (
+              /* Step 1: Select outcome */
+              <>
+                <div className="flex flex-col items-center text-center">
+                  <div className="size-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                    <CheckCircle2 className="size-8" />
+                  </div>
+                  <h2 className="text-2xl font-display font-bold text-foreground">
+                    การซ่อมครั้งนี้สำเร็จหรือไม่?
+                  </h2>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    การรายงานผลจะช่วยให้เราปรับปรุงคู่มือให้ดีขึ้น
+                  </p>
+                </div>
 
-            <div className="w-full">
-              <textarea
-                value={feedbackNote}
-                onChange={(e) => setFeedbackNote(e.target.value)}
-                placeholder="ระบุหมายเหตุเพิ่มเติม (ไม่บังคับ)..."
-                className="w-full min-h-[80px] p-3 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectResult(false)}
+                    className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-destructive/20 bg-destructive/5 p-5 text-destructive hover:bg-destructive/10 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <X className="size-9" />
+                    <span className="font-bold text-base">ไม่สำเร็จ</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectResult(true)}
+                    className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 p-5 text-emerald-600 hover:bg-emerald-500/10 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Check className="size-9" />
+                    <span className="font-bold text-base">สำเร็จ</span>
+                  </button>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                disabled={isSubmitting}
-                onClick={() => handleFeedback(false)}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-destructive/20 bg-destructive/5 p-4 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-              >
-                <X className="size-8" />
-                <span className="font-bold">ไม่สำเร็จ</span>
-              </button>
-              <button
-                disabled={isSubmitting}
-                onClick={() => handleFeedback(true)}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 p-4 text-emerald-600 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
-              >
-                <Check className="size-8" />
-                <span className="font-bold">สำเร็จ</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleCloseFeedback}
+                  className="mt-1 text-sm font-semibold text-muted-foreground hover:text-foreground text-center py-2 transition-colors cursor-pointer"
+                >
+                  ยังไม่เสร็จ ขอดูต่อ
+                </button>
+              </>
+            ) : (
+              /* Step 2: Note / Reason input + Submit button */
+              <>
+                <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedbackResult(null)
+                      setFeedbackError("")
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="size-4" />
+                    เปลี่ยนผลการซ่อม
+                  </button>
+                  <div className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold text-xs",
+                    feedbackResult
+                      ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                      : "bg-destructive/10 text-destructive border border-destructive/20"
+                  )}>
+                    {feedbackResult ? (
+                      <>
+                        <Check className="size-3.5" />
+                        ซ่อมสำเร็จ
+                      </>
+                    ) : (
+                      <>
+                        <X className="size-3.5" />
+                        ซ่อมไม่สำเร็จ
+                      </>
+                    )}
+                  </div>
+                </div>
 
-            <button
-              disabled={isSubmitting}
-              onClick={() => setShowFeedback(false)}
-              className="mt-2 text-sm font-semibold text-muted-foreground hover:text-foreground text-center flex justify-center items-center gap-2"
-            >
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "ยังไม่เสร็จ ขอดูต่อ"}
-            </button>
+                <div className="flex flex-col text-left">
+                  <h3 className="text-lg font-display font-bold text-foreground">
+                    {feedbackResult ? "บันทึกข้อมูลเพิ่มเติม" : "ระบุสาเหตุที่ซ่อมไม่สำเร็จ"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {feedbackResult
+                      ? "ระบุข้อคิดเห็นหรือข้อเสนอแนะเพิ่มเติมเพื่อพัฒนาคู่มือ (ถ้ามี)"
+                      : "กรุณาระบุสาเหตุหรือปัญหาที่พบ เพื่อบันทึกข้อมูลและส่งต่อให้หัวหน้าช่าง"}
+                  </p>
+                </div>
+
+                <div className="w-full flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      {feedbackResult ? "ข้อเสนอแนะ / หมายเหตุ" : "สาเหตุที่ไม่สำเร็จ"}
+                    </label>
+                    <span className={cn(
+                      "text-[11px] font-medium transition-colors",
+                      !feedbackResult
+                        ? "text-destructive font-semibold"
+                        : "text-muted-foreground"
+                    )}>
+                      {!feedbackResult ? "* บังคับระบุสาเหตุ" : "(ไม่บังคับ)"}
+                    </span>
+                  </div>
+
+                  <textarea
+                    ref={textareaRef}
+                    value={feedbackNote}
+                    onChange={(e) => {
+                      setFeedbackNote(e.target.value)
+                      if (feedbackError && e.target.value.trim()) {
+                        setFeedbackError("")
+                      }
+                    }}
+                    placeholder={
+                      feedbackResult
+                        ? "ระบุข้อคิดเห็น หรือสิ่งที่อยากเสนอแนะเพิ่มเติม (ไม่บังคับ)..."
+                        : "ระบุสาเหตุที่ซ่อมไม่สำเร็จ เช่น อะไหล่ไม่ตรงรุ่น, เครื่องมือไม่พร้อม..."
+                    }
+                    className={cn(
+                      "w-full min-h-[95px] p-3 rounded-xl border bg-background text-sm resize-none transition-all focus:outline-none focus:ring-2",
+                      feedbackError
+                        ? "border-destructive ring-2 ring-destructive/20 focus:ring-destructive"
+                        : "border-input focus:ring-primary/50"
+                    )}
+                  />
+
+                  {feedbackError && (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="size-4 shrink-0" />
+                      <span>{feedbackError}</span>
+                    </div>
+                  )}
+
+                  {!feedbackResult && (
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        เลือกสาเหตุด่วน:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {COMMON_FAILURE_REASONS.map((reason) => (
+                          <button
+                            key={reason}
+                            type="button"
+                            onClick={() => handleSelectReason(reason)}
+                            className="text-[11px] font-medium px-2.5 py-1 rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive active:scale-95 transition-all cursor-pointer"
+                          >
+                            + {reason}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    disabled={isSubmitting}
+                    onClick={handleSubmitFeedback}
+                    className={cn(
+                      "w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer",
+                      feedbackResult
+                        ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                        : "bg-destructive hover:bg-destructive/90 shadow-destructive/20"
+                    )}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="size-4" />
+                        <span>ส่งรายงาน</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      setFeedbackResult(null)
+                      setFeedbackError("")
+                    }}
+                    className="text-xs font-semibold text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                  >
+                    ย้อนกลับไปเลือกใหม่
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
