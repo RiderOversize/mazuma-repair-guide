@@ -1,6 +1,7 @@
 "use server"
 
 import { readSheet, appendRow, appendRows, updateRowById, deleteRowById, deleteRowsByFilter, mapRowToObject, mapObjectToRow, SHEETS, getIndexCaseInsensitive } from "./google-sheets";
+import { getThaiTimestamp } from "./date-utils";
 import { type AuthUser } from "./auth";
 import { type Category, type DeviceModel, type Guide, type GuideStep, type SubCategory, type SymptomType, type Symptom } from "./types";
 import {
@@ -920,7 +921,7 @@ if (!globalForFeedback.feedbackFlushTimer) {
 
 export async function logRepairFeedback(feedback: Omit<RepairFeedback, "id" | "timestamp">) {
   try {
-    const timestamp = new Date().toISOString();
+    const timestamp = getThaiTimestamp();
     const id = `fb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     
     // Standard headers for feedbacks sheet

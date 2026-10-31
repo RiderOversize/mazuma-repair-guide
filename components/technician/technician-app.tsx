@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { ArrowLeft, Home, ChevronLeft, RefreshCw } from "lucide-react"
 import { TechnicianHome, type TechnicianHomeRef, type DiagnosticGroup } from "./technician-home"
 import { SymptomList } from "./symptom-list"
-import { GuideWizard } from "./guide-wizard"
+import { GuideWizard, type GuideWizardHandle } from "./guide-wizard"
 import { UserMenu } from "@/components/user-menu"
 import { SubCategoryList } from "./subcategory-list"
 import { ModelList } from "./model-list"
@@ -44,6 +44,7 @@ export function TechnicianApp({
   const [subCategory, setSubCategory] = useState<SubCategory | null>(null)
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [guide, setGuide] = useState<Guide | null>(null)
+  const guideWizardRef = useRef<GuideWizardHandle | null>(null)
 
   // Preloaded data
   const [categories, setCategories] = useState<Category[]>([])
@@ -139,6 +140,11 @@ export function TechnicianApp({
   }
 
   const handleBack = () => {
+    if (view === "guide" && guideWizardRef.current) {
+      const intercepted = guideWizardRef.current.requestExit("back")
+      if (intercepted) return
+    }
+
     if (view === "home") {
       if (selectedDiagnosticGroup) {
         setSelectedDiagnosticGroup(null)
@@ -169,6 +175,11 @@ export function TechnicianApp({
   }
 
   const handleHome = () => {
+    if (view === "guide" && guideWizardRef.current) {
+      const intercepted = guideWizardRef.current.requestExit("home")
+      if (intercepted) return
+    }
+
     setHistory(["home"])
     setView("home")
     setHomeTab("categories")
@@ -349,6 +360,7 @@ export function TechnicianApp({
 
           {view === "guide" && guide && (
             <GuideWizard
+              ref={guideWizardRef}
               guide={guide}
               guides={guides}
               user={user}

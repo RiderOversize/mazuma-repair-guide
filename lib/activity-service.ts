@@ -3,8 +3,9 @@
 import { after } from "next/server"
 import { AuthUser } from "./auth"
 import { readSheet, appendRow, SHEETS, mapRowToObject, mapObjectToRow } from "./google-sheets"
+import { getThaiTimestamp, parseThaiDate } from "./date-utils"
 
-export type ActivityAction = "create" | "update" | "delete" | "login" | "logout" | "view" | "alert"
+export type ActivityAction = "create" | "update" | "delete" | "login" | "logout" | "view" | "alert" | "incomplete"
 export type ActivityResource = "guide" | "model" | "user" | "category" | "subcategory" | "system" | "symptom_type" | "symptom" | "masterdata_mapping" | "unmapped_category_alert"
 
 export interface ActivityLog {
@@ -52,7 +53,7 @@ export async function getActivities(): Promise<ActivityLog[]> {
     const pendingUnique = activityLogEntries.filter(p => !existingIds.has(p.id));
     const combined = [...pendingUnique, ...logs];
 
-    return combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    return combined.sort((a, b) => parseThaiDate(b.timestamp).getTime() - parseThaiDate(a.timestamp).getTime())
   } catch (error) {
     console.error("Failed to get activities:", error)
     return [...activityLogEntries];
@@ -136,7 +137,7 @@ export async function logActivity(
     resourceName: resourceName || "",
     userCode: user.employeeCode,
     userName: user.name,
-    timestamp: new Date().toISOString(),
+    timestamp: getThaiTimestamp(),
     details: details || ""
   };
 

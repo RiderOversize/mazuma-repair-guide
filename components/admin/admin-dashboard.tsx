@@ -29,6 +29,7 @@ import { AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { getEffectiveMenus } from "./user-management"
 import { isAllowedCategory } from "@/lib/category-theme"
+import { parseThaiDate, formatTimeAgo, formatThaiDateTime } from "@/lib/date-utils"
 
 export function AdminDashboard({ 
   user, 
@@ -104,14 +105,6 @@ export function AdminDashboard({
     { label: "กลุ่มอาการ", value: totalSymptoms, icon: Stethoscope, tone: "text-amber-500 bg-amber-500/10 border-amber-500/20", onClick: hasAccess("master-data") ? () => onNavigateTo?.("master-data", "symptomTypesRoot") : undefined },
   ]
 
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-    if (diff < 60) return "เมื่อสักครู่"
-    if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`
-    if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`
-    return `${Math.floor(diff / 86400)} วันที่แล้ว`
-  }
-
   const getActionText = (action: string) => {
     switch (action) {
       case "create": return "สร้างข้อมูลใหม่"
@@ -119,6 +112,7 @@ export function AdminDashboard({
       case "delete": return "ลบข้อมูล"
       case "login": return "เข้าสู่ระบบ"
       case "logout": return "ออกจากระบบ"
+      case "incomplete": return "ออกจากคู่มือโดยไม่ปิดงาน"
       default: return action
     }
   }
@@ -686,7 +680,7 @@ export function AdminDashboard({
       {showRepairStatsModal && (() => {
         const dateFilteredFeedbacks = repairStats.feedbacks.filter(fb => {
           if (dateFilter !== "all") {
-            const fbDate = new Date(fb.timestamp);
+            const fbDate = parseThaiDate(fb.timestamp);
             const now = new Date();
             
             if (dateFilter === "today") {

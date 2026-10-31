@@ -4,6 +4,7 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { clearCache, SHEETS } from '@/lib/google-sheets';
 import { EXCLUDED_CATEGORY_KEYWORDS, ALLOWED_CATEGORY_KEYWORDS } from '@/lib/category-theme';
+import { getThaiTimestamp } from '@/lib/date-utils';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -214,7 +215,7 @@ export async function GET(request: Request) {
           resource: 'system',
           userCode: 'SYSTEM_CRON',
           userName: 'SFTP Auto Sync',
-          timestamp: new Date().toISOString(),
+          timestamp: getThaiTimestamp(),
           details: `Synced ${dataArray.length} items (Updated: ${updateCount}, Inserted: ${rowsToAdd.length})`
         });
       }

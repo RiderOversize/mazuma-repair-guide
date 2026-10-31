@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react"
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,8 +17,11 @@ import {
   ThumbsUp,
   ThumbsDown,
   Send,
+  ClipboardCheck,
+  LogOut,
 } from "lucide-react"
 import { SecureVideoPlayer } from "./secure-video-player"
+import { showToast } from "@/lib/swal"
 import {
   type Guide,
   type DeviceModel,
@@ -40,19 +43,11 @@ const COMMON_FAILURE_REASONS = [
   "ลูกค้าขอยกเลิกซ่อม",
 ]
 
-export function GuideWizard({
-  guide,
-  guides,
-  user,
-  model,
-  categories,
-  models,
-  symptoms,
-  symptomTypes,
-  preview = false,
-  onBack,
-  onHome,
-}: {
+export interface GuideWizardHandle {
+  requestExit: (target: "home" | "back") => boolean
+}
+
+export interface GuideWizardProps {
   guide: Guide
   guides?: Guide[]
   user: AuthUser
@@ -64,7 +59,28 @@ export function GuideWizard({
   preview?: boolean
   onBack: () => void
   onHome?: () => void
-}) {
+}
+
+export const GuideWizard = forwardRef<GuideWizardHandle, GuideWizardProps>(function GuideWizard(
+  {
+    guide,
+    guides,
+    user,
+    model,
+    categories,
+    models,
+    symptoms,
+    symptomTypes,
+    preview = false,
+    onBack,
+    onHome,
+  },
+  ref
+) {
+  const isClosedRef = useRef(false)
+  const [exitConfirmStep, setExitConfirmStep] = useState<0 | 1 | 2>(0)
+  const [exitTarget, setExitTarget] = useState<"home" | "back">("back")
+  const [isSubmittingExit, setIsSubmittingExit] = useState(false)
   const [finished, setFinished] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [showContact, setShowContact] = useState(false)
@@ -118,11 +134,77 @@ export function GuideWizard({
     }
   }, [user, currentGuide.id, currentGuide.title, model])
 
+  const requestExit = useCallback((target: "home" | "back") => {
+    if (isClosedRef.current) {
+      return false
+    }
+    setExitTarget(target)
+    setExitConfirmStep(1)
+    return true
+  }, [])
+
+  useImperativeHandle(ref, () => ({
+    requestExit,
+  }), [requestExit])
+
+  // Prevent leaving via browser back button without confirmation
+  useEffect(() => {
+    try {
+      window.history.pushState({ inGuideWizard: true }, "")
+    } catch {}
+
+    const handlePopState = () => {
+      if (!isClosedRef.current) {
+        try {
+          window.history.pushState({ inGuideWizard: true }, "")
+        } catch {}
+        requestExit("back")
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [requestExit])
+
   const handleOpenFeedback = () => {
+    setExitConfirmStep(0)
     setFeedbackResult(null)
     setFeedbackNote("")
     setFeedbackError("")
     setShowFeedback(true)
+  }
+
+  const handleProceedToCloseJob = () => {
+    setExitConfirmStep(0)
+    handleOpenFeedback()
+  }
+
+  const handleExitWithoutClosing = async () => {
+    setIsSubmittingExit(true)
+    try {
+      await logActivity(
+        user,
+        "incomplete",
+        "guide",
+        currentGuide.title,
+        currentGuide.id,
+        `สถานะ: ไม่กดปิดงาน | ดูถึงขั้นตอนที่ ${currentIndex + 1} จากทั้งหมด ${symGuides.length} ขั้นตอน (${currentGuide.title})${model ? ` บนเครื่อง ${model.name}` : ""}`
+      )
+      showToast("ออกจากคู่มือแล้ว (บันทึกสถานะ: ไม่กดปิดงาน)", "info")
+    } catch (err) {
+      console.error("Failed to log incomplete guide exit:", err)
+    } finally {
+      setIsSubmittingExit(false)
+      isClosedRef.current = true
+      setExitConfirmStep(0)
+      if (exitTarget === "home" && onHome) {
+        onHome()
+      } else {
+        onBack()
+      }
+    }
   }
 
   const handleCloseFeedback = () => {
@@ -191,6 +273,7 @@ export function GuideWizard({
     setShowFeedback(false)
     setFeedbackResult(null)
     setFeedbackNote("")
+    isClosedRef.current = true
 
     if (isHelpful) {
       setShowThankYou(true)
@@ -704,10 +787,12 @@ export function GuideWizard({
               <button
                 onClick={() => {
                   setShowAskContact(false)
-                  if (onHome) onHome()
+                  isClosedRef.current = true
+                  if (exitTarget === "home" && onHome) onHome()
+                  else if (onHome) onHome()
                   else onBack()
                 }}
-                className="flex-1 rounded-2xl border border-input bg-background px-4 py-3.5 text-sm font-bold text-foreground hover:bg-muted transition-all active:scale-95"
+                className="flex-1 rounded-2xl border border-input bg-background px-4 py-3.5 text-sm font-bold text-foreground hover:bg-muted transition-all active:scale-95 cursor-pointer"
               >
                 ไม่เป็นไร
               </button>
@@ -741,16 +826,141 @@ export function GuideWizard({
             <button
               onClick={() => {
                 setShowThankYou(false)
-                if (onHome) onHome()
+                isClosedRef.current = true
+                if (exitTarget === "home" && onHome) onHome()
+                else if (onHome) onHome()
                 else onBack()
               }}
-              className="mt-4 w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+              className="mt-4 w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 cursor-pointer"
             >
               กลับหน้าแรก
             </button>
           </div>
         </div>
       )}
+
+      {/* Exit Confirmation Step 1 Modal: ถามว่าจะออกจริงหรือไม่ */}
+      {exitConfirmStep === 1 && (
+        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-4 text-center">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 mb-1">
+              <AlertTriangle className="size-8" />
+            </div>
+
+            <h2 className="text-xl font-display font-bold text-foreground">
+              ต้องการออกจากคู่มือหรือไม่?
+            </h2>
+
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              คุณกำลังเปิดดูขั้นตอนการซ่อมอยู่ หากออกตอนนี้ ระบบจะยังไม่ได้รับการบันทึกผลการซ่อมแซม
+            </p>
+
+            <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-left space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>อาการเสีย</span>
+                <span className="font-semibold text-foreground text-right truncate max-w-[200px]">
+                  {symptom?.title || "ไม่ระบุ"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>ความคืบหน้า</span>
+                <span className="font-semibold text-primary">
+                  ขั้นตอนที่ {currentIndex + 1} จาก {symGuides.length}
+                </span>
+              </div>
+              {model && (
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>รุ่นสินค้า</span>
+                  <span className="font-semibold text-foreground truncate max-w-[200px]">
+                    {model.code ? `${model.code} (${model.name})` : model.name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5 mt-2">
+              <button
+                type="button"
+                onClick={() => setExitConfirmStep(0)}
+                className="w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shadow-md cursor-pointer"
+              >
+                ดูคู่มือการซ่อมต่อ
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setExitConfirmStep(2)}
+                className="w-full rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all active:scale-95 cursor-pointer"
+              >
+                ยืนยันต้องการออก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Step 2 Modal: ถามว่าปิดงานหรือไม่ */}
+      {exitConfirmStep === 2 && (
+        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col gap-4 text-center">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-1">
+              <ClipboardCheck className="size-8" />
+            </div>
+
+            <h2 className="text-xl font-display font-bold text-foreground">
+              ต้องการปิดงานก่อนหรือไม่?
+            </h2>
+
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              การบันทึกปิดงานจะช่วยเก็บสถิติผลการซ่อมจริงหน้างาน หากไม่อยู่ในเงื่อนไขการปิดงาน สามารถเลือกออกโดยไม่ปิดงานได้
+            </p>
+
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-left text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <span>
+                หากเลือก <strong>&ldquo;ออกโดยไม่ปิดงาน&rdquo;</strong> ระบบจะบันทึกสถานะและสถิติว่าดูถึงขั้นตอนใดลงใน Activity Log ของแอดมินโดยอัตโนมัติ
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2.5 mt-2">
+              <button
+                type="button"
+                disabled={isSubmittingExit}
+                onClick={handleProceedToCloseJob}
+                className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-bold text-white hover:bg-emerald-700 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle2 className="size-4.5" />
+                <span>บันทึกปิดงาน (แนะนำ)</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmittingExit}
+                onClick={handleExitWithoutClosing}
+                className="w-full rounded-2xl border-2 border-destructive/20 bg-destructive/5 px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingExit ? (
+                  <Loader2 className="size-4.5 animate-spin" />
+                ) : (
+                  <>
+                    <LogOut className="size-4.5" />
+                    <span>ออกโดยไม่ปิดงาน</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmittingExit}
+                onClick={() => setExitConfirmStep(0)}
+                className="mt-1 text-xs font-semibold text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+              >
+                ย้อนกลับไปดูคู่มือต่อ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
+})
